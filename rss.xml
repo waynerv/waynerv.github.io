@@ -23,10 +23,206 @@
         
             <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright>
         
-        <lastBuildDate>Thu, 24 Dec 2020 21:45:48 &#43;0800</lastBuildDate>
+        <lastBuildDate>Sun, 27 Dec 2020 12:18:59 &#43;0800</lastBuildDate>
         
             <atom:link rel="self" type="application/rss&#43;xml" href="https://waynerv.github.io/rss.xml" />
         
+        
+            <item>
+                <title>使用 Hugo 和 GitHub Pages 部署个人博客</title>
+                <link>https://waynerv.github.io/posts/setup-blog-with-hugo-and-github-pages/</link>
+                <guid isPermaLink="true">https://waynerv.github.io/posts/setup-blog-with-hugo-and-github-pages/</guid>
+                <pubDate>Thu, 24 Dec 2020 21:47:50 &#43;0800</pubDate>
+                
+                    <author>ampedee@gmail.com (Waynerv)</author>
+                
+                <copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright>
+                
+                    <description>&lt;p&gt;作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p&gt;
+&lt;p&gt;刚学编程的时候，我还开源过一个基于 Flask 和 MongoDB 的&lt;a href=&#34;https://github.com/waynerv/originblog&#34;&gt;博客项目&lt;/a&gt;，但后面就没怎么使用和维护了，除开主观上的懒，还因为：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;自建博客绕不开主机和域名，这是一笔持续的经济成本。国内的主机往往是第一年割肉第二年宰猪，国外的主机访问延迟很高。&lt;/li&gt;
+&lt;li&gt;国内主机更麻烦的是还需要定期备案，第一个博客就是因为备案到期中断了。&lt;/li&gt;
+&lt;li&gt;博客功能的实现技术难度不大，开始还有一些新鲜感，有了工作经验后就很难有兴趣继续维护了。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;刚好最近有写一些文章的打算，决定找个简单、省事（最后发现并没有）且不花钱的路子把博客再搞起来，经过一番研究，选择了生成静态站点发布到 GitHub Pages 的方案。&lt;/p&gt;
+&lt;h2 id=&#34;工作流&#34;&gt;工作流&lt;/h2&gt;
+&lt;p&gt;整个方案的流程大致如下：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;用 Markdown 格式写作文章。&lt;/li&gt;
+&lt;li&gt;使用生成器将 markdown 文件转换成静态站点。&lt;/li&gt;
+&lt;li&gt;将生成的站点内容推送到 GitHub 并发布。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;写 markdown 没啥好说的，什么编辑器都可以，我一直用的是 Typora。&lt;/p&gt;
+&lt;p&gt;静态站点生成器我选择了 Hugo，原因是最近刚好在学 Go，此外还有 Gatsby、Jekyll、Hexo等很多选项。&lt;/p&gt;
+&lt;p&gt;接下来要做的工作是生成静态站点并通过 GitHub Pages 发布。&lt;/p&gt;
+&lt;h2 id=&#34;生成静态站点&#34;&gt;生成静态站点&lt;/h2&gt;
+&lt;p&gt;使用 Hugo 生成静态博客站点非常简单，具体的步骤和用法可以参考官方文档的 &lt;a href=&#34;https://gohugo.io/getting-started/quick-start/&#34;&gt;Quick Start&lt;/a&gt;。下面简单介绍下整个过程：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;安装 Hugo。&lt;code&gt;macOS&lt;/code&gt; 下可以直接使用 &lt;code&gt;homebrew&lt;/code&gt;安装：&lt;code&gt;brew install hugo&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;创建一个新的站点。这会生成一个特定结构的项目文件夹，用来维护所有的站点内容。假设我们想把它命名为 &lt;code&gt;hugo-blog&lt;/code&gt;，则使用以下命令创建并切换到该目录，后续的操作和命令都会在这个根目录下执行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;hugo new site hugo-blog
+cd hugo-blog
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;安装一个主题。这一步是必需的，否则会因为缺少基础模板无法生成站点。安装主题有 3 种方式，以 &lt;code&gt;eureka&lt;/code&gt; 主题为例：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;直接下载主题的压缩文件，将解压得到的文件夹重命名为主题名称 &lt;code&gt;eureka&lt;/code&gt; 放到 &lt;code&gt;themes/&lt;/code&gt;目录下。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;通过 &lt;code&gt;git submodule&lt;/code&gt; 安装：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;git init
+git submodule add https://github.com/wangchucheng/hugo-eureka.git themes/eureka
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;通过 &lt;code&gt;Hugo Modules&lt;/code&gt; 安装（这种方式要求本机安装有 &lt;a href=&#34;https://golang.org/dl/&#34;&gt;Go 1.12&lt;/a&gt; 及以上版本，且只有部分主题支持）：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;hugo mod init &amp;lt;module_name&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;code&gt;&amp;lt;module_name&amp;gt;&lt;/code&gt; 并不重要，随便起个名字就行。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;安装后需要启用主题，方法是将主题名称写入到根目录下的默认配置文件 &lt;code&gt;config.yml&lt;/code&gt; 中：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;echo &#39;theme = &amp;quot;eureka&amp;quot;&#39; &amp;gt;&amp;gt; config.toml
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;如果是通过 &lt;code&gt;Hugo Modules&lt;/code&gt; 安装，需要把主题名称替换成模块名称：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;echo &#39;theme = &amp;quot;github.com/wangchucheng/hugo-eureka&amp;quot;&#39; &amp;gt;&amp;gt; config.toml
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;添加一篇文章。可以直接在 &lt;code&gt;content/posts&lt;/code&gt; 目录下创建 markdown 文件，但需要手动写入一些元信息，因此推荐使用 Hugo 自带的命令：&lt;code&gt;hugo new posts/my-first-post.md&lt;/code&gt;，添加的文件会以如下元信息开头：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;---
+title: &amp;quot;My First Post&amp;quot;
+date: 2019-03-26T08:47:11+01:00
+draft: true
+---
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;在下方接着写入文章内容即可。注意此时该文件为草稿状态，写作完成后需要改成 &lt;code&gt;draft: false&lt;/code&gt; 才能部署。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;启动 Hugo 预览服务器。Hugo 可以启动一个 Web 服务器，同时构建站点内容到内存中并在检测到文件更改后重新渲染，方便我们在开发环境实时预览对站点所做的更改。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;hugo server -D
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;注意添加 &lt;code&gt;-D&lt;/code&gt; 选项以输出草稿状态的文章。执行成功后可以通过 &lt;code&gt;http://localhost:1313/&lt;/code&gt; 访问站点。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;自定义主题配置。站点的配置项默认保存在根目录的 &lt;code&gt;config.toml&lt;/code&gt; 文件中，配置项较多时通常会用主题提供的预设配置文件来替换该文件，还可以通过&lt;code&gt;config&lt;/code&gt; 目录加多个文件的方式来组织配置。默认配置文件如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;baseURL = &amp;quot;http://example.org/&amp;quot;      # 发布地址，由主机名以及路径组成
+languageCode = &amp;quot;en-us&amp;quot;               # 语言代码，中文可以设置为&amp;quot;zh&amp;quot;
+title = &amp;quot;My New Hugo Site&amp;quot;           # 站点标题
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;这一步应该是整个过程中最麻烦也是最容易出问题的一步，视乎你选择的主题与想要的功能不同，需要自定义的配置项也不同，数量从几个到上百个不等。有些主题会有详细的文档解释配置过程，有些则一笔带过只能自己去摸索，配置较多时相互间可能还有依赖关系，最好更改一个配置就刷新一次页面确认下结果。&lt;/p&gt;
+&lt;p&gt;建议起步时一切从简，花大把时间搞各种花里胡哨的样式和功能，还不如多写几篇文章。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;构建静态页面。站点配置成我们理想的效果之后就可以构建静态页面了：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;hugo -D
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;添加 &lt;code&gt;-D&lt;/code&gt; 选项可以在构建结果中包括草稿内容，默认情况下静态页面会输出到根目录下的 &lt;code&gt;public&lt;/code&gt; 文件夹中。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;通过-github-pages-发布&#34;&gt;通过 GitHub Pages 发布&lt;/h2&gt;
+&lt;p&gt;这一步 Hugo 的官方文档同样在 &lt;a href=&#34;https://gohugo.io/hosting-and-deployment/hosting-on-github/&#34;&gt;Host on GitHub&lt;/a&gt; 中进行了详细的介绍，并且还很贴心的提供了自动化操作的 Shell 脚本。&lt;/p&gt;
+&lt;p&gt;有两种方式：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;通过个人主页发布：必须创建一个 &lt;code&gt;&amp;lt;USERNAME&amp;gt;.github.io&lt;/code&gt; 仓库来托管生成的静态内容，发布后的域名为 &lt;code&gt;https://&amp;lt;USERNAME&amp;gt;.github.io&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;通过项目主页发布：可以随意创建 &lt;code&gt;&amp;lt;PROJECT_NAME&amp;gt;&lt;/code&gt; 仓库，发布后的域名为 &lt;code&gt;https://&amp;lt;USERNAME&amp;gt;.github.io/&amp;lt;PROJECT_NAME&amp;gt;&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;视选择的发布方式不同，我们需要将 &lt;code&gt;config.yml&lt;/code&gt; 中的 &lt;code&gt;baseUrl&lt;/code&gt; 设置为不同的值。&lt;/p&gt;
+&lt;h3 id=&#34;通过个人主页发布&#34;&gt;通过个人主页发布&lt;/h3&gt;
+&lt;p&gt;建议非特殊情况下使用第 1 种方式，原因是许多主题都不能很好的支持第 2 种方式，更具体的说是将 &lt;code&gt;config.toml&lt;/code&gt; 的 &lt;code&gt;baseURL&lt;/code&gt;设置为带子路径的地址时，不能正确的处理所有资源的构建位置。我尝试了3个主题，均遭遇了不同的问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;eureka&lt;/code&gt;: 构建失败，提示 :&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;Error: Error building site: POSTCSS: failed to transform &amp;quot;css/eureka.css&amp;quot; (text/css): resource &amp;quot;css/waynerv.github.io/css/eureka.css_fc3f76d7bee2760c3a903059afc3d9b2&amp;quot; not found in file cache
+&lt;/code&gt;&lt;/pre&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;LoveIt&lt;/code&gt;: 构建成功，但除主页以外的文章、分类和标签的页面均提示 404。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;MemE&lt;/code&gt;: 构建成功，但文章中插入的图片加载 404（放在同一文件夹的&lt;code&gt;favicon&lt;/code&gt; 却能正常展示）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这个问题我在 &lt;code&gt;eureka&lt;/code&gt; 项目提交 issue 后开发者很快进行了回复，是因为 Hugo 本身的一些问题所导致，开发者已经在 Hugo 论坛中提出了此&lt;a href=&#34;https://discourse.gohugo.io/t/cached-resources-not-found-in-file-cache-when-baseurl-contains-subdirectory/30182/8&#34;&gt;问题&lt;/a&gt;，有兴趣的可以关注后续进展。&lt;/p&gt;
+&lt;h3 id=&#34;发布步骤&#34;&gt;发布步骤&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;在 GitHub 创建个人主页仓库，仓库名称必须设置为 &lt;code&gt;&amp;lt;USERNAME&amp;gt;.github.io&lt;/code&gt;，这个仓库仅存放生成的静态内容。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;在 GitHub 创建一个项目仓库 &lt;code&gt;hugo-blog&lt;/code&gt; 并添加为我们本地项目文件夹的远程仓库。这个仓库用来维护站点配置和原始的文章内容。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;假设我们在已经通过上文的步骤在 &lt;code&gt;public&lt;/code&gt; 文件夹中生成了想发布的静态内容，运行：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;git submodule add -b main https://github.com/&amp;lt;USERNAME&amp;gt;/&amp;lt;USERNAME&amp;gt;.github.io.git public
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;在 &lt;code&gt;public&lt;/code&gt; 目录中创建一个 git 子模块，之后这个目录将以 &lt;code&gt;https://github.com/&amp;lt;USERNAME&amp;gt;/&amp;lt;USERNAME&amp;gt;.github.io&lt;/code&gt; 作为远程仓库。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;确保配置文件中的 &lt;code&gt;baseUrl&lt;/code&gt; 已经设置为了 &lt;code&gt;&amp;lt;USERNAME&amp;gt;.github.io&lt;/code&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Hugo 为我们接下来的部署操作提供了一个自动化的 Shell 脚本：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;#!/bin/sh
+  
+# 任一步骤执行失败都会终止整个部署过程
+set -e
+  
+printf &amp;quot;\033[0;32mDeploying updates to GitHub...\033[0m\n&amp;quot;
+  
+# 构建静态内容
+hugo # if using a theme, replace with `hugo -t &amp;lt;YOURTHEME&amp;gt;`
+  
+# 切换到 Public 文件夹
+cd public
+  
+# 添加更改到 git
+git add .
+  
+# 提交更改
+msg=&amp;quot;rebuilding site $(date)&amp;quot;
+if [ -n &amp;quot;$*&amp;quot; ]; then
+  msg=&amp;quot;$*&amp;quot;
+fi
+git commit -m &amp;quot;$msg&amp;quot;
+  
+# 推送到远程仓库
+git push origin main
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;我们将其放在 &lt;code&gt;deploy.sh&lt;/code&gt; 文件中，并执行 &lt;code&gt;chmod +x deploy.sh&lt;/code&gt; 为其添加可执行权限。接着执行部署脚本：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;./deploy.sh
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;大功告成！稍等几分钟就可以在 &lt;code&gt;&amp;lt;USERNAME&amp;gt;.github.io&lt;/code&gt; 看到我们的个人博客了。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;通过-github-actions-自动部署&#34;&gt;通过 GitHub Actions 自动部署&lt;/h3&gt;
+&lt;p&gt;TODO.&lt;/p&gt;
+</description>
+                
+                
+                
+                
+                
+                    
+                        
+                            
+                                
+                                
+                                
+                                    <category domain="https://waynerv.github.io/categories/%E4%B8%AA%E4%BA%BA/">个人</category>
+                                
+                            
+                        
+                    
+                        
+                            
+                                
+                                
+                                
+                                    <category domain="https://waynerv.github.io/tags/%E5%8D%9A%E5%AE%A2/">博客</category>
+                                
+                            
+                        
+                    
+                
+            </item>
         
             <item>
                 <title>git rebase 浅析</title>
