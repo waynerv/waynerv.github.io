@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.github.io/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 30 Dec 2020 23:49:56 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.github.io/rss.xml"/><item><title>Git 合并浅析</title><link>https://waynerv.github.io/posts/git-merge-intro/</link><guid isPermaLink="true">https://waynerv.github.io/posts/git-merge-intro/</guid><pubDate>Tue, 29 Dec 2020 07:17:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.github.io/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 31 Dec 2020 01:43:12 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.github.io/rss.xml"/><item><title>Git 合并浅析</title><link>https://waynerv.github.io/posts/git-merge-intro/</link><guid isPermaLink="true">https://waynerv.github.io/posts/git-merge-intro/</guid><pubDate>Tue, 29 Dec 2020 07:17:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
 &lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
 &lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
 &lt;h2 id="认识合并">认识合并&lt;/h2>
@@ -218,11 +218,9 @@ title = &amp;quot;My New Hugo Site&amp;quot; # 站点标题
 &lt;/li>
 &lt;li>
 &lt;p>假设我们在已经通过上文的步骤在 &lt;code>public&lt;/code> 文件夹中生成了想发布的静态内容，运行：&lt;/p>
-&lt;/li>
-&lt;/ol>
 &lt;pre>&lt;code>git submodule add -b main https://github.com/&amp;lt;USERNAME&amp;gt;/&amp;lt;USERNAME&amp;gt;.github.io.git public
 &lt;/code>&lt;/pre>&lt;p>在 &lt;code>public&lt;/code> 目录中创建一个 git 子模块，之后这个目录将以 &lt;code>https://github.com/&amp;lt;USERNAME&amp;gt;/&amp;lt;USERNAME&amp;gt;.github.io&lt;/code> 作为远程仓库。&lt;/p>
-&lt;ol start="4">
+&lt;/li>
 &lt;li>
 &lt;p>确保配置文件中的 &lt;code>baseUrl&lt;/code> 已经设置为了 &lt;code>&amp;lt;USERNAME&amp;gt;.github.io&lt;/code>。&lt;/p>
 &lt;/li>
