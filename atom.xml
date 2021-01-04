@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">谈谈天，写写码</subtitle><updated>2021-01-04T04:50:42+00:00</updated><id>https://waynerv.github.io/</id><link rel="alternate" type="text/html" href="https://waynerv.github.io/"/><link rel="self" type="application/atom+xml" href="https://waynerv.github.io/atom.xml"/><author><name>Waynerv</name><uri>https://waynerv.github.io/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://waynerv.github.io/posts/build-automatic-code-quality-workflow/"/><id>https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</id><updated>2021-01-04T04:50:36+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍……</summary><content type="html">&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">谈谈天，写写码</subtitle><updated>2021-01-04T08:51:45+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2021-01-04T08:51:38+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍……</summary><content type="html">&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
 &lt;h2 id="linter">Linter&lt;/h2>
 &lt;p>Linter 是一类用于标记程序错误、bug、风格错误和可疑结构的静态代码分析工具，比如 Python 中的 &lt;code>Pylint&lt;/code>、 &lt;code>flake8&lt;/code>，JavaScript 中的 &lt;code>EsLint&lt;/code>，这类工具会找到你代码中的错误，并给出如何修复的提示。&lt;/p>
 &lt;h3 id="为何要使用-linter">为何要使用 Linter&lt;/h3>
@@ -17,7 +17,7 @@
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pip install flake8
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ pip install flake8
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>&lt;code>flake8&lt;/code> 的使用非常简单，直接以需要检查的文件或整个目录的路径作为 &lt;code>flake8&lt;/code> 命令的参数：&lt;/p>
@@ -273,7 +273,7 @@ All &lt;span class="k">done&lt;/span>! ✨ 🍰 ✨
 &lt;p>Git 可以在仓库中发生特定事件时自动运行自定义的脚本，这些自定义脚本即称为 &lt;code>hooks&lt;/code>。 它们让你可以在开发周期的关键点触发可定制的动作，比如每次执行提交前都执行一次 &lt;code>flake8&lt;/code> 命令。大部分其他的版本控制系统也会提供类似的功能。&lt;/p>
 &lt;p>&lt;code>hooks&lt;/code> 保存在 Git 仓库的 &lt;code>.git/hooks&lt;/code> 目录中，它可以是普通的 shell 脚本，也可以是 Python、Ruby 等语言的可执行脚本，因此我们可以很方便地将常用工具集成到 &lt;code>hooks&lt;/code> 中。 &lt;code>hooks&lt;/code> 通常按客户端和服务端分为两大类，常用的客户端类有 &lt;code>pre-commit&lt;/code> 、 &lt;code>prepare-commit-msg&lt;/code>、 &lt;code>commit-msg&lt;/code>、 &lt;code>post-commit&lt;/code>、 &lt;code>pre-rebase&lt;/code> 等 &lt;code>hooks&lt;/code>，它们分别在名称所代表的事件触发时运行。&lt;/p>
 &lt;p>以 &lt;code>pre-commit&lt;/code> 为例，该 &lt;code>hooks&lt;/code> 在输入提交信息前运行。 它可以检查即将提交的快照，如果该 &lt;code>hooks&lt;/code> 以非零值退出，Git 将放弃此次提交，我们可以利用它来检查提交的代码风格是否正确（运行例如 &lt;code>flake8&lt;/code>、 &lt;code>black&lt;/code> 等程序）、是否引入安全风险等等。整个流程示意如下：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-pre-commit-workflow.png" alt="2020-01-04-pre-commit-workflow">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-pre-commit-workflow.png" alt="2020-01-04-pre-commit-workflow">&lt;/p>
 &lt;p>接下来我们将展示，如何将上文介绍的众多工具快速地集成到 &lt;code>pre-commit hooks&lt;/code> 中。&lt;/p>
 &lt;h3 id="pre-commit">pre-commit&lt;/h3>
 &lt;p>&lt;code>pre-commit&lt;/code> 是一个用于管理和维护多种语言 &lt;code>pre-commit hooks&lt;/code> 的框架，就像 Python 的包管理器 &lt;code>pip&lt;/code> 一样，我们可以通过 &lt;code>pre-commit&lt;/code> 将他人创建并分享的 &lt;code>pre-commit hooks&lt;/code> 安装到自己的项目仓库中。 &lt;code>pre-commit&lt;/code> 大大减少了我们使用 &lt;code>git hooks&lt;/code> 的难度，你只需要在配置文件中指定想要的 &lt;code>hooks&lt;/code>，它会替你安装任意语言编写的 &lt;code>hooks&lt;/code> 并解决环境依赖问题，然后在每次提交前执行。&lt;/p>
@@ -429,7 +429,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;p>CD（Continuous Deployment，持续部署）是 CI 的下一步。我们不仅在每次推送代码到共享代码库时进行构建和测试，还会在不需要任何人工干预的情况下，自动部署代码到生产环境。此外还有Continuous Delivery （持续交付），它和持续部署的区别在于需要人工干预才会执行部署。&lt;/p>
 &lt;h3 id="pipeline">Pipeline&lt;/h3>
 &lt;p>Pipeline 是持续集成、交付和部署的顶层具象化组件，它由顺序执行的阶段（stage）以及每个阶段中并行的任务（job）组成。一个简单的 pipeline 如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-pipelines.png" alt="2020-01-04-pipelines">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-pipelines.png" alt="2020-01-04-pipelines">&lt;/p>
 &lt;p>首先并行地执行 &lt;code>build&lt;/code> 阶段的所有任务（&lt;code>build_a&lt;/code> 和 &lt;code>build_b&lt;/code>），所有任务成功后继续执行下一阶段的任务，以此类推。pipeline 还能定义成按更复杂的逻辑规则运行。&lt;/p>
 &lt;p>下面我们以 GitLab CI 为例，展示如何配置一个 pipeline，并在测试阶段执行上文介绍的检查工具，解决不能对团队成员提交代码进行强制约束的问题。&lt;/p>
 &lt;h3 id="gitlab-ci-示例">GitLab CI 示例&lt;/h3>
@@ -440,7 +440,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>为项目（或项目组）&lt;a href="https://docs.gitlab.com/runner/register/">注册 Runner&lt;/a>。这一步首先需要从 GitLab 项目主页的 &lt;strong>Settings &amp;gt; CI/CD&lt;/strong> &lt;strong>&amp;gt; Runners settings&lt;/strong> 获取项目的 URL 和注册令牌，然后在 Runner 所在的机器运行 &lt;code>register&lt;/code> 命令使用 URL 和令牌完成注册，并选择合适的 Runner 类型，详细步骤参见文档。&lt;/li>
 &lt;/ul>
 &lt;p>配置完成后，我们将可以在 &lt;strong>Runners settings&lt;/strong> 页面查看可用的 Runner 和状态：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-runner-status.png" alt="2020-01-04-runner-status">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-runner-status.png" alt="2020-01-04-runner-status">&lt;/p>
 &lt;h4 id="创建-gitlabyml">创建 &lt;code>.gitlab.yml&lt;/code>&lt;/h4>
 &lt;p>我们将在项目根目录创建一个配置 pipeline 的 &lt;code>.gitlab.yml&lt;/code> 文件，GitLab 将在每一次我们推送代码到共享仓库时，读取该文件中的定义和指令，创建一条不同阶段及任务组成的 pipeline，并将阶段中的任务派发给可用的 Runner 执行。我们以如下 &lt;code>.gitlab.yml&lt;/code> 文件为例：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -535,7 +535,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>遇到特定条件时，Runner 应做出的决定。&lt;/li>
 &lt;/ul>
 &lt;p>上面的示例定义了如下 pipeline：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-pipeline-graph.png" alt="2020-01-04-pipeline-graph">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-pipeline-graph.png" alt="2020-01-04-pipeline-graph">&lt;/p>
 &lt;ul>
 &lt;li>&lt;code>before_script&lt;/code>关键字定义了在每个任务前执行的一组命令，我们通过这里设置的命令安装运行 pipeline 所需的依赖。&lt;/li>
 &lt;li>&lt;code>stage&lt;/code> 关键字定义了 &lt;code>Pre-commit Hooks&lt;/code> 和 &lt;code>Static Analysis&lt;/code> 两个阶段。&lt;/li>
@@ -550,15 +550,15 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;ul>
 &lt;li>
 &lt;p>进入 &lt;strong>CI/CD &amp;gt; Pipelines&lt;/strong>。将展示一个包含两个阶段的 pipeline（当前状态为已通过）。&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-pipeline-entry.png" alt="2020-01-04-pipeline-entry">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-pipeline-entry.png" alt="2020-01-04-pipeline-entry">&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>点击 pipeline 的 ID 即可查看该 pipeline 的运行示意图：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-pipeline-graph.png" alt="2020-01-04-pipeline-graph">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-pipeline-graph.png" alt="2020-01-04-pipeline-graph">&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>点击一个任务名称，可查看该任务的详细运行信息：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-job-detail.png" alt="2020-01-04-job-detail">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-job-detail.png" alt="2020-01-04-job-detail">&lt;/p>
 &lt;/li>
 &lt;/ul>
 &lt;p>以上即为一个完整的 GitLab CI pipeline 示例。在该 pipeline 中，我们会在每一次提交代码后：&lt;/p>
@@ -712,7 +712,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;/ol>
 &lt;p>接下来我们测试一下效果。&lt;/p>
 &lt;p>在本地内容仓库做一些更改，预览效果后提交并推送，然后在共享仓库的 &lt;strong>GitHub Actions&lt;/strong> 页面检查相应 &lt;code>workflow&lt;/code> 的运行状态与详细结果：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-actions-page.png" alt="2020-01-04-actions-page">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-actions-page.png" alt="2020-01-04-actions-page">&lt;/p>
 &lt;p>运行成功后，很快发布仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，相应的 GitHub Pages 也会更新相应的内容。&lt;/p>
 &lt;h2 id="总结">总结&lt;/h2>
 &lt;p>本文中，我们围绕保障代码质量这一目的：&lt;/p>
@@ -737,7 +737,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/quickstart">Quickstart for GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/introduction-to-github-actions">Introduction to GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="http://www.ruanyifeng.com/blog/2019/09/getting-started-with-github-actions.html">GitHub Actions 入门教程&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://waynerv.github.io/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://waynerv.github.io/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://waynerv.github.io/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">Git 合并浅析</title><link rel="alternate" type="text/html" href="https://waynerv.github.io/posts/git-merge-intro/"/><id>https://waynerv.github.io/posts/git-merge-intro/</id><updated>2021-01-04T04:50:36+00:00</updated><published>2020-12-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">Git 合并浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2021-01-04T08:51:38+00:00</updated><published>2020-12-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
 &lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
 &lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
 &lt;h2 id="认识合并">认识合并&lt;/h2>
@@ -746,13 +746,13 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;h3 id="递归三路合并算法">递归三路合并算法&lt;/h3>
 &lt;p>Git 在自动合并时会使用「&lt;a href="https://en.wikipedia.org/wiki/Merge_(version_control)#Recursive_three-way_merge">递归三路合并&lt;/a>」算法对不同文件进行差异分析，接下来我们简单了解一下该算法。&lt;/p>
 &lt;p>首先从「三路合并」算法开始，假设我们有以下提交历史：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
 &lt;p>上图中我们在 &lt;code>master&lt;/code> 合并了 &lt;code>feature&lt;/code> 分支，现在我们回溯一下合并的过程：&lt;/p>
 &lt;p>此时 &lt;code>master&lt;/code> 正指向提交 C，Git 首先找到两个分支最近的唯一共同祖先提交 A，然后分别对 A、C、F 提交的文件快照进行对比，我们下文称呼它们为 A、C、F 文件。接下来 Git 将逐「行」对三个文件的内容进行比较，如果三个文件中有两个文件该行的内容一致，则丢弃 A 文件中该行的内容，保留与 A 文件中不同的内容放到结果文件中。&lt;/p>
 &lt;p>具体来说，假如 A、C 内容一致，说明这是在 F 中更改的内容，需要保留该更改；A、F 内容一致同理；假如 C、F 内容一致，说明 C 和 F 都相对于 A 做了同样的更改，同样需要保留。除此之外的内容差异仅剩两种情况：如果 A、C、F 的内容都一致，说明什么都没有发生；如果该行在 A、C、F 的内容都不一致，说明发生了冲突，需要我们手动合并选择需要保留的内容。&lt;/p>
 &lt;p>结束对比后 Git 会以最终的结果文件快照创建一个新的 Merge 提交并指向它。&lt;/p>
 &lt;p>三路合并算法的基础是找到被合并文件的共同祖先，在一些简单的场景中这还能行的通，但在遇到&lt;a href="https://zh.wikipedia.org/wiki/%E5%90%88%E5%B9%B6_(%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6)#cite_note-2">十字交叉合并（criss-cross merge）&lt;/a>时，不存在唯一的最近共同祖先，如下图：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/20201229152228-criss-cross-merge.png" alt="20201229152228-criss-cross-merge">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/20201229152228-criss-cross-merge.png" alt="20201229152228-criss-cross-merge">&lt;/p>
 &lt;p>现在我们需要从 &lt;code>main&lt;/code> 分支合并 &lt;code>feature&lt;/code> 分支，即把 C7 合并到 C8，会发现 C8 和 C7 有两个共同祖先，这下怎么办呢？Git 采取的是递归三路合并（Recursive three-way merge），会先合并 C3 和 C5 这两个共同祖先创建一个虚拟的唯一最近祖先（假设为 C9），接着在 C9、C7、C8 之间执行三路合并，如果在合并 C3 和 C5 的过程中又发生没有唯一共同祖先的情况，则递归执行上述过程。&lt;/p>
 &lt;p>关于递归三路合并算法我们就了解到这里。&lt;/p>
 &lt;h3 id="合并冲突">合并冲突&lt;/h3>
@@ -788,7 +788,7 @@ task.py | 3 ++
 worker.py | 1 ++
 3 file changed, 6 insertions(+)
 &lt;/code>&lt;/pre>&lt;p>过程示意如下：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/Dec-29-2020-fast-forward.gif" alt="Dec-29-2020 22-50-28">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-fast-forward.gif" alt="Dec-29-2020 22-50-28">&lt;/p>
 &lt;p>由于我们想要合并的分支 &lt;code>feature&lt;/code> 所指向的提交 D 是 &lt;code>master&lt;/code> 的直接后继， 因此 Git 会直接将 &lt;code>HEAD&lt;/code> 指针向前移动。换句话说，如果顺着一个分支走下去一定能够到达另一个分支，那么 Git 在合并两者时只会简单的将指针向前推进（右移），因为这种情况下的合并操作没有需要解决的分歧——这就叫做快进（fast-forward）。&lt;/p>
 &lt;h2 id="git-的不同合并策略">Git 的不同合并策略&lt;/h2>
 &lt;p>我们在使用 Git 时，通常会基于主分支拉出若干条功能分支进行开发，开发完毕后再将功能分支合入主分支。有以下不同的分支合并策略：&lt;/p>
@@ -799,7 +799,7 @@ worker.py | 1 ++
 &lt;/ul>
 &lt;h3 id="通过-merge-显式合并">通过 &lt;code>merge&lt;/code> 显式合并&lt;/h3>
 &lt;p>这是最常见和最直接的合并方式，也是 GitHub 和 GitLab 等代码托管平台的默认实现方式。&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
 &lt;p>当我们将功能分支合入主分支时，Git 会对两个分支进行递归三路合并，并以合并结果创建一个新的 Merge 提交。这个 Merge 提交和普通的提交本质上是一样的，但是它有两个父提交：&lt;/p>
 &lt;pre>&lt;code>$ git cat-file -p 44ba027
 tree 5a1692ba62ef346b59e65e4aa441c731bebc51ff
@@ -817,7 +817,7 @@ $ git rebase master
 $ git checkout master
 $ git merge feature
 &lt;/code>&lt;/pre>&lt;p>过程如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/Dec-31-2020-rebase&amp;amp;fast-forfward.gif" alt="Dec-31-2020-rebase&amp;fast-forfward">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-31-2020-rebase&amp;amp;fast-forfward.gif" alt="Dec-31-2020-rebase&amp;fast-forfward">&lt;/p>
 &lt;p>我们首先用 &lt;code>rebase&lt;/code> 将 &lt;code>master&lt;/code> 合并到了 &lt;code>feature&lt;/code>，即使两个分支都有不同的提交，也得到了一条完全线性的 &lt;code>feature&lt;/code> 分支，而且没有额外的 Merge 提交。&lt;/p>
 &lt;p>接着又切换到 &lt;code>master&lt;/code> 分支合并了 &lt;code>feature&lt;/code>。&lt;code>rebase&lt;/code> 之后的 &lt;code>feature&lt;/code> 分支上，所有提交都是 &lt;code>master&lt;/code> 的后继提交，因此我们将直接执行快进合并。快进合并只有在 &lt;code>master&lt;/code> 分支中没有比 &lt;code>feature&lt;/code> 更新的提交时才会发生（使用 &lt;code>rebase&lt;/code> 能够确保该结果），在这种情况下，&lt;code>master&lt;/code> 的 &lt;code>HEAD&lt;/code> 可以直接右移到 &lt;code>feature&lt;/code> 分支的最新提交。这样合并也不会生成单独的 Merge 提交，它只是将分支标签快速指向了新的提交。&lt;/p>
 &lt;p>通过 &lt;code>rebase&lt;/code> 或 &lt;code>fast-forward&lt;/code> 隐式的合并，我们能够得到一条整洁线性的提交历史，但同时也会丢失这些提交曾经的上下文信息。&lt;/p>
@@ -841,7 +841,7 @@ $ git merge feature
 &lt;li>
 &lt;p>&lt;a href="https://segmentfault.com/a/1190000021712743">git merge的原理（递归三路合并算法）&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://waynerv.github.io/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://waynerv.github.io/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 部署个人博客</title><link rel="alternate" type="text/html" href="https://waynerv.github.io/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://waynerv.github.io/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-01-04T04:50:36+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。 刚学……</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 部署个人博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-01-04T08:51:38+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。 刚学……</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
 &lt;p>刚学编程的时候，我还开源过一个基于 Flask 和 MongoDB 的&lt;a href="https://github.com/waynerv/originblog">博客项目&lt;/a>，但后面就没怎么使用和维护了，除开主观上的懒，还因为：&lt;/p>
 &lt;ul>
 &lt;li>自建博客绕不开主机和域名，这是一笔持续的经济成本。国内的主机往往是第一年割肉第二年宰猪，国外的主机访问延迟很高。&lt;/li>
@@ -1055,10 +1055,10 @@ publish_dir: ./public
 &lt;p>在本地做一些更改，预览效果后提交并推送，然后在项目仓库的 GitHub Actions 页面检查相应的 &lt;code>workflow&lt;/code> 是否运行成功。不出意外的话，很快个人主页仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，访问个人博客页面也会发现页面已经更新。&lt;/p>
 &lt;h2 id="个人体验">个人体验&lt;/h2>
 &lt;p>由于先后选择的 3 个主题均遭遇了上述发布地址不能包含子路径的问题，我在基本按照官方文档操作的前提下，依然花了超过 10 个小时才把&lt;a href="https://waynerv.github.io/">博客&lt;/a>上线，浪费了很多时间在配置主题以及寻找问题的解决方案上。本以为选择了一个简单快捷的省心方案，结果还是免不了过程的一顿踩坑和折腾。&lt;/p>
-&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://waynerv.github.io/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://waynerv.github.io/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/></entry><entry><title type="text">git rebase 浅析</title><link rel="alternate" type="text/html" href="https://waynerv.github.io/posts/git-rebase-intro/"/><id>https://waynerv.github.io/posts/git-rebase-intro/</id><updated>2021-01-04T04:50:36+00:00</updated><published>2020-12-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">之所以写这篇文章，是因为之前对 git rebase -i 的用法一直是一知半解，一次在需要合并多个提交时刚……</summary><content type="html">&lt;p>之所以写这篇文章，是因为之前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
+&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/></entry><entry><title type="text">git rebase 浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2021-01-04T08:51:38+00:00</updated><published>2020-12-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">之所以写这篇文章，是因为之前对 git rebase -i 的用法一直是一知半解，一次在需要合并多个提交时刚……</summary><content type="html">&lt;p>之所以写这篇文章，是因为之前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
 &lt;h2 id="理解-rebase-命令">理解 Rebase 命令&lt;/h2>
 &lt;p>&lt;code>git rebase&lt;/code> 命令的文档描述是 &lt;code>Reapply commits on top of another base tip&lt;/code>，从字面上理解是「在另一个基端之上重新应用提交」，这个定义听起来有点抽象，换个角度可以理解为「将分支的基础从一个提交改成另一个提交，使其看起来就像是从另一个提交中创建了分支一样」，如下图：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
 &lt;p>假设我们从 &lt;code>Master&lt;/code> 的提交 A 创建了 &lt;code>Feature&lt;/code> 分支进行新的功能开发，这时 A 就是 &lt;code>Feature&lt;/code> 的基端。接着 &lt;code>Matser&lt;/code> 新增了两个提交 B 和 C， &lt;code>Feature&lt;/code> 新增了两个提交 D 和 E。现在我们出于某种原因，比如新功能的开发依赖 B、C 提交，需要将 &lt;code>Master&lt;/code> 的两个新提交整合到 &lt;code>Feature&lt;/code> 分支，为了保持提交历史的整洁，我们可以切换到 &lt;code>Feature&lt;/code> 分支执行 &lt;code>rebase&lt;/code> 操作：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -1103,7 +1103,7 @@ A---B---C master
 &lt;li>切回 &lt;code>master&lt;/code> 分支并执行快进合并： &lt;code>git chekcout master &amp;amp;&amp;amp; git merge feature&lt;/code>。&lt;/li>
 &lt;/ol>
 &lt;p>执行过程如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/Dec-30-2020-merge-example.gif" alt="Dec-30-2020-merge-example">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-30-2020-merge-example.gif" alt="Dec-30-2020-merge-example">&lt;/p>
 &lt;p>我们将得到如下提交历史：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -1134,7 +1134,7 @@ A---B---C master
 &lt;p>使用 &lt;code>rebase&lt;/code>&lt;/p>
 &lt;p>步骤与使用 &lt;code>merge&lt;/code> 基本相同，唯一的区别是第 2 步的命令替换成： &lt;code>git rebase master&lt;/code>。&lt;/p>
 &lt;p>执行过程如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://waynerv.github.io/images/Dec-30-2020-rebase-example.gif" alt="Dec-30-2020-rebase-example">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-30-2020-rebase-example.gif" alt="Dec-30-2020-rebase-example">&lt;/p>
 &lt;p>我们将得到如下提交历史：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -1590,4 +1590,4 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>
 &lt;p>&lt;a href="https://medium.com/@fabisiakradoslaw/understand-how-does-git-rebase-work-and-compare-with-git-merge-and-git-interactive-rebase-cce2c9775e43">Understand how does git rebase work and compare with git merge and git interactive rebase&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://waynerv.github.io/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://waynerv.github.io/tags/git/" term="Git" label="Git"/></entry></feed>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry></feed>
