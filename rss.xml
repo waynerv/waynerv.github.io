@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.github.io/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 04 Jan 2021 04:00:45 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.github.io/rss.xml"/><item><title>构建保障代码质量的自动化工作流</title><link>https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</link><guid isPermaLink="true">https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</guid><pubDate>Mon, 04 Jan 2021 11:28:01 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.github.io/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 04 Jan 2021 04:50:42 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.github.io/rss.xml"/><item><title>构建保障代码质量的自动化工作流</title><link>https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</link><guid isPermaLink="true">https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</guid><pubDate>Mon, 04 Jan 2021 11:28:01 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
 &lt;h2 id="linter">Linter&lt;/h2>
 &lt;p>Linter 是一类用于标记程序错误、bug、风格错误和可疑结构的静态代码分析工具，比如 Python 中的 &lt;code>Pylint&lt;/code>、 &lt;code>flake8&lt;/code>，JavaScript 中的 &lt;code>EsLint&lt;/code>，这类工具会找到你代码中的错误，并给出如何修复的提示。&lt;/p>
 &lt;h3 id="为何要使用-linter">为何要使用 Linter&lt;/h3>
@@ -187,7 +187,7 @@ Found &lt;span class="m">1&lt;/span> error in &lt;span class="m">1&lt;/span> fil
 &lt;span class="o">...&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>首先通过 &lt;code>pip&lt;/code> 安装 &lt;code>balck&lt;/code>：&lt;/p>
+&lt;/div>&lt;p>首先通过 &lt;code>pip&lt;/code> 安装 &lt;code>black&lt;/code>：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -206,14 +206,14 @@ Found &lt;span class="m">1&lt;/span> error in &lt;span class="m">1&lt;/span> fil
 &lt;/span>&lt;span class="lnt">5
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ black test_balck.py
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ black test_black.py
 reformatted /Users/waynerv/Repos/github-markdown-toc/gfm_toc/__init__.py
 reformatted /Users/waynerv/Repos/github-markdown-toc/gfm_toc/md_toc.py
 All &lt;span class="k">done&lt;/span>! ✨ 🍰 ✨
 &lt;span class="m">2&lt;/span> files reformatted.
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>balck&lt;/code> 会首先检查出不符合其规范的文件，然后编辑文件完成修改，并输出修改的文件路径及数量。格式化后的文件内容如下：&lt;/p>
+&lt;/div>&lt;p>&lt;code>black&lt;/code> 会首先检查出不符合其规范的文件，然后编辑文件完成修改，并输出修改的文件路径及数量。格式化后的文件内容如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -245,7 +245,7 @@ All &lt;span class="k">done&lt;/span>! ✨ 🍰 ✨
 &lt;span class="o">...&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>balck&lt;/code> 号称「不妥协的代码格式化器」，其不妥协体现在基本没有可供自定义的选项，要么全盘接受它的代码风格，要么就不用它。如果你或者你的团队能够接受它的风格，使用 &lt;code>balck&lt;/code> 可以节省很多花在代码风格上的精力和时间（再也不用争论某种风格孰优孰劣了）。&lt;/p>
+&lt;/div>&lt;p>&lt;code>black&lt;/code> 号称「不妥协的代码格式化器」，其不妥协体现在基本没有可供自定义的选项，要么全盘接受它的代码风格，要么就不用它。如果你或者你的团队能够接受它的风格，使用 &lt;code>black&lt;/code> 可以节省很多花在代码风格上的精力和时间（再也不用争论某种风格孰优孰劣了）。&lt;/p>
 &lt;p>实践中我们可以对最大行长度以及引号格式化选项做一些调整，方法是在执行 &lt;code>black&lt;/code> 的项目根目录添加 &lt;code>pyproject.tomal&lt;/code> 文件，并写入以下内容:&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
