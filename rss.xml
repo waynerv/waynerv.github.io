@@ -1,4 +1,698 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.github.io/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 31 Dec 2020 01:43:12 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.github.io/rss.xml"/><item><title>Git 合并浅析</title><link>https://waynerv.github.io/posts/git-merge-intro/</link><guid isPermaLink="true">https://waynerv.github.io/posts/git-merge-intro/</guid><pubDate>Tue, 29 Dec 2020 07:17:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.github.io/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 04 Jan 2021 03:47:53 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.github.io/rss.xml"/><item><title>构建保障代码质量的自动化工作流</title><link>https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</link><guid isPermaLink="true">https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</guid><pubDate>Mon, 04 Jan 2021 11:28:01 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
+&lt;h2 id="linter">Linter&lt;/h2>
+&lt;p>Linter 是一类用于标记程序错误、bug、风格错误和可疑结构的静态代码分析工具，比如 Python 中的 &lt;code>Pylint&lt;/code>、 &lt;code>flake8&lt;/code>，JavaScript 中的 &lt;code>EsLint&lt;/code>，这类工具会找到你代码中的错误，并给出如何修复的提示。&lt;/p>
+&lt;h3 id="为何要使用-linter">为何要使用 Linter&lt;/h3>
+&lt;p>人总是会粗心和犯错，借助 Linter 我们可以发现代码中不易察觉或遗漏的错误，并进行纠正。使用 Linter 有以下好处：&lt;/p>
+&lt;ul>
+&lt;li>根据 &lt;a href="https://www.python.org/dev/peps/pep-0008/">PEP8&lt;/a> 等语言规范持续的提示与纠正，帮助你写出更好的代码&lt;/li>
+&lt;li>减少代码中的格式错误、笔误及糟糕的风格等低级错误&lt;/li>
+&lt;li>节省团队成员 review 你代码的时间，提高协作效率&lt;/li>
+&lt;li>配置简单，仅需几步即可上手&lt;/li>
+&lt;/ul>
+&lt;h3 id="flake8-示例">&lt;code>flake8&lt;/code> 示例&lt;/h3>
+&lt;p>接下来我们以 Python 中的 &lt;code>flake8&lt;/code> 为例，介绍其用法。&lt;/p>
+&lt;p>首先通过 &lt;code>pip&lt;/code> 安装 &lt;code>flake8&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pip install flake8
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>flake8&lt;/code> 的使用非常简单，直接以需要检查的文件或整个目录的路径作为 &lt;code>flake8&lt;/code> 命令的参数：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ flake8 . &lt;span class="c1"># 检查当前目录下的所有文件&lt;/span>
+./__init__.py:4:1: E402 module level import not at top of file
+./__init__.py:4:1: F401 &lt;span class="s1">&amp;#39;.md_toc.main&amp;#39;&lt;/span> imported but unused
+./__init__.py:4:25: W292 no newline at end of file
+./md_toc.py:6:18: E999 SyntaxError: non-default argument follows default argument
+./md_toc.py:28:80: E501 line too long &lt;span class="o">(&lt;/span>&lt;span class="m">108&lt;/span> &amp;gt; &lt;span class="m">79&lt;/span> characters&lt;span class="o">)&lt;/span>
+./md_toc.py:48:80: E501 line too long &lt;span class="o">(&lt;/span>&lt;span class="m">113&lt;/span> &amp;gt; &lt;span class="m">79&lt;/span> characters&lt;span class="o">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在运行结果中， &lt;code>flake8&lt;/code> 不仅指出了具体的错误原因，还给出了出错的文件位置及代码所在行数。&lt;/p>
+&lt;p>更多其他的选项可通过以下命令获取帮助：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ flake8 --help
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>flake8&lt;/code> 的可自定义程度很高，除了在运行时添加命令选项，我们还可以通过配置文件来自定义检查规则。方法是在运行 &lt;code>flake8&lt;/code> 的项目根目录添加 &lt;code>.flake8&lt;/code> 文件，并写入如下内容：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="o">[&lt;/span>flake8&lt;span class="o">]&lt;/span>
+max-line-length &lt;span class="o">=&lt;/span> &lt;span class="m">120&lt;/span> &lt;span class="c1"># 适当提高最大行长度&lt;/span>
+max-complexity &lt;span class="o">=&lt;/span> &lt;span class="m">24&lt;/span> &lt;span class="c1"># 设置最大复杂度为24&lt;/span>
+&lt;span class="nv">ignore&lt;/span> &lt;span class="o">=&lt;/span> F401, W503, E203 &lt;span class="c1"># 忽略这些错误类型&lt;/span>
+&lt;span class="nv">exclude&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="c1"># 忽略以下文件&lt;/span>
+.git,
+__pycache__,
+scripts,
+logs,
+upload,
+build,
+dist,
+docs,
+migrations
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>flake8&lt;/code> 还可以添加插件实现更多更强大的功能，比如我们想强制要求编写函数 &lt;code>docstring&lt;/code>，可以安装 &lt;code>flake8-docstrings&lt;/code> :&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ pip install flake8-docstrings
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>重新运行检查后，会发现结果中多出了如下错误：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">./__init__.py:1:1: D104 Missing docstring in public package
+./md_toc.py:6:1: D103 Missing docstring in public &lt;span class="k">function&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>更多其他功能和插件可查看 &lt;code>flake8&lt;/code> 的&lt;a href="https://flake8.pycqa.org/en/latest/index.html">文档&lt;/a>。&lt;/p>
+&lt;p>除了 &lt;code>flake8&lt;/code> 以外，Python 还有以下 Linter 可供选择，它们的用法大同小异，但在检查范围、容忍度等方面有所区别：&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/PyCQA/pylint">Pylint&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/PyCQA/pyflakes">Pyflakes&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://pypi.python.org/pypi/PyChecker">Pychecker&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://pypi.python.org/pypi/pep8">Pep8&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h2 id="static-type-checker">Static Type Checker&lt;/h2>
+&lt;p>Python 从 &lt;a href="https://www.python.org/dev/peps/pep-0484/">PEP 484&lt;/a> 引入 &lt;code>Type Hints&lt;/code> （类型提示）以来，配套的工具链生态也在逐渐成熟，出现了如 &lt;code>mypy&lt;/code>、 &lt;code>pyright&lt;/code> 等静态类型检查工具。&lt;/p>
+&lt;p>它们可以根据 Python 代码中的类型提示进行静态类型检查，不需要运行程序就可以找到程序中的错误。而且如果有遗留代码不好处理，还可以在程序中混合使用动态和静态类型。&lt;/p>
+&lt;p>我们以 &lt;code>mypy&lt;/code> 做简单示例，假设我们有以下代码：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># test_mypy.py&lt;/span>
+def greeting&lt;span class="o">(&lt;/span>name: str&lt;span class="o">)&lt;/span> -&amp;gt; str:
+&lt;span class="k">return&lt;/span> &lt;span class="s1">&amp;#39;Hello &amp;#39;&lt;/span> + name
+greeting&lt;span class="o">(&lt;/span>3&lt;span class="o">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>通过 &lt;code>pip&lt;/code> 安装 &lt;code>mypy&lt;/code> :&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pip install mypy
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>对该文件运行检查：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">❯ mypy test_mypy.py
+test_mypy.py:4: error: Argument &lt;span class="m">1&lt;/span> to &lt;span class="s2">&amp;#34;greeting&amp;#34;&lt;/span> has incompatible &lt;span class="nb">type&lt;/span> &lt;span class="s2">&amp;#34;int&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> expected &lt;span class="s2">&amp;#34;str&amp;#34;&lt;/span>
+Found &lt;span class="m">1&lt;/span> error in &lt;span class="m">1&lt;/span> file &lt;span class="o">(&lt;/span>checked &lt;span class="m">1&lt;/span> &lt;span class="nb">source&lt;/span> file&lt;span class="o">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在检查结果中， &lt;code>mypy&lt;/code> 提示我们在调用 &lt;code>greeting()&lt;/code> 时传入的参数类型出错。&lt;/p>
+&lt;h3 id="类型提示带来的好处">类型提示带来的好处&lt;/h3>
+&lt;p>静态类型检查工具可以帮助我们像静态语言一样在运行代码之前就捕获到某些错误，但需要我们在程序中加入大量的类型提示才能完整发挥其作用。虽然稍微加大了工作量，但引入类型提示还会带来以下好处：&lt;/p>
+&lt;ul>
+&lt;li>相比传统的 &lt;a href="https://link.zhihu.com/?target=https%3A//realpython.com/documenting-python-code/">docstrings&lt;/a>，类型提示配合良好的命名既能作为解释文档，也能用于自动检查。&lt;/li>
+&lt;li>可以使 IDE 通过类型推断提供更好的代码补全和提示功能。&lt;/li>
+&lt;li>强制你去思考动态语言程序的类型可能会帮助你构建更清晰的代码架构。&lt;/li>
+&lt;/ul>
+&lt;h2 id="autoformatter">Autoformatter&lt;/h2>
+&lt;p>Autoformatter （自动格式化器）顾名思义是可以将代码按特定规则自动格式化的一类工具。Linter 可以帮助我们发现代码中的格式错误和风格问题，但并不会自动纠正，因此我们还需要借助自动格式化器，进一步将我们从重复琐碎的手动修改中解放出来。&lt;/p>
+&lt;p>Python 中有 &lt;code>black&lt;/code> 、 &lt;code>yapf&lt;/code>、 &lt;code>autopep8&lt;/code>、 &lt;code>isort&lt;/code> 等众多格式化工具，除了整体上遵循 PEP8 以外，各自都有不同的风格规范和适用范围，我们可以根据自己的喜好进行选择。&lt;/p>
+&lt;p>以 &lt;code>black&lt;/code> 和下面这段代码为例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># test_black.py&lt;/span>
+def f &lt;span class="o">(&lt;/span> a: List&lt;span class="o">[&lt;/span> int &lt;span class="o">])&lt;/span> :
+&lt;span class="k">return&lt;/span> 37-a&lt;span class="o">[&lt;/span>42-u : y**3&lt;span class="o">]&lt;/span>
+def very_important_function&lt;span class="o">(&lt;/span>template: str,*variables,file: os.PathLike,debug:bool&lt;span class="o">=&lt;/span>False,&lt;span class="o">)&lt;/span>:
+&lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;Applies `variables` to the `template` and writes to `file`.&amp;#34;&amp;#34;&amp;#34;&lt;/span>
+with open&lt;span class="o">(&lt;/span>file, &lt;span class="s2">&amp;#34;w&amp;#34;&lt;/span>&lt;span class="o">)&lt;/span> as f:
+...
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>首先通过 &lt;code>pip&lt;/code> 安装 &lt;code>balck&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pip install black
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>然后对需要格式化的文件或整个目录的路径执行 &lt;code>black&lt;/code> 命令：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ black test_balck.py
+reformatted /Users/waynerv/Repos/github-markdown-toc/gfm_toc/__init__.py
+reformatted /Users/waynerv/Repos/github-markdown-toc/gfm_toc/md_toc.py
+All &lt;span class="k">done&lt;/span>! ✨ 🍰 ✨
+&lt;span class="m">2&lt;/span> files reformatted.
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>balck&lt;/code> 会首先检查出不符合其规范的文件，然后编辑文件完成修改，并输出修改的文件路径及数量。格式化后的文件内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="c1"># test_black.py&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="nf">f&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">a&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">List&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="nb">int&lt;/span>&lt;span class="p">]):&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="mi">37&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="n">a&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">42&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="n">u&lt;/span> &lt;span class="p">:&lt;/span> &lt;span class="n">y&lt;/span> &lt;span class="o">**&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="nf">very_important_function&lt;/span>&lt;span class="p">(&lt;/span>
+&lt;span class="n">template&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="nb">str&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="o">*&lt;/span>&lt;span class="n">variables&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nb">file&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">os&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">PathLike&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">debug&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="nb">bool&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="bp">False&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">):&lt;/span>
+&lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;Applies `variables` to the `template` and writes to `file`.&amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;span class="k">with&lt;/span> &lt;span class="nb">open&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nb">file&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;w&amp;#34;&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">as&lt;/span> &lt;span class="n">f&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="o">...&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>balck&lt;/code> 号称「不妥协的代码格式化器」，其不妥协体现在基本没有可供自定义的选项，要么全盘接受它的代码风格，要么就不用它。如果你或者你的团队能够接受它的风格，使用 &lt;code>balck&lt;/code> 可以节省很多花在代码风格上的精力和时间（再也不用争论某种风格孰优孰劣了）。&lt;/p>
+&lt;p>实践中我们可以对最大行长度以及引号格式化选项做一些调整，方法是在执行 &lt;code>black&lt;/code> 的项目根目录添加 &lt;code>pyproject.tomal&lt;/code> 文件，并写入以下内容:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="p">[&lt;/span>&lt;span class="n">tool&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">black&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;span class="n">line&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">length&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">120&lt;/span>
+&lt;span class="n">skip&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">string&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">normalization&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">true&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="ide-的自带工具">IDE 的自带工具&lt;/h3>
+&lt;p>现代的 IDE 和编辑器基本都会自带 Linter 和格式化等功能，比如 &lt;code>PyCharm&lt;/code> 就可以通过 &lt;code>⌥ ⌘ L&lt;/code> 快捷键格式化当前文件的代码，这样的话我们还有必要手动集成这些第三方工具吗？答案当然是有必要，我们以第三方和 IDE 自带的代码工具作对比：&lt;/p>
+&lt;ul>
+&lt;li>自带工具对环境依赖程度很高，必须要有特定的二进制包及配置文件才能执行；而使用与项目相同语言实现的第三方工具，可以直接作为项目的开发依赖，配置也能很方便地整合到项目本身的配置文件中（如&lt;code>pyproject.toml&lt;/code>、&lt;code>tox.ini&lt;/code>等），且通常都可以很快地集成到不同 IDE 中。&lt;/li>
+&lt;li>自带工具只能在 IDE 的图形界面中手动执行；而第三方工具只要有基础的代码运行环境就可以执行，因此我们可以把它们很方便的集成到 Hooks、CI 中自动化执行。&lt;/li>
+&lt;li>自带工具并不一定严格遵循 PEP8 等通用规范，而且不方便在协作成员中分享配置，话说回来，假如你用 &lt;code>PyCharm&lt;/code> 但你的同事用 &lt;code>VSCode&lt;/code> 呢？&lt;/li>
+&lt;/ul>
+&lt;p>在接下来的 Hooks 和 Pipeline 两节内容中，你将进一步认识到集成第三方工具带来的优势。&lt;/p>
+&lt;h2 id="hooks">Hooks&lt;/h2>
+&lt;p>在上文中我们介绍了很多保障质量的工具，但在日常编码中，我们总不能每一次提交代码前，都把这些工具手动执行一遍吧？这看上去不是高效的做法，庆幸地是我们有现成途径解决这些问题。&lt;/p>
+&lt;h3 id="git-hooks">Git Hooks&lt;/h3>
+&lt;p>Git 可以在仓库中发生特定事件时自动运行自定义的脚本，这些自定义脚本即称为 &lt;code>hooks&lt;/code>。 它们让你可以在开发周期的关键点触发可定制的动作，比如每次执行提交前都执行一次 &lt;code>flake8&lt;/code> 命令。大部分其他的版本控制系统也会提供类似的功能。&lt;/p>
+&lt;p>&lt;code>hooks&lt;/code> 保存在 Git 仓库的 &lt;code>.git/hooks&lt;/code> 目录中，它可以是普通的 shell 脚本，也可以是 Python、Ruby 等语言的可执行脚本，因此我们可以很方便地将常用工具集成到 &lt;code>hooks&lt;/code> 中。 &lt;code>hooks&lt;/code> 通常按客户端和服务端分为两大类，常用的客户端类有 &lt;code>pre-commit&lt;/code> 、 &lt;code>prepare-commit-msg&lt;/code>、 &lt;code>commit-msg&lt;/code>、 &lt;code>post-commit&lt;/code>、 &lt;code>pre-rebase&lt;/code> 等 &lt;code>hooks&lt;/code>，它们分别在名称所代表的事件触发时运行。&lt;/p>
+&lt;p>以 &lt;code>pre-commit&lt;/code> 为例，该 &lt;code>hooks&lt;/code> 在输入提交信息前运行。 它可以检查即将提交的快照，如果该 &lt;code>hooks&lt;/code> 以非零值退出，Git 将放弃此次提交，我们可以利用它来检查提交的代码风格是否正确（运行例如 &lt;code>flake8&lt;/code>、 &lt;code>black&lt;/code> 等程序）、是否引入安全风险等等。整个流程示意如下：&lt;/p>
+&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-pre-commit-workflow.png" alt="2020-01-04-pre-commit-workflow">&lt;/p>
+&lt;p>接下来我们将展示，如何将上文介绍的众多工具快速地集成到 &lt;code>pre-commit hooks&lt;/code> 中。&lt;/p>
+&lt;h3 id="pre-commit">pre-commit&lt;/h3>
+&lt;p>&lt;code>pre-commit&lt;/code> 是一个用于管理和维护多种语言 &lt;code>pre-commit hooks&lt;/code> 的框架，就像 Python 的包管理器 &lt;code>pip&lt;/code> 一样，我们可以通过 &lt;code>pre-commit&lt;/code> 将他人创建并分享的 &lt;code>pre-commit hooks&lt;/code> 安装到自己的项目仓库中。 &lt;code>pre-commit&lt;/code> 大大减少了我们使用 &lt;code>git hooks&lt;/code> 的难度，你只需要在配置文件中指定想要的 &lt;code>hooks&lt;/code>，它会替你安装任意语言编写的 &lt;code>hooks&lt;/code> 并解决环境依赖问题，然后在每次提交前执行。&lt;/p>
+&lt;p>&lt;code>pre-commit&lt;/code> 的简单使用方法如下：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>通过 &lt;code>pip&lt;/code> 安装 &lt;code>pre-commit&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">pip&lt;/span> &lt;span class="n">install&lt;/span> &lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>pre-commit&lt;/code> 是面向多语言的，因此它还支持通过 &lt;code>homebrew&lt;/code> 等方式安装。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>添加配置文件。&lt;/p>
+&lt;p>你需要创建一个名为 &lt;code>.pre-commit-config.yml&lt;/code> 的文件，通常放在项目根目录下，在配置文件中我们按特定格式添加需要运行的 &lt;code>hooks&lt;/code> 并指定参数，示例如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">repos&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="o">-&lt;/span> &lt;span class="n">repo&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">psf&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">black&lt;/span>
+&lt;span class="n">rev&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mf">20.8&lt;/span>&lt;span class="n">b1&lt;/span>
+&lt;span class="n">hooks&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="o">-&lt;/span> &lt;span class="nb">id&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">black&lt;/span>
+&lt;span class="n">language_version&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">python3&lt;/span>
+&lt;span class="n">exclude&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="o">^&lt;/span>&lt;span class="n">migrations&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">uploads&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">scripts&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">logs&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">docs&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">dist&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">build&lt;/span>&lt;span class="o">/&lt;/span>
+&lt;span class="o">-&lt;/span> &lt;span class="n">repo&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pycqa&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">flake8&lt;/span>
+&lt;span class="n">rev&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mf">3.8&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="mi">4&lt;/span>
+&lt;span class="n">hooks&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="o">-&lt;/span> &lt;span class="nb">id&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">flake8&lt;/span>
+&lt;span class="n">exclude&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="o">^&lt;/span>&lt;span class="n">migrations&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">uploads&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">scripts&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">logs&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">docs&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">dist&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">build&lt;/span>&lt;span class="o">/&lt;/span>
+&lt;span class="o">-&lt;/span> &lt;span class="n">repo&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">hooks&lt;/span>
+&lt;span class="n">rev&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">v3&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="mf">3.0&lt;/span>
+&lt;span class="n">hooks&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="o">-&lt;/span> &lt;span class="nb">id&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">check&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">added&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">large&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">files&lt;/span>
+&lt;span class="n">args&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span> &lt;span class="o">--&lt;/span>&lt;span class="n">maxkb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">512&lt;/span> &lt;span class="p">]&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在该示例文件中，我们添加了 &lt;code>black&lt;/code> 、 &lt;code>flake8&lt;/code> 以及一个检查是否添加了大体积文件到 Git 的 &lt;code>hooks&lt;/code>，还分别指定了语言版本、跳过检查路径等选项。&lt;/p>
+&lt;p>配置文件的选项含义参见 &lt;a href="https://pre-commit.com/#plugins">https://pre-commit.com/#plugins&lt;/a>，所有支持安装的 &lt;code>hooks&lt;/code> 列表参见&lt;a href="https://pre-commit.com/hooks.html">https://pre-commit.com/hooks.html&lt;/a>。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>安装 &lt;code>git hook&lt;/code> 脚本。在配置文件所在的根目录运行命令：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ pre-commit install
+pre-commit installed at .git/hooks/pre-commit
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这会在 &lt;code>.git/hooks&lt;/code> 文件夹中创建一个 &lt;code>pre-commit&lt;/code> 脚本文件，并在接下来你每一次提交之前运行！现在我们可以尝试提交一次代码了。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>（可选步骤）对所有文件运行 &lt;code>hooks&lt;/code>。&lt;/p>
+&lt;p>通常 &lt;code>pre-commit&lt;/code> 只会在触发 &lt;code>git hooks&lt;/code> 时对发生更改的文件运行，但我们也可以手动对当前仓库的所有文件运行：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="err">$&lt;/span> &lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span> &lt;span class="n">run&lt;/span> &lt;span class="o">--&lt;/span>&lt;span class="nb">all&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">files&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Initializing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">psf&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">black&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Initializing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pycqa&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">flake8&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Initializing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">hooks&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Installing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">psf&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">black&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Once&lt;/span> &lt;span class="n">installed&lt;/span> &lt;span class="n">this&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="n">will&lt;/span> &lt;span class="n">be&lt;/span> &lt;span class="n">reused&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">This&lt;/span> &lt;span class="n">may&lt;/span> &lt;span class="n">take&lt;/span> &lt;span class="n">a&lt;/span> &lt;span class="n">few&lt;/span> &lt;span class="n">minutes&lt;/span>&lt;span class="o">...&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Installing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pycqa&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">flake8&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Once&lt;/span> &lt;span class="n">installed&lt;/span> &lt;span class="n">this&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="n">will&lt;/span> &lt;span class="n">be&lt;/span> &lt;span class="n">reused&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">This&lt;/span> &lt;span class="n">may&lt;/span> &lt;span class="n">take&lt;/span> &lt;span class="n">a&lt;/span> &lt;span class="n">few&lt;/span> &lt;span class="n">minutes&lt;/span>&lt;span class="o">...&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Installing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">hooks&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Once&lt;/span> &lt;span class="n">installed&lt;/span> &lt;span class="n">this&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="n">will&lt;/span> &lt;span class="n">be&lt;/span> &lt;span class="n">reused&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">This&lt;/span> &lt;span class="n">may&lt;/span> &lt;span class="n">take&lt;/span> &lt;span class="n">a&lt;/span> &lt;span class="n">few&lt;/span> &lt;span class="n">minutes&lt;/span>&lt;span class="o">...&lt;/span>
+&lt;span class="n">black&lt;/span>&lt;span class="o">....................................................................&lt;/span>&lt;span class="n">Failed&lt;/span>
+&lt;span class="o">-&lt;/span> &lt;span class="n">hook&lt;/span> &lt;span class="nb">id&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">black&lt;/span>
+&lt;span class="o">-&lt;/span> &lt;span class="n">files&lt;/span> &lt;span class="n">were&lt;/span> &lt;span class="n">modified&lt;/span> &lt;span class="n">by&lt;/span> &lt;span class="n">this&lt;/span> &lt;span class="n">hook&lt;/span>
+&lt;span class="n">reformatted&lt;/span> &lt;span class="o">/.../&lt;/span>&lt;span class="n">setup&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">py&lt;/span>
+&lt;span class="n">reformatted&lt;/span> &lt;span class="o">/.../&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">generate_toc_test&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">py&lt;/span>
+&lt;span class="n">All&lt;/span> &lt;span class="n">done&lt;/span>&lt;span class="err">!&lt;/span> &lt;span class="err">✨&lt;/span> &lt;span class="err">🍰&lt;/span> &lt;span class="err">✨&lt;/span>
+&lt;span class="mi">2&lt;/span> &lt;span class="n">files&lt;/span> &lt;span class="n">reformatted&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">2&lt;/span> &lt;span class="n">files&lt;/span> &lt;span class="n">left&lt;/span> &lt;span class="n">unchanged&lt;/span>&lt;span class="o">.&lt;/span>
+&lt;span class="n">flake8&lt;/span>&lt;span class="o">...................................................................&lt;/span>&lt;span class="n">Passed&lt;/span>
+&lt;span class="n">Check&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">added&lt;/span> &lt;span class="n">large&lt;/span> &lt;span class="n">files&lt;/span>&lt;span class="o">..............................................&lt;/span>&lt;span class="n">Passed&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>结果显示我们有文件未通过 &lt;code>black&lt;/code> 检查，但 &lt;code>black&lt;/code> 同时也帮我们自动进行了格式化，因此只需要暂存并重新提交这些文件即可。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h3 id="pre-commit-hooks-的限制">&lt;code>pre-commit hooks&lt;/code> 的限制&lt;/h3>
+&lt;p>使用 &lt;code>pre-commit&lt;/code> ，我们可以很方便的将丰富多样的代码工具集成到 Git 的工作流中，这很大程度上提高了我们的效率，但 &lt;code>pre-commit hooks&lt;/code> 本身存在以下限制：&lt;/p>
+&lt;ul>
+&lt;li>客户端 &lt;code>hooks&lt;/code> 并不会随代码库一起被复制，我们必须在本地仓库通过 &lt;code>pre-commit install&lt;/code> 执行安装之后 &lt;code>hooks&lt;/code> 才会生效。&lt;/li>
+&lt;li>使用 &lt;code>git commit --no-verify&lt;/code> 即可绕过所有的 &lt;code>pre-commit hooks&lt;/code>。&lt;/li>
+&lt;/ul>
+&lt;p>&lt;code>pre-commit&lt;/code> 解决了在本地集成代码工具的问题，但在团队合作的场景下，我们希望有一种机制可以在服务器端对所有成员推送的代码进行检查，施加特定的约束，这时候就需要用到 Pipelines 了。&lt;/p>
+&lt;h2 id="pipelines">Pipelines&lt;/h2>
+&lt;p>首先我们需要了解 CI/CD 这一概念。&lt;/p>
+&lt;h3 id="cicd">CI/CD&lt;/h3>
+&lt;p>CI（Continuous Integration，持续集成）是一种软件实践，它要求我们频繁地向共享仓库提交代码。更频繁地提交代码可以更快地发现错误，减少我们在发现错误时需要调试的代码量，也使得团队不同成员间的变更更容易合并。CI 可以节省我们调试错误或解决合并冲突的时间，让我们有更多的时间来编写代码。&lt;/p>
+&lt;p>当提交代码到共享仓库时，我们需要对每一次提交的代码进行构建和测试，以确保提交不会引入错误。这些测试既包括上文提到的 Linter，也包括安全性检查、测试覆盖率、功能测试和其他自定义检查。我们将需要一个 CI 服务器作为 Runner 以运行对提交代码的构建和检查。&lt;/p>
+&lt;p>CD（Continuous Deployment，持续部署）是 CI 的下一步。我们不仅在每次推送代码到共享代码库时进行构建和测试，还会在不需要任何人工干预的情况下，自动部署代码到生产环境。此外还有Continuous Delivery （持续交付），它和持续部署的区别在于需要人工干预才会执行部署。&lt;/p>
+&lt;h3 id="pipeline">Pipeline&lt;/h3>
+&lt;p>Pipeline 是持续集成、交付和部署的顶层具象化组件，它由顺序执行的阶段（stage）以及每个阶段中并行的任务（job）组成。一个简单的 pipeline 如下图所示：&lt;/p>
+&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-pipelines.png" alt="2020-01-04-pipelines">&lt;/p>
+&lt;p>首先并行地执行 &lt;code>build&lt;/code> 阶段的所有任务（&lt;code>build_a&lt;/code> 和 &lt;code>build_b&lt;/code>），所有任务成功后继续执行下一阶段的任务，以此类推。pipeline 还能定义成按更复杂的逻辑规则运行。&lt;/p>
+&lt;p>下面我们以 GitLab CI 为例，展示如何配置一个 pipeline，并在测试阶段执行上文介绍的检查工具，解决不能对团队成员提交代码进行强制约束的问题。&lt;/p>
+&lt;h3 id="gitlab-ci-示例">GitLab CI 示例&lt;/h3>
+&lt;h4 id="配置-runner">配置 Runner&lt;/h4>
+&lt;p>首先我们需要配置一个运行任务的服务器作为 Runner，这需要我们有可用的服务器主机（也可以使用本地的开发机器或购买 GitLab 提供的 Runner）。配置 Runner 整体分两步：&lt;/p>
+&lt;ul>
+&lt;li>在主机上&lt;a href="https://docs.gitlab.com/runner/install/">安装 GitLab Runner&lt;/a>，GitLab Runner 是一个用于 GitLab CI/CD 并在主机上管理、执行 pipeline 任务的应用。对于不同的操作系统与架构，具体的安装步骤也有很大区别，详情参见文档。&lt;/li>
+&lt;li>为项目（或项目组）&lt;a href="https://docs.gitlab.com/runner/register/">注册 Runner&lt;/a>。这一步首先需要从 GitLab 项目主页的 &lt;strong>Settings &amp;gt; CI/CD&lt;/strong> &lt;strong>&amp;gt; Runners settings&lt;/strong> 获取项目的 URL 和注册令牌，然后在 Runner 所在的机器运行 &lt;code>register&lt;/code> 命令使用 URL 和令牌完成注册，并选择合适的 Runner 类型，详细步骤参见文档。&lt;/li>
+&lt;/ul>
+&lt;p>配置完成后，我们将可以在 &lt;strong>Runners settings&lt;/strong> 页面查看可用的 Runner 和状态：&lt;/p>
+&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-runner-status.png" alt="2020-01-04-runner-status">&lt;/p>
+&lt;h4 id="创建-gitlabyml">创建 &lt;code>.gitlab.yml&lt;/code>&lt;/h4>
+&lt;p>我们将在项目根目录创建一个配置 pipeline 的 &lt;code>.gitlab.yml&lt;/code> 文件，GitLab 将在每一次我们推送代码到共享仓库时，读取该文件中的定义和指令，创建一条不同阶段及任务组成的 pipeline，并将阶段中的任务派发给可用的 Runner 执行。我们以如下 &lt;code>.gitlab.yml&lt;/code> 文件为例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;span class="lnt">32
+&lt;/span>&lt;span class="lnt">33
+&lt;/span>&lt;span class="lnt">34
+&lt;/span>&lt;span class="lnt">35
+&lt;/span>&lt;span class="lnt">36
+&lt;/span>&lt;span class="lnt">37
+&lt;/span>&lt;span class="lnt">38
+&lt;/span>&lt;span class="lnt">39
+&lt;/span>&lt;span class="lnt">40
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">before_script&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">python --version&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">pip install -r requirements-ci.txt&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">stages&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">Pre-commit Hooks&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">Static Analysis&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">pre-commit&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">stage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Pre-commit Hooks&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">variables&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">PRE_COMMIT_HOME&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">${CI_PROJECT_DIR}/.cache/pre-commit&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">cache&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">key&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">20201116dash&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">paths&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">${PRE_COMMIT_HOME}&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">script&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">pre-commit run --all-files&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">mypy&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">stage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Static Analysis&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">allow_failure&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">only&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">refs&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">master&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">script&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">pwd&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">ls -l&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">python -m mypy app&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">flake8&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">stage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Static Analysis&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">script&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">pwd&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">python -m flake8&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">git-lint&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">stage&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Static Analysis&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">script&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">git log -1 --pretty=%B | gitlint --contrib=CT1 --ignore=body-is-missing&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在这个文件中，我们定义了：&lt;/p>
+&lt;ul>
+&lt;li>Runner 应该执行的任务的结构和顺序。&lt;/li>
+&lt;li>遇到特定条件时，Runner 应做出的决定。&lt;/li>
+&lt;/ul>
+&lt;p>上面的示例定义了如下 pipeline：&lt;/p>
+&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-pipeline-graph.png" alt="2020-01-04-pipeline-graph">&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>before_script&lt;/code>关键字定义了在每个任务前执行的一组命令，我们通过这里设置的命令安装运行 pipeline 所需的依赖。&lt;/li>
+&lt;li>&lt;code>stage&lt;/code> 关键字定义了 &lt;code>Pre-commit Hooks&lt;/code> 和 &lt;code>Static Analysis&lt;/code> 两个阶段。&lt;/li>
+&lt;li>之后则定义了 &lt;code>pre-commit&lt;/code> 、 &lt;code>git-lint&lt;/code>、 &lt;code>mypy&lt;/code> 和 &lt;code>flake8&lt;/code> 等多个任务及所属阶段。&lt;/li>
+&lt;li>每个任务中通过 &lt;code>script&lt;/code> 关键字定义该任务所运行的脚本命令。&lt;/li>
+&lt;li>在 &lt;code>pre-commit&lt;/code> 任务中，我们成功地将上一节介绍的 &lt;code>pre-commit&lt;/code> 放在服务端运行，这能确保对任何人提交的代码都会运行原先只在本地生效的 &lt;code>pre-commit hooks&lt;/code>。我们还通过&lt;a href="https://docs.gitlab.com/ee/ci/variables/predefined_variables.html">预定义变量&lt;/a>和 &lt;code>cache&lt;/code> 关键字缓存运行任务所需的文件以加快执行速度。&lt;/li>
+&lt;li>在 &lt;code>mypy&lt;/code> 任务中，我们通过 &lt;code>allow_failure&lt;/code> 关键字更改了任务成功才会进入下一阶段这一默认行为，并通过 &lt;code>only&lt;/code> 关键字限制其只对 &lt;code>master&lt;/code> 分支的提交执行。&lt;/li>
+&lt;/ul>
+&lt;p>关于 &lt;code>.gitlab.yml&lt;/code> 的更多说明请参阅 &lt;a href="https://docs.gitlab.com/ee/ci/yaml/README.html">GitLab CI/CD pipeline 配置参考手册&lt;/a> 以及 &lt;a href="https://docs.gitlab.com/ee/ci/examples/README.html">GitLab CI/CD 示例&lt;/a>。&lt;/p>
+&lt;h4 id="查看-pipeline-的运行状态">查看 pipeline 的运行状态&lt;/h4>
+&lt;p>现在当我们推送新的代码到共享仓库时，一个新的 pipeline 会被触发运行。我们可以通过以下途径在 GitLab 仓库查看 pipeline 的运行状态：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>进入 &lt;strong>CI/CD &amp;gt; Pipelines&lt;/strong>。将展示一个包含两个阶段的 pipeline（当前状态为已通过）。&lt;/p>
+&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-pipeline-entry.png" alt="2020-01-04-pipeline-entry">&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>点击 pipeline 的 ID 即可查看该 pipeline 的运行示意图：&lt;/p>
+&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-pipeline-graph.png" alt="2020-01-04-pipeline-graph">&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>点击一个任务名称，可查看该任务的详细运行信息：&lt;/p>
+&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-job-detail.png" alt="2020-01-04-job-detail">&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>以上即为一个完整的 GitLab CI pipeline 示例。在该 pipeline 中，我们会在每一次提交代码后：&lt;/p>
+&lt;ul>
+&lt;li>对所有文件运行集成了众多 &lt;code>hooks&lt;/code> 的 &lt;code>pre-commit&lt;/code>，确保代码已在本地通过了 &lt;code>pre-commit&lt;/code> 检查。&lt;/li>
+&lt;li>单独执行 &lt;code>mypy&lt;/code> 、&lt;code>git-lint&lt;/code> 等检查工具。&lt;/li>
+&lt;li>还能够执行打包、运行测试、安全检查等更多更复杂的任务。&lt;/li>
+&lt;/ul>
+&lt;p>接下来我们将通过 GitHub Actions 为例，展示如何运行一个简单的 CD pipeline。&lt;/p>
+&lt;h3 id="github-cd-示例">Github CD 示例&lt;/h3>
+&lt;h4 id="和-gitlab-cicd-的区别">和 GitLab CI/CD 的区别&lt;/h4>
+&lt;p>GitHub Actions 是 GitHub 在 2018年10月推出的持续集成服务，它和上文介绍的 GitLab CI 原理和使用方法基本相同，但存在以下区别：&lt;/p>
+&lt;ul>
+&lt;li>术语定义有所不同，GitHub Actions 有以下组成部分：
+&lt;ol>
+&lt;li>&lt;strong>workflow&lt;/strong> （工作流程）：持续集成一次运行的过程，即 GitLab 中的 pipeline。&lt;/li>
+&lt;li>&lt;strong>job&lt;/strong> （任务）：一个 workflow 由一个或多个 jobs 构成，类似于 GitLab 中的 stage，但默认在不同的 Runner 并行执行，也可以设置为顺序执行。&lt;/li>
+&lt;li>&lt;strong>step&lt;/strong>（步骤）：每个 job 由多个 step 构成，类似于 GitLab 中的 job，但 step 要么是一行命令，要么就是一个action，step 之间按顺序执行且能够共享数据。&lt;/li>
+&lt;li>&lt;strong>action&lt;/strong> （动作）：你可以将多个脚本命令封装成一个 action，通过 GitHub 市场分享给其他人，然后在 step 中使用自建或来自社区的 action。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>GitHub 免费提供常见类型的 Runner，因此一般情况不需要再自行配置服务器及注册。&lt;/li>
+&lt;li>workflow 的配置文件也是类似于 &lt;code>.gitlab.yml&lt;/code> 的 &lt;code>yaml&lt;/code> 文件，但需要添加到项目根目录的 &lt;code>.github/workflows&lt;/code> 路径中。&lt;/li>
+&lt;li>可以很方便地共享或使用他人创建的脚本命令，即 action。&lt;/li>
+&lt;/ul>
+&lt;p>接下来我将演示如何使用 GitHub Actions 自动发布一个 Hugo 静态站点到 GitHub Pages。&lt;/p>
+&lt;h4 id="使用-github-actions-自动发布静态站点">使用 GitHub Actions 自动发布静态站点&lt;/h4>
+&lt;p>大致的工作流程如下：&lt;/p>
+&lt;ol>
+&lt;li>在本地内容仓库开发站点内容，完成后将内容推送到共享仓库。该共享仓库可能是私有的。&lt;/li>
+&lt;li>共享仓库接受推送后触发 workflow，执行以下步骤：
+&lt;ol>
+&lt;li>在 Runner 中拉取提交的内容。&lt;/li>
+&lt;li>配置环境并安装指定版本的 Hugo。&lt;/li>
+&lt;li>运行 Hugo 根据提交内容生成静态站点。&lt;/li>
+&lt;li>将静态文件推送到发布仓库。&lt;/li>
+&lt;/ol>
+&lt;/li>
+&lt;li>发布仓库在接收到推送内容后会自动更新 Pages 页面。&lt;/li>
+&lt;/ol>
+&lt;p>GitHub 上有许多这类自动化部署任务的开源 Actions 项目，我们选择了其中一个简单易用的 &lt;a href="https://github.com/peaceiris/actions-hugo#getting-started">GitHub Actions for Hugo&lt;/a>。具体的操作步骤截图和详细配置项可以查看该项目的 &lt;a href="https://github.com/peaceiris/actions-hugo#github-actions-for-hugo">README&lt;/a>。下面简单介绍下配置过程：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>在本地内容仓库中添加目录和文件：&lt;code>.github/workflows/gh-pages.yml&lt;/code>，&lt;code>gh-pages.yml&lt;/code> 文件内容如下：&lt;/p>
+&lt;pre>&lt;code>name: github pages
+on:
+push:
+branches:
+- main # 每次推送到 main 分支都会触发部署任务
+jobs:
+deploy:
+runs-on: ubuntu-18.04
+steps:
+- uses: actions/checkout@v2
+with:
+submodules: true # Fetch Hugo themes (true OR recursive)
+fetch-depth: 0 # Fetch all history for .GitInfo and .Lastmod
+- name: Setup Hugo
+uses: peaceiris/actions-hugo@v2
+with:
+hugo-version: '0.79.1'
+extended: true
+- name: Build
+run: hugo --minify
+- name: Deploy
+uses: peaceiris/actions-gh-pages@v3
+with:
+deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+external_repository: &amp;lt;USERNAME&amp;gt;/&amp;lt;USERNAME&amp;gt;.github.io # 发布仓库名称
+publish_branch: main
+publish_dir: ./public
+&lt;/code>&lt;/pre>&lt;p>在该配置文件中，我们定义了如下的 workflow：&lt;/p>
+&lt;ol>
+&lt;li>workflow 名称为 &lt;code>github pages&lt;/code>。&lt;/li>
+&lt;li>仅在推送提交到 &lt;code>main&lt;/code> 分支时执行。&lt;/li>
+&lt;li>含有一个名为 &lt;code>deploy&lt;/code> 的任务，并需要在&lt;code>ubuntu-18.04&lt;/code>平台的 Runner 执行。&lt;/li>
+&lt;li>任务中的第一个步骤使用了名为 &lt;code>actions/checkout@v2&lt;/code> 的 &lt;code>action&lt;/code>，以拉取提交的内容到 Runner。&lt;/li>
+&lt;li>第二个步骤使用 &lt;code>peaceiris/actions-hugo@v2&lt;/code> action 配置 Hugo，并指定版本。&lt;/li>
+&lt;li>第三个步骤直接执行 &lt;code>hugo --minify&lt;/code> 命令，生成静态站点（默认输出文件到 &lt;code>public&lt;/code> 目录）&lt;/li>
+&lt;li>第四个步骤使用 &lt;code>peaceiris/actions-gh-pages@v3&lt;/code> action 将生成的静态文件推送到指定的外部仓库。&lt;/li>
+&lt;/ol>
+&lt;p>这个 &lt;code>workflow&lt;/code> 基于内容仓库运行，但我们需要将运行过程生成的静态文件推送到发布仓库进行发布，因此还需要在两个仓库中分别设置密钥。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>在本地生成 SSH 部署密钥：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">ssh-keygen -t rsa -b &lt;span class="m">4096&lt;/span> -C &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="k">$(&lt;/span>git config user.email&lt;span class="k">)&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> -f gh-pages -N &lt;span class="s2">&amp;#34;&amp;#34;&lt;/span>
+&lt;span class="c1"># 将在当前目录生成如下密钥文件:&lt;/span>
+&lt;span class="c1"># gh-pages.pub (公钥)&lt;/span>
+&lt;span class="c1"># gh-pages (私钥)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>在 GitHub 分别进入内容仓库和发布仓库的 &lt;code>Settings&lt;/code> 页面：&lt;/p>
+&lt;ul>
+&lt;li>将公钥 &lt;code>gh-pages.pub&lt;/code> 作为 &lt;code>Secret&lt;/code> 添加到内容仓库，并设置 &lt;code>Name&lt;/code> 为 &lt;code>ACTIONS_DEPLOY_KEY&lt;/code>。&lt;/li>
+&lt;li>将私钥 &lt;code>gh-pages&lt;/code> 作为 &lt;code>Deploy Key&lt;/code> 添加到发布仓库，并设置为 &lt;code>Allow write access&lt;/code>。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ol>
+&lt;p>接下来我们测试一下效果。&lt;/p>
+&lt;p>在本地内容仓库做一些更改，预览效果后提交并推送，然后在共享仓库的 &lt;strong>GitHub Actions&lt;/strong> 页面检查相应 &lt;code>workflow&lt;/code> 的运行状态与详细结果：&lt;/p>
+&lt;p>&lt;img src="https://waynerv.github.io/images/2020-01-04-actions-page.png" alt="2020-01-04-actions-page">&lt;/p>
+&lt;p>运行成功后，很快发布仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，相应的 GitHub Pages 也会更新相应的内容。&lt;/p>
+&lt;h2 id="总结">总结&lt;/h2>
+&lt;p>本文中，我们围绕保障代码质量这一目的：&lt;/p>
+&lt;ol>
+&lt;li>首先介绍了 Linter、Static Type Checker、Autoformatter 三种工具并各展示了一个代表性工具的使用方法。&lt;/li>
+&lt;li>将这些工具通过 &lt;code>pre-commit&lt;/code> 集成到 &lt;code>git hooks&lt;/code> 中，在代码开发工作流中自动执行。&lt;/li>
+&lt;li>介绍了CI/CD，并以 GitLab CI pipeline 为例将以上检查部署到共享仓库，在每次代码提交后自动执行。&lt;/li>
+&lt;li>顺便介绍了一个通过 GitHub Actions 实现持续部署的示例，演示了 GitHub 持续集成服务的基本用法。&lt;/li>
+&lt;/ol>
+&lt;p>经过简单几步的一次性配置，你就可以拥有一套高度自动化的代码质量工具工作流程。但工具只是保障代码质量众多环节中最容易发力，见效快，但作用也很有限的一环。真正实现保证代码质量这一目标任重而道远，还需要我们在个人和团队这两个方面认识到代码质量的重要性，并不断践行各种代码质量设计与活动。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://en.wikipedia.org/wiki/Lint_(software)">Linter-Wikipedia&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://flake8.pycqa.org/en/latest/">Flake8&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://mypy.readthedocs.io/en/stable/">Mypy&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://realpython.com/python-type-checking">Python Type Checking (Guide)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://black.readthedocs.io/en/stable/">Black&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks">Customizing Git - Git Hooks&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://pre-commit.com/">pre-commit&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/guides/about-continuous-integration">About continuous integration&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://docs.gitlab.com/ee/ci/README.html">GitLab CI/CD&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/quickstart">Quickstart for GitHub Actions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/introduction-to-github-actions">Introduction to GitHub Actions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="http://www.ruanyifeng.com/blog/2019/09/getting-started-with-github-actions.html">GitHub Actions 入门教程&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://waynerv.github.io/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://waynerv.github.io/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/">代码质量</category><category domain="https://waynerv.github.io/tags/ci/">CI</category></item><item><title>Git 合并浅析</title><link>https://waynerv.github.io/posts/git-merge-intro/</link><guid isPermaLink="true">https://waynerv.github.io/posts/git-merge-intro/</guid><pubDate>Tue, 29 Dec 2020 07:17:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
 &lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
 &lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
 &lt;h2 id="认识合并">认识合并&lt;/h2>
