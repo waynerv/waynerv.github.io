@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.github.io/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 04 Jan 2021 03:47:53 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.github.io/rss.xml"/><item><title>构建保障代码质量的自动化工作流</title><link>https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</link><guid isPermaLink="true">https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</guid><pubDate>Mon, 04 Jan 2021 11:28:01 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.github.io/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 04 Jan 2021 04:00:45 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.github.io/rss.xml"/><item><title>构建保障代码质量的自动化工作流</title><link>https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</link><guid isPermaLink="true">https://waynerv.github.io/posts/build-automatic-code-quality-workflow/</guid><pubDate>Mon, 04 Jan 2021 11:28:01 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
 &lt;h2 id="linter">Linter&lt;/h2>
 &lt;p>Linter 是一类用于标记程序错误、bug、风格错误和可疑结构的静态代码分析工具，比如 Python 中的 &lt;code>Pylint&lt;/code>、 &lt;code>flake8&lt;/code>，JavaScript 中的 &lt;code>EsLint&lt;/code>，这类工具会找到你代码中的错误，并给出如何修复的提示。&lt;/p>
 &lt;h3 id="为何要使用-linter">为何要使用 Linter&lt;/h3>
@@ -70,20 +70,20 @@
 &lt;/span>&lt;span class="lnt">14
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="o">[&lt;/span>flake8&lt;span class="o">]&lt;/span>
-max-line-length &lt;span class="o">=&lt;/span> &lt;span class="m">120&lt;/span> &lt;span class="c1"># 适当提高最大行长度&lt;/span>
-max-complexity &lt;span class="o">=&lt;/span> &lt;span class="m">24&lt;/span> &lt;span class="c1"># 设置最大复杂度为24&lt;/span>
-&lt;span class="nv">ignore&lt;/span> &lt;span class="o">=&lt;/span> F401, W503, E203 &lt;span class="c1"># 忽略这些错误类型&lt;/span>
-&lt;span class="nv">exclude&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="c1"># 忽略以下文件&lt;/span>
-.git,
-__pycache__,
-scripts,
-logs,
-upload,
-build,
-dist,
-docs,
-migrations
+&lt;pre class="chroma">&lt;code class="language-ini" data-lang="ini">&lt;span class="k">[flake8]&lt;/span>
+&lt;span class="na">max-line-length&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">120 # 适当提高最大行长度&lt;/span>
+&lt;span class="na">max-complexity&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">24 # 设置最大复杂度为24&lt;/span>
+&lt;span class="na">ignore&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">F401, W503, E203 # 忽略这些错误类型&lt;/span>
+&lt;span class="na">exclude&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s"># 忽略以下文件
+&lt;/span>&lt;span class="s"> .git,
+&lt;/span>&lt;span class="s"> __pycache__,
+&lt;/span>&lt;span class="s"> scripts,
+&lt;/span>&lt;span class="s"> logs,
+&lt;/span>&lt;span class="s"> upload,
+&lt;/span>&lt;span class="s"> build,
+&lt;/span>&lt;span class="s"> dist,
+&lt;/span>&lt;span class="s"> docs,
+&lt;/span>&lt;span class="s"> migrations&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>&lt;code>flake8&lt;/code> 还可以添加插件实现更多更强大的功能，比如我们想强制要求编写函数 &lt;code>docstring&lt;/code>，可以安装 &lt;code>flake8-docstrings&lt;/code> :&lt;/p>
@@ -127,10 +127,10 @@ migrations
 &lt;/span>&lt;span class="lnt">5
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># test_mypy.py&lt;/span>
-def greeting&lt;span class="o">(&lt;/span>name: str&lt;span class="o">)&lt;/span> -&amp;gt; str:
-&lt;span class="k">return&lt;/span> &lt;span class="s1">&amp;#39;Hello &amp;#39;&lt;/span> + name
-greeting&lt;span class="o">(&lt;/span>3&lt;span class="o">)&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="c1"># test_mypy.py&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="nf">greeting&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">name&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="nb">str&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="o">-&amp;gt;&lt;/span> &lt;span class="nb">str&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="s1">&amp;#39;Hello &amp;#39;&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="n">name&lt;/span>
+&lt;span class="n">greeting&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="p">)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>通过 &lt;code>pip&lt;/code> 安装 &lt;code>mypy&lt;/code> :&lt;/p>
@@ -139,7 +139,7 @@ greeting&lt;span class="o">(&lt;/span>3&lt;span class="o">)&lt;/span>
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pip install mypy
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ pip install mypy
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>对该文件运行检查：&lt;/p>
@@ -150,7 +150,7 @@ greeting&lt;span class="o">(&lt;/span>3&lt;span class="o">)&lt;/span>
 &lt;/span>&lt;span class="lnt">3
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">❯ mypy test_mypy.py
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ mypy test_mypy.py
 test_mypy.py:4: error: Argument &lt;span class="m">1&lt;/span> to &lt;span class="s2">&amp;#34;greeting&amp;#34;&lt;/span> has incompatible &lt;span class="nb">type&lt;/span> &lt;span class="s2">&amp;#34;int&amp;#34;&lt;/span>&lt;span class="p">;&lt;/span> expected &lt;span class="s2">&amp;#34;str&amp;#34;&lt;/span>
 Found &lt;span class="m">1&lt;/span> error in &lt;span class="m">1&lt;/span> file &lt;span class="o">(&lt;/span>checked &lt;span class="m">1&lt;/span> &lt;span class="nb">source&lt;/span> file&lt;span class="o">)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
@@ -178,13 +178,13 @@ Found &lt;span class="m">1&lt;/span> error in &lt;span class="m">1&lt;/span> fil
 &lt;/span>&lt;span class="lnt">7
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># test_black.py&lt;/span>
-def f &lt;span class="o">(&lt;/span> a: List&lt;span class="o">[&lt;/span> int &lt;span class="o">])&lt;/span> :
-&lt;span class="k">return&lt;/span> 37-a&lt;span class="o">[&lt;/span>42-u : y**3&lt;span class="o">]&lt;/span>
-def very_important_function&lt;span class="o">(&lt;/span>template: str,*variables,file: os.PathLike,debug:bool&lt;span class="o">=&lt;/span>False,&lt;span class="o">)&lt;/span>:
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="c1"># test_black.py&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="nf">f&lt;/span> &lt;span class="p">(&lt;/span> &lt;span class="n">a&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">List&lt;/span>&lt;span class="p">[&lt;/span> &lt;span class="nb">int&lt;/span> &lt;span class="p">])&lt;/span> &lt;span class="p">:&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="mi">37&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">a&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">42&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">u&lt;/span> &lt;span class="p">:&lt;/span> &lt;span class="n">y&lt;/span>&lt;span class="o">**&lt;/span>&lt;span class="mi">3&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="nf">very_important_function&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">template&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="nb">str&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="n">variables&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="nb">file&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">os&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">PathLike&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="n">debug&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="nb">bool&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="bp">False&lt;/span>&lt;span class="p">,):&lt;/span>
 &lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;Applies `variables` to the `template` and writes to `file`.&amp;#34;&amp;#34;&amp;#34;&lt;/span>
-with open&lt;span class="o">(&lt;/span>file, &lt;span class="s2">&amp;#34;w&amp;#34;&lt;/span>&lt;span class="o">)&lt;/span> as f:
-...
+&lt;span class="k">with&lt;/span> &lt;span class="nb">open&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nb">file&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;w&amp;#34;&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="k">as&lt;/span> &lt;span class="n">f&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="o">...&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>首先通过 &lt;code>pip&lt;/code> 安装 &lt;code>balck&lt;/code>：&lt;/p>
@@ -193,7 +193,7 @@ with open&lt;span class="o">(&lt;/span>file, &lt;span class="s2">&amp;#34;w&amp;
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pip install black
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ pip install black
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>然后对需要格式化的文件或整个目录的路径执行 &lt;code>black&lt;/code> 命令：&lt;/p>
@@ -254,9 +254,9 @@ All &lt;span class="k">done&lt;/span>! ✨ 🍰 ✨
 &lt;/span>&lt;span class="lnt">3
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="p">[&lt;/span>&lt;span class="n">tool&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">black&lt;/span>&lt;span class="p">]&lt;/span>
-&lt;span class="n">line&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">length&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">120&lt;/span>
-&lt;span class="n">skip&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">string&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">normalization&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">true&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-ini" data-lang="ini">&lt;span class="k">[tool.black]&lt;/span>
+&lt;span class="na">line-length&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">120&lt;/span>
+&lt;span class="na">skip-string-normalization&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">true&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;h3 id="ide-的自带工具">IDE 的自带工具&lt;/h3>
@@ -286,7 +286,7 @@ All &lt;span class="k">done&lt;/span>! ✨ 🍰 ✨
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">pip&lt;/span> &lt;span class="n">install&lt;/span> &lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ pip install pre-commit
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>&lt;code>pre-commit&lt;/code> 是面向多语言的，因此它还支持通过 &lt;code>homebrew&lt;/code> 等方式安装。&lt;/p>
@@ -317,24 +317,26 @@ All &lt;span class="k">done&lt;/span>! ✨ 🍰 ✨
 &lt;/span>&lt;span class="lnt">19
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">repos&lt;/span>&lt;span class="p">:&lt;/span>
-&lt;span class="o">-&lt;/span> &lt;span class="n">repo&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">psf&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">black&lt;/span>
-&lt;span class="n">rev&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mf">20.8&lt;/span>&lt;span class="n">b1&lt;/span>
-&lt;span class="n">hooks&lt;/span>&lt;span class="p">:&lt;/span>
-&lt;span class="o">-&lt;/span> &lt;span class="nb">id&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">black&lt;/span>
-&lt;span class="n">language_version&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">python3&lt;/span>
-&lt;span class="n">exclude&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="o">^&lt;/span>&lt;span class="n">migrations&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">uploads&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">scripts&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">logs&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">docs&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">dist&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">build&lt;/span>&lt;span class="o">/&lt;/span>
-&lt;span class="o">-&lt;/span> &lt;span class="n">repo&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pycqa&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">flake8&lt;/span>
-&lt;span class="n">rev&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mf">3.8&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="mi">4&lt;/span>
-&lt;span class="n">hooks&lt;/span>&lt;span class="p">:&lt;/span>
-&lt;span class="o">-&lt;/span> &lt;span class="nb">id&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">flake8&lt;/span>
-&lt;span class="n">exclude&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="o">^&lt;/span>&lt;span class="n">migrations&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">uploads&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">scripts&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">logs&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">docs&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">dist&lt;/span>&lt;span class="o">/|^&lt;/span>&lt;span class="n">build&lt;/span>&lt;span class="o">/&lt;/span>
-&lt;span class="o">-&lt;/span> &lt;span class="n">repo&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">hooks&lt;/span>
-&lt;span class="n">rev&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">v3&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="mf">3.0&lt;/span>
-&lt;span class="n">hooks&lt;/span>&lt;span class="p">:&lt;/span>
-&lt;span class="o">-&lt;/span> &lt;span class="nb">id&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">check&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">added&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">large&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">files&lt;/span>
-&lt;span class="n">args&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span> &lt;span class="o">--&lt;/span>&lt;span class="n">maxkb&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="mi">512&lt;/span> &lt;span class="p">]&lt;/span>
-&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">repos&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">repo&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">https://github.com/psf/black&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rev&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">20.&lt;/span>&lt;span class="l">8b1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hooks&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">id&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">black&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">language_version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">python3&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">exclude&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">^migrations/|^uploads/|^scripts/|^logs/|^docs/|^dist/|^build/&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">repo&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">https://github.com/pycqa/flake8&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rev&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">3.8.4&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hooks&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">id&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">flake8&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">exclude&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">^migrations/|^uploads/|^scripts/|^logs/|^docs/|^dist/|^build/&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">repo&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">https://github.com/pre-commit/pre-commit-hooks&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rev&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v3.3.0&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hooks&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">id&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">check-added-large-files&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">args&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="w"> &lt;/span>--&lt;span class="l">maxkb=512 ]&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>在该示例文件中，我们添加了 &lt;code>black&lt;/code> 、 &lt;code>flake8&lt;/code> 以及一个检查是否添加了大体积文件到 Git 的 &lt;code>hooks&lt;/code>，还分别指定了语言版本、跳过检查路径等选项。&lt;/p>
 &lt;p>配置文件的选项含义参见 &lt;a href="https://pre-commit.com/#plugins">https://pre-commit.com/#plugins&lt;/a>，所有支持安装的 &lt;code>hooks&lt;/code> 列表参见&lt;a href="https://pre-commit.com/hooks.html">https://pre-commit.com/hooks.html&lt;/a>。&lt;/p>
@@ -385,28 +387,28 @@ pre-commit installed at .git/hooks/pre-commit
 &lt;/span>&lt;span class="lnt">25
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="err">$&lt;/span> &lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span> &lt;span class="n">run&lt;/span> &lt;span class="o">--&lt;/span>&lt;span class="nb">all&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">files&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Initializing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">psf&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">black&lt;/span>&lt;span class="o">.&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Initializing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pycqa&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">flake8&lt;/span>&lt;span class="o">.&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Initializing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">hooks&lt;/span>&lt;span class="o">.&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Installing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">psf&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">black&lt;/span>&lt;span class="o">.&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Once&lt;/span> &lt;span class="n">installed&lt;/span> &lt;span class="n">this&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="n">will&lt;/span> &lt;span class="n">be&lt;/span> &lt;span class="n">reused&lt;/span>&lt;span class="o">.&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">This&lt;/span> &lt;span class="n">may&lt;/span> &lt;span class="n">take&lt;/span> &lt;span class="n">a&lt;/span> &lt;span class="n">few&lt;/span> &lt;span class="n">minutes&lt;/span>&lt;span class="o">...&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Installing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pycqa&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">flake8&lt;/span>&lt;span class="o">.&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Once&lt;/span> &lt;span class="n">installed&lt;/span> &lt;span class="n">this&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="n">will&lt;/span> &lt;span class="n">be&lt;/span> &lt;span class="n">reused&lt;/span>&lt;span class="o">.&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">This&lt;/span> &lt;span class="n">may&lt;/span> &lt;span class="n">take&lt;/span> &lt;span class="n">a&lt;/span> &lt;span class="n">few&lt;/span> &lt;span class="n">minutes&lt;/span>&lt;span class="o">...&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Installing&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">github&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">pre&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">commit&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">hooks&lt;/span>&lt;span class="o">.&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">Once&lt;/span> &lt;span class="n">installed&lt;/span> &lt;span class="n">this&lt;/span> &lt;span class="n">environment&lt;/span> &lt;span class="n">will&lt;/span> &lt;span class="n">be&lt;/span> &lt;span class="n">reused&lt;/span>&lt;span class="o">.&lt;/span>
-&lt;span class="p">[&lt;/span>&lt;span class="n">INFO&lt;/span>&lt;span class="p">]&lt;/span> &lt;span class="n">This&lt;/span> &lt;span class="n">may&lt;/span> &lt;span class="n">take&lt;/span> &lt;span class="n">a&lt;/span> &lt;span class="n">few&lt;/span> &lt;span class="n">minutes&lt;/span>&lt;span class="o">...&lt;/span>
-&lt;span class="n">black&lt;/span>&lt;span class="o">....................................................................&lt;/span>&lt;span class="n">Failed&lt;/span>
-&lt;span class="o">-&lt;/span> &lt;span class="n">hook&lt;/span> &lt;span class="nb">id&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">black&lt;/span>
-&lt;span class="o">-&lt;/span> &lt;span class="n">files&lt;/span> &lt;span class="n">were&lt;/span> &lt;span class="n">modified&lt;/span> &lt;span class="n">by&lt;/span> &lt;span class="n">this&lt;/span> &lt;span class="n">hook&lt;/span>
-&lt;span class="n">reformatted&lt;/span> &lt;span class="o">/.../&lt;/span>&lt;span class="n">setup&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">py&lt;/span>
-&lt;span class="n">reformatted&lt;/span> &lt;span class="o">/.../&lt;/span>&lt;span class="n">test&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">generate_toc_test&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">py&lt;/span>
-&lt;span class="n">All&lt;/span> &lt;span class="n">done&lt;/span>&lt;span class="err">!&lt;/span> &lt;span class="err">✨&lt;/span> &lt;span class="err">🍰&lt;/span> &lt;span class="err">✨&lt;/span>
-&lt;span class="mi">2&lt;/span> &lt;span class="n">files&lt;/span> &lt;span class="n">reformatted&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">2&lt;/span> &lt;span class="n">files&lt;/span> &lt;span class="n">left&lt;/span> &lt;span class="n">unchanged&lt;/span>&lt;span class="o">.&lt;/span>
-&lt;span class="n">flake8&lt;/span>&lt;span class="o">...................................................................&lt;/span>&lt;span class="n">Passed&lt;/span>
-&lt;span class="n">Check&lt;/span> &lt;span class="k">for&lt;/span> &lt;span class="n">added&lt;/span> &lt;span class="n">large&lt;/span> &lt;span class="n">files&lt;/span>&lt;span class="o">..............................................&lt;/span>&lt;span class="n">Passed&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ pre-commit run --all-files
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> Initializing environment &lt;span class="k">for&lt;/span> https://github.com/psf/black.
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> Initializing environment &lt;span class="k">for&lt;/span> https://github.com/pycqa/flake8.
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> Initializing environment &lt;span class="k">for&lt;/span> https://github.com/pre-commit/pre-commit-hooks.
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> Installing environment &lt;span class="k">for&lt;/span> https://github.com/psf/black.
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> Once installed this environment will be reused.
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> This may take a few minutes...
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> Installing environment &lt;span class="k">for&lt;/span> https://github.com/pycqa/flake8.
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> Once installed this environment will be reused.
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> This may take a few minutes...
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> Installing environment &lt;span class="k">for&lt;/span> https://github.com/pre-commit/pre-commit-hooks.
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> Once installed this environment will be reused.
+&lt;span class="o">[&lt;/span>INFO&lt;span class="o">]&lt;/span> This may take a few minutes...
+black....................................................................Failed
+- hook id: black
+- files were modified by this hook
+reformatted /.../setup.py
+reformatted /.../test/generate_toc_test.py
+All &lt;span class="k">done&lt;/span>! ✨ 🍰 ✨
+&lt;span class="m">2&lt;/span> files reformatted, &lt;span class="m">2&lt;/span> files left unchanged.
+flake8...................................................................Passed
+Check &lt;span class="k">for&lt;/span> added large files..............................................Passed
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>结果显示我们有文件未通过 &lt;code>black&lt;/code> 检查，但 &lt;code>black&lt;/code> 同时也帮我们自动进行了格式化，因此只需要暂存并重新提交这些文件即可。&lt;/p>
@@ -601,34 +603,77 @@ pre-commit installed at .git/hooks/pre-commit
 &lt;ol>
 &lt;li>
 &lt;p>在本地内容仓库中添加目录和文件：&lt;code>.github/workflows/gh-pages.yml&lt;/code>，&lt;code>gh-pages.yml&lt;/code> 文件内容如下：&lt;/p>
-&lt;pre>&lt;code>name: github pages
-on:
-push:
-branches:
-- main # 每次推送到 main 分支都会触发部署任务
-jobs:
-deploy:
-runs-on: ubuntu-18.04
-steps:
-- uses: actions/checkout@v2
-with:
-submodules: true # Fetch Hugo themes (true OR recursive)
-fetch-depth: 0 # Fetch all history for .GitInfo and .Lastmod
-- name: Setup Hugo
-uses: peaceiris/actions-hugo@v2
-with:
-hugo-version: '0.79.1'
-extended: true
-- name: Build
-run: hugo --minify
-- name: Deploy
-uses: peaceiris/actions-gh-pages@v3
-with:
-deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-external_repository: &amp;lt;USERNAME&amp;gt;/&amp;lt;USERNAME&amp;gt;.github.io # 发布仓库名称
-publish_branch: main
-publish_dir: ./public
-&lt;/code>&lt;/pre>&lt;p>在该配置文件中，我们定义了如下的 workflow：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;span class="lnt">32
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">github pages&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">on&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">push&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">branches&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">main &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># 每次推送到 main 分支都会触发部署任务&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">jobs&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">deploy&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">runs-on&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">ubuntu-18.04&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">steps&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">uses&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">actions/checkout@v2&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">with&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">submodules&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># Fetch Hugo themes (true OR recursive)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">fetch-depth&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">0&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># Fetch all history for .GitInfo and .Lastmod&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Setup Hugo&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">uses&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">peaceiris/actions-hugo@v2&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">with&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hugo-version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;0.79.1&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">extended&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Build&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">run&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">hugo --minify&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Deploy&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">uses&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">peaceiris/actions-gh-pages@v3&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">with&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">deploy_key&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">${{ secrets.ACTIONS_DEPLOY_KEY }}&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">external_repository&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">&amp;lt;USERNAME&amp;gt;/&amp;lt;USERNAME&amp;gt;.github.io &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># 发布仓库名称&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">publish_branch&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">main&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">publish_dir&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">./public&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在该配置文件中，我们定义了如下的 workflow：&lt;/p>
 &lt;ol>
 &lt;li>workflow 名称为 &lt;code>github pages&lt;/code>。&lt;/li>
 &lt;li>仅在推送提交到 &lt;code>main&lt;/code> 分支时执行。&lt;/li>
