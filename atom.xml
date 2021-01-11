@@ -1,11 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">谈谈天，写写码</subtitle><updated>2021-01-09T05:16:05+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">Git 撤销操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2021-01-09T05:16:02+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂……</summary><content type="html">&lt;p>对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">谈谈天，写写码</subtitle><updated>2021-01-11T06:05:51+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">Git 撤销操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2021-01-11T06:05:47+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂……</summary><content type="html">&lt;p>对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
 &lt;p>之所以如此，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
 &lt;ul>
 &lt;li>我在本地修改了一些文件还未提交，但我想放弃某些文件的更改。&lt;/li>
 &lt;li>我不小心 &lt;code>git add&lt;/code> 了错误的文件，现在想把它取消暂存。&lt;/li>
 &lt;li>我刚刚执行的提交添加了不该提交的文件，我想取消这次提交，但保留（或不保留）对文件所作的修改。&lt;/li>
 &lt;/ul>
-&lt;p>对于各种复杂的情形，Git 都提供了对应的方案来解决，但由于命令较多且同一命令还有很多选项，想要记住它们不是一件容易的事情。以 &lt;code>reset&lt;/code> 、 &lt;code>checkout&lt;/code> 为例，在添加不同选项并对不同参数执行后，就能实现 5 种不同但又很常用的效果。&lt;/p>
+&lt;p>对于各种复杂的情形，Git 都提供了对应的方案来解决，但由于命令很多且同一命令还有很多选项，想要记住它们不是一件容易的事情。以 &lt;code>reset&lt;/code> 、 &lt;code>checkout&lt;/code> 为例，在添加不同选项并对不同参数执行后，就能实现 6 种不同但又很常用的效果。&lt;/p>
 &lt;p>带着这些疑惑，我们来看看执行这些操作时究竟发生了什么，希望你在阅读本文后，能够对 Git 的撤销操作运用自如，解决大部分与撤销相关的实际问题。&lt;/p>
 &lt;h2 id="git-中的撤销">Git 中的撤销&lt;/h2>
 &lt;p>首先需要明确的是，Git 中并没有真正意义上传统文本处理软件都会提供的 &lt;code>undo&lt;/code> （撤销）功能，Git 本身也不是一个文本处理软件，它是一个内容寻址文件系统，你所提交的更改都会被保存。它就像时光机一样，可以轻易地使保存的文件回到过去的某个状态。&lt;/p>
@@ -18,7 +18,7 @@
 &lt;li>暂存区（Staging Index）&lt;/li>
 &lt;li>提交历史（Commit History）&lt;/li>
 &lt;/ul>
-&lt;p>虽然我们用树来形容它们，但需要先明确的一点是，树并不代表它们真实的数据结构。「树」在这里的实际意思是「文件的集合」，而不是指特定的数据结构。在文中我们不会去深入探究它们的底层结构，而是重点了解它们的作用及相互关系。&lt;/p>
+&lt;p>虽然我们用树来形容它们，但需要先明确的一点是，树并不代表它们真实的数据结构。「树」在这里的实际意思是「文件的集合」，而不是指特定的数据结构。在文中我们不会去深入探究它们的底层，而是重点了解它们的作用及相互关系。&lt;/p>
 &lt;h3 id="工作区">工作区&lt;/h3>
 &lt;p>工作区即存放当前操作文件的本地文件系统目录。&lt;/p>
 &lt;p>我们可以把它当成一个沙盒，在其中随意地添加或编辑文件，然后再将修改后的文件添加到暂存区并记录到提交历史中。&lt;/p>
@@ -27,8 +27,8 @@
 &lt;p>暂存区保存着下一次执行 &lt;code>git commit&lt;/code> 时将加入到提交历史中的内容。&lt;/p>
 &lt;p>Git 把它作为工作区与提交历史之间的中间区域，方便我们对提交内容进行组织：我们可能会在工作区同时更改多个完全不相干的文件，这时可以将它们分别放入暂存区，并在不同的提交中加入提交历史。此外暂存区还用于合并冲突时存放文件的不同版本。&lt;/p>
 &lt;p>除非是一个刚刚初始化的 Git 仓库，否则暂存区并不是空的，它会填充最近一次提交所对应的文件快照，因此当我们基于最近一次提交在工作区做了一些修改之后，&lt;code>git status&lt;/code> 会将工作区的文件与暂存区的文件快照进行对比， 并提示我们有哪些做了修改的文件尚未加入暂存区。&lt;/p>
-&lt;h4 id="index-文件">&lt;strong>Index 文件&lt;/strong>&lt;/h4>
-&lt;p>暂存区并不像工作区有可见的文件系统目录，或者像提交历史一样通过 &lt;code>.git/objects&lt;/code> 目录保存着所有提交对象，它没有实际存在的目录或文件夹，其实体是位于 &lt;code>.git&lt;/code> 目录的 &lt;code>index&lt;/code> 文件。 &lt;code>index&lt;/code> 是一个二进制文件，包含着一个由路径名称、权限和 &lt;code>blob&lt;/code> 对象的 SHA-1 值组成的有序列表。&lt;/p>
+&lt;h4 id="index-文件">Index 文件&lt;/h4>
+&lt;p>暂存区并不像工作区有可见的文件系统目录，或者像提交历史一样通过 &lt;code>.git/objects&lt;/code> 目录保存着所有提交对象，它没有实际存在的目录或文件夹，它的实体是位于 &lt;code>.git&lt;/code> 目录的 &lt;code>index&lt;/code> 文件。 &lt;code>index&lt;/code> 是一个二进制文件，包含着一个由路径名称、权限和 &lt;code>blob&lt;/code> 对象的 SHA-1 值组成的有序列表。&lt;/p>
 &lt;p>我们可以通过 &lt;code>git ls-files&lt;/code> 命令查看 &lt;code>index&lt;/code> 中的内容：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -42,7 +42,7 @@
 &lt;span class="m">100644&lt;/span> 9c1cab9a57432098de869e202ed73161af33d182 &lt;span class="m">0&lt;/span> main.py
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>index&lt;/code> 文件中记录了暂存区文件的 SHA-1 ID，其内容已经作为 &lt;code>blob&lt;/code> 对象保存到了 &lt;code>.git/objects&lt;/code> 目录中，我们可以通过 ID 取得对应的 &lt;code>blob&lt;/code> 对象：&lt;/p>
+&lt;/div>&lt;p>&lt;code>index&lt;/code> 中记录了暂存区文件的路径名称和 SHA-1 ID，文件内容已经作为 &lt;code>blob&lt;/code> 对象保存到了 &lt;code>.git/objects&lt;/code> 目录中，我们可以通过 ID 取得对应的 &lt;code>blob&lt;/code> 对象：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -68,7 +68,7 @@
 &lt;span class="m">4&lt;/span> directories, &lt;span class="m">2&lt;/span> files
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>blob&lt;/code> 对象是 Git 用来保存文件数据的对象，我们可以尝试打印其内容：&lt;/p>
+&lt;/div>&lt;p>&lt;code>blob&lt;/code> 对象是 Git 用来保存文件数据的二进制对象，我们可以用 &lt;code>git cat-file&lt;/code> 命令打印其内容：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -107,18 +107,18 @@ This is a README file.
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git log
-commit 0a19d430984880bda4031f0713229229c12793e4 &lt;span class="o">(&lt;/span>HEAD -&amp;gt; master&lt;span class="o">)&lt;/span>
+commit ea4c48a0984880bda4031f0713229229c12793e4 &lt;span class="o">(&lt;/span>HEAD -&amp;gt; master&lt;span class="o">)&lt;/span>
 Author: Waynerv &amp;lt;waynerv@notmyemail.com&amp;gt;
 Date: Wed Jan &lt;span class="m">6&lt;/span> 21:05:44 &lt;span class="m">2021&lt;/span> +0800
-add main application file
-commit 9e80639d6d85435660fcacce1305a54273880479
+add main file
+commit b15cc74d6d85435660fcacce1305a54273880479
 Author: Waynerv &amp;lt;waynerv@notmyemail.com&amp;gt;
 Date: Wed Jan &lt;span class="m">6&lt;/span> 21:05:06 &lt;span class="m">2021&lt;/span> +0800
-add gitignore file
-commit 8f15da881cc5dfc5b1c9c7d06b861553d5c42491
+add ignore file
+commit e137e9b81cc5dfc5b1c9c7d06b861553d5c42491
 Author: Waynerv &amp;lt;waynerv@notmyemail.com&amp;gt;
 Date: Wed Jan &lt;span class="m">6&lt;/span> 21:04:39 &lt;span class="m">2021&lt;/span> +0800
-initial commit
+first commit
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>每一个提交都会有一个 40 位的「ID」：&lt;/p>
@@ -127,10 +127,10 @@ initial commit
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">0a19d430984880bda4031f0713229229c12793e4
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">ea4c48a0984880bda4031f0713229229c12793e4
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>Git 通过「提交对象」来储存每一次提交。这个 ID 是以提交对象内容进行 SHA-1 计算得到的哈希值，不同的内容一定会得到不同的结果，Git 既把它作为每一个对象（不仅仅是提交对象）的唯一标识符，也用作 &lt;code>.git/objects&lt;/code> 目录中的地址（其中存储着实际的对象文件），我们可以用 ID 找到对应的对象并打印其内容：&lt;/p>
+&lt;/div>&lt;p>Git 通过「提交对象」来储存每一次提交。这个 ID 是以对象内容进行 SHA-1 计算得到的哈希值，不同的内容一定会得到不同的结果，Git 既把它作为每一个对象（不仅仅是提交对象）的唯一标识符，也用作 &lt;code>.git/objects&lt;/code> 目录中的地址（其中存储着实际的二进制文件），我们可以用 ID 找到对应的对象并打印其内容：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -142,9 +142,9 @@ initial commit
 &lt;/span>&lt;span class="lnt">7
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git cat-file -p 0a19d430984880bda4031f0713229229c12793e4
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git cat-file -p ea4c48a0984880bda4031f0713229229c12793e4
 tree 9e761342b98484aac2d8734f45fc2d0fde3e29db
-parent 9e80639d6d85435660fcacce1305a54273880479
+parent b15cc74d6d85435660fcacce1305a54273880479
 author Waynerv &amp;lt;waynerv@notmyemail.com&amp;gt; &lt;span class="m">1609938344&lt;/span> +0800
 committer Waynerv &amp;lt;waynerv@notmyemail.com&amp;gt; &lt;span class="m">1609938344&lt;/span> +0800
 add main application file
@@ -173,9 +173,9 @@ add main application file
 &lt;span class="m">040000&lt;/span> tree 556af47de72b597f532f63b63983be433f137e57 tests
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>就像目录中包含其他目录和文件一样，一个 &lt;code>tree&lt;/code> 对象即可表示整个工作区中所有已提交目录及文件的内容，也就是说提交历史中的每一个提交都包含着一份完整的某一时刻的文件快照，并通过保存上一次提交的引用形成连续的时间线。&lt;/p>
+&lt;/div>&lt;p>就像目录递归地包含其他目录和文件一样，一个 &lt;code>tree&lt;/code> 对象即可表示整个工作区中所有已提交目录及文件的内容，也就是说提交历史中的每一个提交都包含着一份完整的某一时刻的文件快照，并通过保存上一次提交的引用形成连续的文件快照历史。&lt;/p>
 &lt;h3 id="工作流程">工作流程&lt;/h3>
-&lt;p>在继续前，我们先简单了解下分支和 HEAD。&lt;/p>
+&lt;p>在继续前，我们需要简单了解下分支和 HEAD。&lt;/p>
 &lt;p>在 Git 中我们将 SHA-1 值用做提交对象（以及 &lt;code>tree&lt;/code> 和 &lt;code>blob&lt;/code> 对象）的 ID，通过 ID 操作提交对象以及提交对象引用的文件快照。但大部分时候，记住一个 ID 是非常困难的，因此 Git 用一个文件来保存 SHA-1 值，这个文件的名字即作为「引用（refs）」来替代原始的 SHA-1 值。&lt;/p>
 &lt;p>这类包含 SHA-1 值的文件保存在 &lt;code>.git/refs&lt;/code> 目录下，我们可以在 &lt;code>.git/refs/heads&lt;/code> 目录中找到代表各个分支引用的文件，尝试打印 &lt;code>master&lt;/code> 文件的内容：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -185,7 +185,7 @@ add main application file
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cat .git/refs/heads/master
-0a19d430984880bda4031f0713229229c12793e4
+ea4c48a0984880bda4031f0713229229c12793e4
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>这基本就是 Git 分支的本质：一个指向某一系列提交之首的指针或引用。&lt;/p>
@@ -208,9 +208,9 @@ ref: refs/heads/master
 &lt;/span>&lt;span class="lnt">3
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout 0a19d430984880bda4031f0713229229c12793e4
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout ea4c48a0984880bda4031f0713229229c12793e4
 $ cat .git/HEAD
-0a19d430984880bda4031f0713229229c12793e4
+ea4c48a0984880bda4031f0713229229c12793e4
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>最后，让我们来看一下上文介绍的三棵树之间的工作流程：&lt;/p>
@@ -237,13 +237,13 @@ $ cat .git/HEAD
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git init
-$ git add README.md &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> git commit -m &lt;span class="s2">&amp;#34;initial commit&amp;#34;&lt;/span>
-$ git add .gitignore &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> git commit -m &lt;span class="s2">&amp;#34;add gitignore file&amp;#34;&lt;/span>
-$ git add main.py &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> git commit -m &lt;span class="s2">&amp;#34;add main application file&amp;#34;&lt;/span>
+$ git add README.md &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> git commit -m &lt;span class="s2">&amp;#34;first commit&amp;#34;&lt;/span>
+$ git add .gitignore &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> git commit -m &lt;span class="s2">&amp;#34;add ignore file&amp;#34;&lt;/span>
+$ git add main.py &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> git commit -m &lt;span class="s2">&amp;#34;add main file&amp;#34;&lt;/span>
 $ git log --pretty&lt;span class="o">=&lt;/span>oneline
-0a19d43 &lt;span class="o">(&lt;/span>HEAD -&amp;gt; master&lt;span class="o">)&lt;/span> add main application file
-9e80639 add gitignore file
-8f15da8 initial commit
+ea4c48a &lt;span class="o">(&lt;/span>HEAD -&amp;gt; master&lt;span class="o">)&lt;/span> add main file
+b15cc74 add ignore file
+e137e9b first commit
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>为了方便展示我们将只取 SHA-1 ID 的前 7 位，但 Git 依然能准确的找到对应的提交。&lt;/p>
@@ -259,14 +259,14 @@ $ git log --pretty&lt;span class="o">=&lt;/span>oneline
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git add tests/test.py
-$ git checkout 9e80639
+$ git checkout b15cc74
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>&lt;code>checkout&lt;/code> 命令的执行过程如下图示意：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-07-2021-git-checkout.gif" alt="Jan-07-2021-git-checkout">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-checkout.gif" alt="Jan-11-2021-git-checkout">&lt;/p>
 &lt;ol>
 &lt;li>
-&lt;p>首先 HEAD 会直接指向 &lt;code>9e80639&lt;/code> 提交，进入分离 HEAD 状态，即不再指向分支引用：&lt;/p>
+&lt;p>首先 HEAD 会直接指向 &lt;code>b15cc74&lt;/code> 提交，进入分离 HEAD 状态，即不再指向分支引用：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -274,12 +274,12 @@ $ git checkout 9e80639
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cat .git/HEAD
-9e80639
+b15cc74
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;/li>
 &lt;li>
-&lt;p>然后将提取 &lt;code>9e80639&lt;/code> 提交的文件快照依次更新到暂存区以及工作区。&lt;/p>
+&lt;p>然后将提取 &lt;code>b15cc74&lt;/code> 提交的文件快照依次更新到暂存区以及工作区。&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>若工作区与暂存区存在未提交的本地更改，&lt;code>checkout&lt;/code> 还会尝试将文件快照与本地更改做简单的合并，若合并失败，将会中止操作并恢复到 &lt;code>checkout&lt;/code> 之前的状态。因此&lt;code>checkout&lt;/code> 对工作区是安全的，它不会丢弃工作区所做的更改。&lt;/p>
@@ -293,10 +293,12 @@ $ git checkout 9e80639
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout 9e80639 README.md
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout b15cc74 README.md
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;ol>
+&lt;/div>&lt;p>执行过程示意如下：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-checkout-file.gif" alt="Jan-11-2021-git-checkout-file">&lt;/p>
+&lt;ol>
 &lt;li>
 &lt;p>它会找到该提交，并在该提交的文件快照中匹配文件路径对应的文件，但并&lt;strong>不会移动&lt;/strong> HEAD：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -318,7 +320,7 @@ ref: refs/heads/master
 &lt;/li>
 &lt;/ol>
 &lt;h3 id="git-reset">git reset&lt;/h3>
-&lt;p>&lt;code>git reset&lt;/code> 的主要作用是将 HEAD 重置为指定的提交。与 &lt;code>checkout&lt;/code> 的区别在于，它并不仅仅只是更新 HEAD 本身，如果 HEAD 原来指向某个分支引用，则会将分支引用也更新为指向新的提交。&lt;/p>
+&lt;p>&lt;code>git reset&lt;/code> 的主要作用是将 HEAD 重置为指定的提交。与 &lt;code>checkout&lt;/code> 的区别在于，它对提交历史的更改并不仅仅只是更新 HEAD 本身，如果 HEAD 原来指向某个分支引用，则会将分支引用也更新为指向新的提交。&lt;/p>
 &lt;p>它的工作方式更多了，有 &lt;code>—soft&lt;/code>、 &lt;code>--mixed&lt;/code>、&lt;code>--hard&lt;/code> 三种主要的命令选项，分别对应更新不同数量的树：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/iShot2021-01-07-git-reset.png" alt="iShot2021-01-07 22.21.30">&lt;/p>
 &lt;h4 id="--soft">&lt;code>--soft&lt;/code>&lt;/h4>
@@ -338,8 +340,8 @@ ref: refs/heads/master
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout master &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> cat .git/refs/heads/master
 已经位于 &lt;span class="s1">&amp;#39;master&amp;#39;&lt;/span>
-0a19d43
-$ git reset --soft 9e80639
+ea4c48a
+$ git reset --soft b15cc74
 $ git status
 位于分支 master
 要提交的变更：
@@ -347,9 +349,11 @@ $ git status
 新文件： main.py
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;ol>
+&lt;/div>&lt;p>执行过程示意如下：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-reset-soft.gif" alt="Jan-11-2021-git-reset-soft">&lt;/p>
+&lt;ol>
 &lt;li>
-&lt;p>首先将 HEAD 及其指向的分支引用指向 &lt;code>9e80639&lt;/code> 提交，本示例中 HEAD 原本指向 &lt;code>master&lt;/code> ，执行操作之后依然指向 &lt;code>master&lt;/code>：&lt;/p>
+&lt;p>首先将 HEAD 及其指向的分支引用指向 &lt;code>b15cc74&lt;/code> 提交，本示例中 HEAD 原本指向 &lt;code>master&lt;/code> ，执行操作之后依然指向 &lt;code>master&lt;/code>：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -360,7 +364,7 @@ $ git status
 ref: refs/heads/master
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>但 &lt;code>master&lt;/code> 分支引用却从原来指向 &lt;code>0a19d43&lt;/code> 变成了指向 &lt;code>9e80639&lt;/code>：&lt;/p>
+&lt;/div>&lt;p>但 &lt;code>master&lt;/code> 分支引用却从原来指向 &lt;code>ea4c48a&lt;/code> 变成了指向 &lt;code>b15cc74&lt;/code>：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -368,13 +372,13 @@ ref: refs/heads/master
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cat .git/refs/heads/master
-9e80639
+b15cc74
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>若 HEAD 原本处于分离 HEAD 状态，则只会更新 HEAD 本身。&lt;/p>
 &lt;/li>
 &lt;li>
-&lt;p>&lt;code>reset --soft&lt;/code> 到此就已经结束了，它不会再对暂存区以及工作区进行任何更改，暂存区和工作区依然保留着原来的 &lt;code>0a19d43&lt;/code> 提交之后的文件快照与文件，因此运行 &lt;code>git status&lt;/code> 我们将看到暂存区中有待提交的变更，工作区和暂存区中的本地更改也都会得到保留。&lt;/p>
+&lt;p>&lt;code>reset --soft&lt;/code> 到此就已经结束了，它不会再对暂存区以及工作区进行任何更改，暂存区和工作区依然保留着原来的 &lt;code>ea4c48a&lt;/code> 提交之后的文件快照与文件，因此运行 &lt;code>git status&lt;/code> 我们将看到暂存区中有待提交的变更，工作区和暂存区中的本地更改也都会得到保留。&lt;/p>
 &lt;/li>
 &lt;/ol>
 &lt;h4 id="--mixed">&lt;code>--mixed&lt;/code>&lt;/h4>
@@ -396,8 +400,8 @@ ref: refs/heads/master
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout master &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> cat .git/refs/heads/master
 已经位于 &lt;span class="s1">&amp;#39;master&amp;#39;&lt;/span>
-0a19d43
-$ git reset --mixed 9e80639
+ea4c48a
+$ git reset --mixed b15cc74
 $ git status
 位于分支 master
 未跟踪的文件:
@@ -406,10 +410,12 @@ main.py
 提交为空，但是存在尚未跟踪的文件（使用 &lt;span class="s2">&amp;#34;git add&amp;#34;&lt;/span> 建立跟踪）
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;ol>
-&lt;li>更新 HEAD 指向 &lt;code>9e80639&lt;/code> 提交，重置提交历史的过程与 &lt;code>--soft&lt;/code> 完全相同。&lt;/li>
-&lt;li>之后还会更新暂存区，将其填充为 &lt;code>9e80639&lt;/code> 提交的文件快照，暂存区中的原有内容将会丢失。&lt;/li>
-&lt;li>不会对工作区进行任何更改，工作区依然保留着原来的 &lt;code>0a19d43&lt;/code> 提交之后的文件，因此运行 &lt;code>git status&lt;/code> 我们将看到有未跟踪的文件待加入暂存区，工作区中的本地更改也会得到保留。&lt;/li>
+&lt;/div>&lt;p>执行过程示意如下：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-reset-mixed.gif" alt="Jan-11-2021-git-reset-mixed">&lt;/p>
+&lt;ol>
+&lt;li>更新 HEAD 指向 &lt;code>b15cc74&lt;/code> 提交，重置提交历史的过程与 &lt;code>--soft&lt;/code> 完全相同。&lt;/li>
+&lt;li>之后还会更新暂存区，将其填充为 &lt;code>b15cc74&lt;/code> 提交的文件快照，暂存区中的原有内容将会丢失。&lt;/li>
+&lt;li>不会对工作区进行任何更改，工作区依然保留着原来的 &lt;code>ea4c48a&lt;/code> 提交之后的文件，因此运行 &lt;code>git status&lt;/code> 我们将看到有未跟踪的文件待加入暂存区，工作区中的本地更改也会得到保留。&lt;/li>
 &lt;/ol>
 &lt;h4 id="--hard">&lt;code>--hard&lt;/code>&lt;/h4>
 &lt;p>&lt;code>--hard&lt;/code> 是 &lt;code>reset&lt;/code> 最&lt;strong>直接&lt;/strong>、最&lt;strong>危险&lt;/strong>以及最&lt;strong>常用&lt;/strong>的选项。 &lt;code>git reset —hard [commit]&lt;/code> 会将所有的三棵树都更新为指定提交的状态，工作区和暂存区中所有未提交的更改都会永久丢失，但被重置的提交仍有办法找回。&lt;/p>
@@ -428,20 +434,22 @@ main.py
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout master &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> cat .git/refs/heads/master
 已经位于 &lt;span class="s1">&amp;#39;master&amp;#39;&lt;/span>
-0a19d43
-$ git reset --hard 9e80639
-HEAD 现在位于 9e80639 add gitignore file
+ea4c48a
+$ git reset --hard b15cc74
+HEAD 现在位于 b15cc74 add gitignore file
 $ git status
 位于分支 master
 无文件要提交，干净的工作区
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;ol>
-&lt;li>更新 HEAD 指向 &lt;code>9e80639&lt;/code> 提交，重置提交历史的过程与 &lt;code>--soft&lt;/code> 及 &lt;code>--mixed&lt;/code> 选项相同。&lt;/li>
-&lt;li>更新暂存区，将其填充为 &lt;code>9e80639&lt;/code> 提交的文件快照，暂存区中的原有内容将会丢失。&lt;/li>
-&lt;li>更新工作区，将其填充为 &lt;code>9e80639&lt;/code> 提交的文件快照，工作区中的原有内容将会丢失。&lt;/li>
+&lt;/div>&lt;p>执行过程示意如下：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-reset-hard.gif" alt="Jan-11-2021-git-reset-hard">&lt;/p>
+&lt;ol>
+&lt;li>更新 HEAD 指向 &lt;code>b15cc74&lt;/code> 提交，重置提交历史的过程与 &lt;code>--soft&lt;/code> 及 &lt;code>--mixed&lt;/code> 选项相同。&lt;/li>
+&lt;li>更新暂存区，将其填充为 &lt;code>b15cc74&lt;/code> 提交的文件快照，暂存区中的原有内容将会丢失。&lt;/li>
+&lt;li>更新工作区，将其填充为 &lt;code>b15cc74&lt;/code> 提交的文件快照，工作区中的原有内容将会丢失。&lt;/li>
 &lt;/ol>
-&lt;p>正如上面所说，&lt;code>reset —hard&lt;/code> 会将工作区、暂存区和提交历史都重置为刚刚新增了 &lt;code>9e80639&lt;/code> 提交时的状态，并简单粗暴地覆盖掉工作区和暂存区的原有内容。这是一个非常危险的操作，因为工作区和暂存区的未提交更改丢失后无法再通过 Git 找回。&lt;/p>
+&lt;p>正如上面所说，&lt;code>reset —hard&lt;/code> 会将工作区、暂存区和提交历史都重置为刚刚新增了 &lt;code>b15cc74&lt;/code> 提交时的状态，并简单粗暴地覆盖掉工作区和暂存区的原有内容。这是一个非常危险的操作，因为工作区和暂存区的未提交更改丢失后无法再通过 Git 找回。&lt;/p>
 &lt;h4 id="找回提交历史">找回提交历史&lt;/h4>
 &lt;p>&lt;code>reset&lt;/code> 后丢失的提交历史仍然能够恢复，因为我们只是更新了 HEAD 指向的提交，而没有对实际的提交对象做任何更改。我们可以通过 &lt;code>git reflog&lt;/code> 找到 HEAD 曾经指向过的提交：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -453,23 +461,22 @@ $ git status
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git reflog
-9e80639 &lt;span class="o">(&lt;/span>HEAD -&amp;gt; master&lt;span class="o">)&lt;/span> HEAD@&lt;span class="o">{&lt;/span>0&lt;span class="o">}&lt;/span>: reset: moving to 9e80639
-0a19d43 HEAD@&lt;span class="o">{&lt;/span>1&lt;span class="o">}&lt;/span>: checkout: moving from master to master
+b15cc74 &lt;span class="o">(&lt;/span>HEAD -&amp;gt; master&lt;span class="o">)&lt;/span> HEAD@&lt;span class="o">{&lt;/span>0&lt;span class="o">}&lt;/span>: reset: moving to b15cc74
+ea4c48a HEAD@&lt;span class="o">{&lt;/span>1&lt;span class="o">}&lt;/span>: checkout: moving from master to master
 ......
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>从中可以找到 &lt;code>master&lt;/code> 原来所指向的 &lt;code>0a19d43&lt;/code> 提交，再执行 &lt;code>git reset --hard 0a19d43&lt;/code> 就能恢复原来的提交历史。&lt;/p>
+&lt;/div>&lt;p>从中可以找到 &lt;code>master&lt;/code> 原来所指向的 &lt;code>ea4c48a&lt;/code> 提交，再执行 &lt;code>git reset --hard ea4c48a&lt;/code> 就能恢复原来的提交历史。&lt;/p>
 &lt;h4 id="不要-reset-公共分支">不要 reset 公共分支&lt;/h4>
 &lt;p>另一个关于 &lt;code>reset&lt;/code>的实践是，不要在公共分支上执行 &lt;code>reset&lt;/code>。公共分支是指你与其他团队成员协作开发的分支。&lt;/p>
 &lt;p>当任何提交被推送到公共分支后，必须假设其他开发者已经依赖它。删除其他人已经在继续开发的提交，会给协作带来严重的问题。而且你需要强制推送才能将你 &lt;code>reset&lt;/code> 后的分支提交到远程仓库，当其他人拉取这个公共分支时，他们的提交历史会突然消失一部分。&lt;/p>
 &lt;p>因此，请确保在本地的实验分支上使用 &lt;code>git reset&lt;/code>，而不要重置已经发布到公共分支的提交。如果你需要修复一个公共提交引入的问题，请看之后将介绍的专门为此目的设计的 &lt;code>git revert&lt;/code>。&lt;/p>
 &lt;h4 id="取消暂存文件">取消暂存文件&lt;/h4>
 &lt;p>和 &lt;code>checkout&lt;/code> 一样，&lt;code>git reset&lt;/code> 也能对文件路径执行，常用于将已加入暂存区的指定文件或文件集合取消暂存。&lt;/p>
-&lt;p>假设我们在工作区新增了 &lt;code>[hello.py](http://hello.py)&lt;/code> 和 &lt;code>[world.py](http://world.py)&lt;/code> 两个文件，并同时加入了暂存区：&lt;/p>
+&lt;p>假设我们在工作区新增了 &lt;code>hello.py&lt;/code> 和 &lt;code>world.py&lt;/code> 两个文件，并同时加入了暂存区：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
-&lt;/span>&lt;span class="lnt">2
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git add .
@@ -504,7 +511,7 @@ $ git status
 world.py
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>此时暂存区中只有 &lt;code>[hello.py](http://hello.py)&lt;/code> 文件了，我们可以分别提交它们：&lt;/p>
+&lt;/div>&lt;p>此时暂存区中只有 &lt;code>hello.py&lt;/code> 文件了，我们可以分别提交它们：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -530,14 +537,14 @@ $ git commit -m &lt;span class="s2">&amp;#34;add world.py&amp;#34;&lt;/span>
 &lt;/div>
 &lt;/div>&lt;p>该操作的实质，是从 &lt;code>&amp;lt;tree-ish&amp;gt;&lt;/code> 提取 &lt;code>&amp;lt;pathspec&amp;gt;&lt;/code> 对应的文件快照更新到暂存区，&lt;code>&amp;lt;tree-ish&amp;gt;&lt;/code>可以是提交或分支，默认值为 HEAD，因此默认会将暂存区的指定路径恢复到 HEAD 提交的状态。 &lt;code>git reset world.py&lt;/code> 命令的实际过程是：&lt;/p>
 &lt;ol>
-&lt;li>从 HEAD 提交中匹配 &lt;code>[world.py](http://world.py)&lt;/code> 对应的文件快照。&lt;/li>
+&lt;li>从 HEAD 提交中匹配 &lt;code>world.py&lt;/code> 对应的文件快照。&lt;/li>
 &lt;li>将匹配到的文件快照复制到暂存区。&lt;/li>
 &lt;/ol>
 &lt;p>因此，当我们修改了某个文件添加到暂存区，&lt;code>reset&lt;/code> 后会被替换成原本的文件版本；新增的文件会从暂存区中移除（因为上一次提交中没有该文件），实际实现了将文件取消暂存的效果。&lt;/p>
 &lt;h3 id="git-revert">git revert&lt;/h3>
 &lt;p>&lt;code>git revert&lt;/code> 命令用于回滚某一个（或多个）提交引入的更改。&lt;/p>
-&lt;p>其他的「撤销」命令如 &lt;code>git checkout&lt;/code> 和 &lt;code>git reset&lt;/code>，会将 HEAD 或分支引用重新指向到指定的提交，&lt;code>git revert&lt;/code> 命令也可以接受一个指定的提交，但并不会将任何引用移动到这个提交上。&lt;code>revert&lt;/code> 操作会接收指定的提交，反转该提交引入的更改，并创建一个新的「回滚提交」记录反转更改，然后更新分支引用，使其指向该提交。其示意如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-08-2021-git-revert.gif" alt="Jan-08-2021-git-revert">&lt;/p>
+&lt;p>其他的「撤销」命令如 &lt;code>git checkout&lt;/code> 和 &lt;code>git reset&lt;/code>，会将 HEAD 或分支引用重新指向到指定的提交，&lt;code>git revert&lt;/code> 命令也可以接受一个指定的提交，但并不会将任何引用移动到这个提交上。&lt;code>revert&lt;/code> 操作会接收指定的提交，反转该提交引入的更改，并创建一个新的「回滚提交」记录反转更改，然后更新分支引用，使其指向该提交。如下示意：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-revert.gif" alt="Jan-11-2021-git-revert">&lt;/p>
 &lt;p>相比 &lt;code>reset&lt;/code> ，&lt;code>revert&lt;/code> 会在提交历史中增加一个新的提交，而不会对之前的提交进行任何更改。 默认情况下 &lt;code>revert&lt;/code> 会自动执行如下步骤：&lt;/p>
 &lt;ul>
 &lt;li>将反转指定提交的更改合并到工作区&lt;/li>
@@ -545,13 +552,13 @@ $ git commit -m &lt;span class="s2">&amp;#34;add world.py&amp;#34;&lt;/span>
 &lt;li>创建新的提交&lt;/li>
 &lt;/ul>
 &lt;p>因此它要求我们提供一个干净的暂存区（即和 HEAD 提交状态一致），且要求工作区的本地更改不会被合并操作覆盖，否则回滚会失败。我们可以添加 &lt;code>--no-commit&lt;/code> 命令选项来进入交互模式手动执行「创建新的提交」，此时 &lt;code>revert&lt;/code> 操作会将反转的更改应用到工作区和暂存区等待提交，且不要求暂存区与 HEAD 一致。&lt;/p>
-&lt;p>我们通过示例来演示这一过程，现在我们想回滚 &lt;code>9e80639&lt;/code> 这个提交，这个提交中加入了 &lt;code>.gitignore&lt;/code> 文件，预期的结果是会新增一个删除该文件的提交：&lt;/p>
+&lt;p>我们通过示例来演示这一过程，现在我们想回滚 &lt;code>b15cc74&lt;/code> 这个提交，这个提交中加入了 &lt;code>.gitignore&lt;/code> 文件，预期的结果是会新增一个删除该文件的提交：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git revert 9e80639
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git revert b15cc74
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>在终端执行该命令后将直接跳转到一个编辑器界面，可以修改新提交的提交信息：&lt;/p>
@@ -567,7 +574,7 @@ $ git commit -m &lt;span class="s2">&amp;#34;add world.py&amp;#34;&lt;/span>
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">Revert &lt;span class="s2">&amp;#34;add gitignore file&amp;#34;&lt;/span>
-This reverts commit 9e80639d6d85435660fcacce1305a54273880479.
+This reverts commit b15cc74d6d85435660fcacce1305a54273880479.
 &lt;span class="c1"># 请为您的变更输入提交说明。以 &amp;#39;#&amp;#39; 开始的行将被忽略，而一个空的提交&lt;/span>
 &lt;span class="c1"># 说明将会终止提交。&lt;/span>
 ......
@@ -598,7 +605,7 @@ delete mode &lt;span class="m">100644&lt;/span> .gitignore
 &lt;/span>&lt;span class="lnt">4
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git revert 9e80639
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git revert b15cc74
 error: 您的本地修改将被还原覆盖。
 提示：提交您的修改或贮藏后再继续。
 fatal: 还原失败
@@ -665,16 +672,16 @@ fatal: 还原失败
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">git restore &lt;span class="o">[&lt;/span>--source&lt;span class="o">=&lt;/span>&amp;lt;tree&amp;gt;&lt;span class="o">]&lt;/span> &lt;span class="o">[&lt;/span>--staged&lt;span class="o">]&lt;/span> &lt;span class="o">[&lt;/span>--worktree&lt;span class="o">]&lt;/span> &amp;lt;pathspec&amp;gt;…
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>从定义和命令行格式来理解：&lt;/p>
+&lt;/div>&lt;p>从定义和命令行形式来理解：&lt;/p>
 &lt;ul>
-&lt;li>还原即恢复到过去某一状态，意味着该命令需要指定的文件快照（提交、分支等）作为数据源，通过 &lt;code>source&lt;/code> 选项设置。&lt;/li>
+&lt;li>还原即恢复到过去某一状态，意味着该命令需要指定已有的某个文件快照（提交、分支等）作为数据源，通过 &lt;code>source&lt;/code> 选项设置。&lt;/li>
 &lt;li>可以选择对工作区（&lt;code>--worktree&lt;/code> ）、暂存区（&lt;code>--staged&lt;/code> ）或两者同时生效，默认值为仅工作区。当指定的位置为工作区时，默认数据源为暂存区的文件快照；当指定的位置包含暂存区时，默认数据源为 HEAD。&lt;/li>
 &lt;li>可以选择对指定的文件或一些文件生效，通过 &lt;code>&amp;lt;pathspec&amp;gt;&lt;/code> 参数指定。&lt;/li>
 &lt;/ul>
-&lt;p>我们继续使用之前的 Git 仓库作为示例，假设我们修改了 &lt;a href="http://main.py">&lt;code>main.py&lt;/code>&lt;/a> 并已经加入到了暂存区：&lt;/p>
+&lt;p>我们继续使用之前的 Git 仓库作为示例，假设我们修改了 &lt;code>main.py&lt;/code> 并已经加入到了暂存区：&lt;/p>
 &lt;ol>
 &lt;li>
-&lt;p>我们想将 &lt;code>[main.py](http://main.py)&lt;/code> 取消暂存，即将暂存区中的 &lt;code>main.py&lt;/code> 还原为 HEAD 中的内容，此时 HEAD 是默认的 &lt;code>source&lt;/code> ，因此可执行如下命令：&lt;/p>
+&lt;p>我们想将 &lt;code>main.py&lt;/code> 取消暂存，即将暂存区中的 &lt;code>main.py&lt;/code> 还原为 HEAD 中的内容，此时 HEAD 是默认的 &lt;code>source&lt;/code> ，因此可执行如下命令：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -727,8 +734,8 @@ fatal: 还原失败
 &lt;/span>&lt;span class="lnt">2
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git switch 0a19d43
-fatal: 期望一个分支，得到提交 &lt;span class="s1">&amp;#39;0a19d43&amp;#39;&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git switch ea4c48a
+fatal: 期望一个分支，得到提交 &lt;span class="s1">&amp;#39;ea4c48a&amp;#39;&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;h2 id="常见问题及解决方案">常见问题及解决方案&lt;/h2>
@@ -794,7 +801,7 @@ $ git stash pop
 &lt;li>&lt;code>restore&lt;/code>：将工作区或暂存区的指定文件还原为指定提交时的状态。&lt;/li>
 &lt;li>&lt;code>switch&lt;/code>：切换到已有分支或者创建并切换到新的分支。&lt;/li>
 &lt;/ul>
-&lt;p>最后给出了一些常见的实际问题的解决方案并介绍了 &lt;code>git stash&lt;/code> 的用法。&lt;/p>
+&lt;p>最后给出了一些常见问题的解决方案并介绍了 &lt;code>git stash&lt;/code> 的用法。&lt;/p>
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://git-scm.com/book/zh/v2/Git-%E5%B7%A5%E5%85%B7-%E9%87%8D%E7%BD%AE%E6%8F%AD%E5%AF%86#_git_reset">Git 工具 - 重置揭密&lt;/a>&lt;/li>
@@ -807,7 +814,7 @@ $ git stash pop
 &lt;li>&lt;a href="https://shafiul.github.io//gitbook/7_the_git_index.html">The Git Index&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://mincong.io/2018/04/28/git-index/#:~:text=The%20index%20is%20a%20binary,Git%3A%20they%20are%20used%20interchangeably.">Git: Understanding the Index File&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tom.preston-werner.com/2009/05/19/the-git-parable.html">The Git Parable&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2021-01-09T05:16:02+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍……</summary><content type="html">&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2021-01-11T06:05:47+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍……</summary><content type="html">&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
 &lt;h2 id="linter">Linter&lt;/h2>
 &lt;p>Linter 是一类用于标记程序错误、bug、风格错误和可疑结构的静态代码分析工具，比如 Python 中的 &lt;code>Pylint&lt;/code>、 &lt;code>flake8&lt;/code>，JavaScript 中的 &lt;code>EsLint&lt;/code>，这类工具会找到你代码中的错误，并给出如何修复的提示。&lt;/p>
 &lt;h3 id="为何要使用-linter">为何要使用 Linter&lt;/h3>
@@ -1546,7 +1553,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/quickstart">Quickstart for GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/introduction-to-github-actions">Introduction to GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="http://www.ruanyifeng.com/blog/2019/09/getting-started-with-github-actions.html">GitHub Actions 入门教程&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">Git 合并操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2021-01-09T05:16:02+00:00</updated><published>2020-12-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">Git 合并操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2021-01-11T06:05:47+00:00</updated><published>2020-12-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
 &lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
 &lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
 &lt;h2 id="认识合并">认识合并&lt;/h2>
@@ -1650,7 +1657,7 @@ $ git merge feature
 &lt;li>
 &lt;p>&lt;a href="https://segmentfault.com/a/1190000021712743">git merge的原理（递归三路合并算法）&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 部署个人博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-01-09T05:16:02+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。 刚学……</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 部署个人博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-01-11T06:05:47+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。 刚学……</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
 &lt;p>刚学编程的时候，我还开源过一个基于 Flask 和 MongoDB 的&lt;a href="https://github.com/waynerv/originblog">博客项目&lt;/a>，但后面就没怎么使用和维护了，除开主观上的懒，还因为：&lt;/p>
 &lt;ul>
 &lt;li>自建博客绕不开主机和域名，这是一笔持续的经济成本。国内的主机往往是第一年割肉第二年宰猪，国外的主机访问延迟很高。&lt;/li>
@@ -1864,7 +1871,7 @@ publish_dir: ./public
 &lt;p>在本地做一些更改，预览效果后提交并推送，然后在项目仓库的 GitHub Actions 页面检查相应的 &lt;code>workflow&lt;/code> 是否运行成功。不出意外的话，很快个人主页仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，访问个人博客页面也会发现页面已经更新。&lt;/p>
 &lt;h2 id="个人体验">个人体验&lt;/h2>
 &lt;p>由于先后选择的 3 个主题均遭遇了上述发布地址不能包含子路径的问题，我在基本按照官方文档操作的前提下，依然花了超过 10 个小时才把&lt;a href="https://waynerv.github.io/">博客&lt;/a>上线，浪费了很多时间在配置主题以及寻找问题的解决方案上。本以为选择了一个简单快捷的省心方案，结果还是免不了过程的一顿踩坑和折腾。&lt;/p>
-&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/></entry><entry><title type="text">Git Rebase 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2021-01-09T05:16:02+00:00</updated><published>2020-12-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">之所以写这篇文章，是因为之前对 git rebase -i 的用法一直是一知半解，一次在需要合并多个提交时刚……</summary><content type="html">&lt;p>之所以写这篇文章，是因为之前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
+&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/></entry><entry><title type="text">Git Rebase 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2021-01-11T06:05:47+00:00</updated><published>2020-12-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://waynerv.github.io</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">之所以写这篇文章，是因为之前对 git rebase -i 的用法一直是一知半解，一次在需要合并多个提交时刚……</summary><content type="html">&lt;p>之所以写这篇文章，是因为之前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
 &lt;h2 id="理解-rebase-命令">理解 Rebase 命令&lt;/h2>
 &lt;p>&lt;code>git rebase&lt;/code> 命令的文档描述是 &lt;code>Reapply commits on top of another base tip&lt;/code>，从字面上理解是「在另一个基端之上重新应用提交」，这个定义听起来有点抽象，换个角度可以理解为「将分支的基础从一个提交改成另一个提交，使其看起来就像是从另一个提交中创建了分支一样」，如下图：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
