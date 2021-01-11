@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 11 Jan 2021 06:59:30 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Git 撤销操作浅析</title><link>https://www.waynerv.com/posts/git-undo-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-undo-intro/</guid><pubDate>Sat, 09 Jan 2021 12:53:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 11 Jan 2021 13:55:38 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Git 撤销操作浅析</title><link>https://www.waynerv.com/posts/git-undo-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-undo-intro/</guid><pubDate>Sat, 09 Jan 2021 12:53:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
 &lt;p>之所以如此，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
 &lt;ul>
 &lt;li>我在本地修改了一些文件还未提交，但我想放弃某些文件的更改。&lt;/li>
@@ -262,7 +262,7 @@ e137e9b first commit
 $ git checkout b15cc74
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>checkout&lt;/code> 命令的执行过程如下图示意：&lt;/p>
+&lt;/div>&lt;p>&lt;code>checkout&lt;/code> 命令的执行过程如以下动图所示：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-checkout.gif" alt="Jan-11-2021-git-checkout">&lt;/p>
 &lt;ol>
 &lt;li>
@@ -296,7 +296,7 @@ b15cc74
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout b15cc74 README.md
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>执行过程示意如下：&lt;/p>
+&lt;/div>&lt;p>执行过程如如以下动图所示：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-checkout-file.gif" alt="Jan-11-2021-git-checkout-file">&lt;/p>
 &lt;ol>
 &lt;li>
@@ -349,7 +349,7 @@ $ git status
 新文件： main.py
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>执行过程示意如下：&lt;/p>
+&lt;/div>&lt;p>执行过程如以下动图所示：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-reset-soft.gif" alt="Jan-11-2021-git-reset-soft">&lt;/p>
 &lt;ol>
 &lt;li>
@@ -410,7 +410,7 @@ main.py
 提交为空，但是存在尚未跟踪的文件（使用 &lt;span class="s2">&amp;#34;git add&amp;#34;&lt;/span> 建立跟踪）
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>执行过程示意如下：&lt;/p>
+&lt;/div>&lt;p>执行过程如以下动图所示：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-reset-mixed.gif" alt="Jan-11-2021-git-reset-mixed">&lt;/p>
 &lt;ol>
 &lt;li>更新 HEAD 指向 &lt;code>b15cc74&lt;/code> 提交，重置提交历史的过程与 &lt;code>--soft&lt;/code> 完全相同。&lt;/li>
@@ -442,7 +442,7 @@ $ git status
 无文件要提交，干净的工作区
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>执行过程示意如下：&lt;/p>
+&lt;/div>&lt;p>执行过程如以下动图所示：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-reset-hard.gif" alt="Jan-11-2021-git-reset-hard">&lt;/p>
 &lt;ol>
 &lt;li>更新 HEAD 指向 &lt;code>b15cc74&lt;/code> 提交，重置提交历史的过程与 &lt;code>--soft&lt;/code> 及 &lt;code>--mixed&lt;/code> 选项相同。&lt;/li>
@@ -543,7 +543,7 @@ $ git commit -m &lt;span class="s2">&amp;#34;add world.py&amp;#34;&lt;/span>
 &lt;p>因此，当我们修改了某个文件添加到暂存区，&lt;code>reset&lt;/code> 后会被替换成原本的文件版本；新增的文件会从暂存区中移除（因为上一次提交中没有该文件），实际实现了将文件取消暂存的效果。&lt;/p>
 &lt;h3 id="git-revert">git revert&lt;/h3>
 &lt;p>&lt;code>git revert&lt;/code> 命令用于回滚某一个（或多个）提交引入的更改。&lt;/p>
-&lt;p>其他的「撤销」命令如 &lt;code>git checkout&lt;/code> 和 &lt;code>git reset&lt;/code>，会将 HEAD 或分支引用重新指向到指定的提交，&lt;code>git revert&lt;/code> 命令也可以接受一个指定的提交，但并不会将任何引用移动到这个提交上。&lt;code>revert&lt;/code> 操作会接收指定的提交，反转该提交引入的更改，并创建一个新的「回滚提交」记录反转更改，然后更新分支引用，使其指向该提交。如下示意：&lt;/p>
+&lt;p>其他的「撤销」命令如 &lt;code>git checkout&lt;/code> 和 &lt;code>git reset&lt;/code>，会将 HEAD 或分支引用重新指向到指定的提交，&lt;code>git revert&lt;/code> 命令也可以接受一个指定的提交，但并不会将任何引用移动到这个提交上。&lt;code>revert&lt;/code> 操作会接收指定的提交，反转该提交引入的更改，并创建一个新的「回滚提交」记录反转更改，然后更新分支引用，使其指向该提交。如以下动图所示：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-revert.gif" alt="Jan-11-2021-git-revert">&lt;/p>
 &lt;p>相比 &lt;code>reset&lt;/code> ，&lt;code>revert&lt;/code> 会在提交历史中增加一个新的提交，而不会对之前的提交进行任何更改。 默认情况下 &lt;code>revert&lt;/code> 会自动执行如下步骤：&lt;/p>
 &lt;ul>
