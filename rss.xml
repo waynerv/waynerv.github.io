@@ -1,4 +1,198 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 13 Jan 2021 05:05:56 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Git 撤销操作浅析</title><link>https://www.waynerv.com/posts/git-undo-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-undo-intro/</guid><pubDate>Sat, 09 Jan 2021 12:53:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 26 Jan 2021 09:06:44 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Git cherry-pick 操作浅析</title><link>https://www.waynerv.com/posts/git-cherry-pick-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-cherry-pick-intro/</guid><pubDate>Tue, 26 Jan 2021 16:49:50 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并确保不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
+&lt;h2 id="基本用法">基本用法&lt;/h2>
+&lt;p>Git 命令文档的描述不一定直观易懂，但绝对准确，文档对 &lt;code>git cherry-pick&lt;/code> 描述是： &lt;code>Apply the changes introduced by some existing commits&lt;/code>，即应用某些已有提交所引入的更改。通常我们会说 &lt;code>cherry-pick&lt;/code> 是将某个（些）提交从一个分支移动到另一个分支，这种说法更加直观易懂，但后面我们会解释为何文档的描述才是最准确的。&lt;/p>
+&lt;p>假设我们有如下提交：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-jsx" data-lang="jsx">&lt;span class="nx">a&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">b&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">c&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">d&lt;/span> &lt;span class="nx">master&lt;/span>
+&lt;span class="o">\&lt;/span>
+&lt;span class="nx">e&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">f&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">g&lt;/span> &lt;span class="nx">feature&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>现在我们想把 &lt;code>e&lt;/code> 和 &lt;code>f&lt;/code> 两个提交移动到 &lt;code>master&lt;/code> 分支，首先需要切换到 &lt;code>master&lt;/code> :&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout master
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>cherry-pick&lt;/code> 命令的用法简单明了，对需要移动的一个或多个提交执行 &lt;code>cherry-pick&lt;/code> 即可，注意这里我们用字母指代实际的提交 &lt;code>SHA-1&lt;/code> ID：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout f g
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>执行后的提交历史如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-jsx" data-lang="jsx">&lt;span class="nx">a&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">b&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">c&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">d&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">f&lt;/span>&lt;span class="s1">&amp;#39; - g&amp;#39;&lt;/span> &lt;span class="nx">master&lt;/span>
+&lt;span class="o">\&lt;/span>
+&lt;span class="nx">e&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">f&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="nx">g&lt;/span> &lt;span class="nx">feature&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>实际的结果是在 &lt;code>master&lt;/code> 分支创建了 &lt;code>f'&lt;/code> 和 &lt;code>g'&lt;/code> 两个新的提交，它们拥有和 &lt;code>f&lt;/code> 、&lt;code>g&lt;/code> 不同的 ID 。&lt;/p>
+&lt;h2 id="使用场景">使用场景&lt;/h2>
+&lt;p>从上面的命令解释来看，&lt;code>cherry-pick&lt;/code> 实现的效果比较单一，而且和 &lt;code>merge&lt;/code> 和 &lt;code>rebase&lt;/code> 看上有所重合，接下来我们来看看 &lt;code>cherry-pick&lt;/code> 的实际使用场景。&lt;/p>
+&lt;h3 id="紧急-bug-修复">紧急 bug 修复&lt;/h3>
+&lt;p>通常在一个产品的 Git 工作流中，会有至少一个发布分支和开发主分支。当发现一个 bug 时，我们需要尽快向已发布的产品提供修复补丁，同时也要将补丁整合到开发主分支中。&lt;/p>
+&lt;p>举个例子，比如我们发布了一个版本并已经开始开发一些新的功能，在新功能开发过程中，又发现了一个已经存在的bug。我们创建了一个紧急修复提交对这个错误进行修复，并在开发主分支进行集成测试。这个新的补丁提交在合入开发主分支后可以直接 &lt;code>cherry-pick&lt;/code> 到发布分支，在影响更多用户之前修复这个 bug。过程示意如下：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-26-2021-git-cherry-pick.gif" alt="Jan-26-2021-git-cherry-pick">&lt;/p>
+&lt;p>在上面的动图中，我们在开发主分支 &lt;code>master&lt;/code> 添加了一些新的功能提交，修复了一些 bug 并合入了两个 &lt;code>bugfix&lt;/code> 分支，然后又将 &lt;code>bugfix&lt;/code> 分支中的所有提交 &lt;code>cherry-pick&lt;/code> 到了 &lt;code>release&lt;/code> 分支。在有些 Git 工作流中情况会有所不同，可能会基于 &lt;code>release&lt;/code> 分支创建 &lt;code>bugfix&lt;/code> 分支，并在合入 &lt;code>release&lt;/code> 后 &lt;code>cherry-pick&lt;/code> 这些提交到 &lt;code>master&lt;/code>。&lt;/p>
+&lt;h3 id="从放弃的分支中挑出个别提交">从放弃的分支中挑出个别提交&lt;/h3>
+&lt;p>有时因为需求的变化一个功能分支可能会过时，而不会被合并到主分支中。有时，一个 &lt;code>Pull Request&lt;/code> 可能会在没有合并的情况下被关闭。我们可以通过 &lt;code>git log&lt;/code> 和 &lt;code>git reflog&lt;/code> 等命令，从中找出一些有用的提交，并把它们 &lt;code>cherry-pick&lt;/code> 到主分支。&lt;/p>
+&lt;h3 id="其他场景">其他场景&lt;/h3>
+&lt;p>还有一些其他的使用场景，比如你在没有意识到的情况下在一个错误的分支上创建了一个提交，你可以使用 &lt;code>cherry-pick&lt;/code> 将其移动到正确的分支上去；或者出于某些原因你想将团队成员在另一个分支开发的某个提交拿到你自己的提交，诸如此类。&lt;/p>
+&lt;p>从以上有限的场景来看，即使我们使用 &lt;code>rebase&lt;/code> 或者 &lt;code>merge&lt;/code> 配合 &lt;code>reset&lt;/code> 等命令也能实现同样的效果，但是 &lt;code>cherry-pick&lt;/code> 的优势在与它足够地简单直接，一条命令就能实现原本需要一系列命令来实现的操作。但我们依然需要谨慎的使用 &lt;code>cherry-pick&lt;/code> ，并意识到它的一些危险之处。&lt;/p>
+&lt;h2 id="深入理解-cherry-pick">深入理解 &lt;code>cherry-pick&lt;/code>&lt;/h2>
+&lt;p>假设我们有一个刚刚通过提交 A 添加了 &lt;code>main.py&lt;/code> 的代码仓库，&lt;code>main.py&lt;/code> 的文件内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="k">if&lt;/span> &lt;span class="vm">__name__&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="s1">&amp;#39;__main__&amp;#39;&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;Hello world&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>现在我们创建一个新的 &lt;code>new-feature&lt;/code> 分支进行后续的修改：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">git&lt;/span> &lt;span class="n">checkout&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">b&lt;/span> &lt;span class="n">new&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">feature&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>首先创建一个提交 B，加入一个新的文件 &lt;code>[setup.py](http://setup.py)&lt;/code> 并对 &lt;code>main.py&lt;/code> 做如下修改：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="k">if&lt;/span> &lt;span class="vm">__name__&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="s1">&amp;#39;__main__&amp;#39;&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;Hello world&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;Git is easy&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>接着我们又创建了一个提交 C，加入一个新的文件 &lt;code>[README.md](http://readme.md)&lt;/code> 并继续对 &lt;code>main.py&lt;/code> 添加一行代码：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="k">if&lt;/span> &lt;span class="vm">__name__&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="s1">&amp;#39;__main__&amp;#39;&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;Hello world&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;Git is easy&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it can be difficult&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>最后我们再切换回一开始的 &lt;code>master&lt;/code> ，并对 &lt;code>new-feature&lt;/code> 的最新提交 C 执行 &lt;code>cherry-pick&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">git checkout master
+git cherry-pick new-feature
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>执行过程很简单，如下示意：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-26-2021-git-cherry-pick2.gif" alt="Jan-26-2021-git-cherry-pick2">&lt;/p>
+&lt;p>但现在我们来猜一猜，现在的 &lt;code>master&lt;/code> 有几个文件？ &lt;code>main.py&lt;/code> 会有几行 &lt;code>print&lt;/code> 语句？&lt;/p>
+&lt;p>正确的答案是：我们会遭遇合并冲突 😝。在解决冲突后，我们会拥有一个修改过的 &lt;code>main.py&lt;/code> 文件，以及在提交 C 中新添加的 &lt;code>README.md&lt;/code> 文件。&lt;/p>
+&lt;p>为什么结果会是这样？借此示例，我们来深入探究一番 &lt;code>cherry-pick&lt;/code> 实际的执行过程。&lt;/p>
+&lt;h3 id="应用哪些更改">应用哪些更改&lt;/h3>
+&lt;p>在前面的文章中我们了解到每一个提交都是一份完整的文件快照，但从示例来看，&lt;code>cherry-pick&lt;/code> 的过程显然并没有应用目标提交中的所有文件内容（否则当前 &lt;code>master&lt;/code> 将包含在提交 B 中加入的 &lt;code>setup.py&lt;/code> 文件），而是仅仅影响了目标提交中更改过的文件（ &lt;code>README.md&lt;/code> 和 &lt;code>main.py&lt;/code> ）。由此可见，「将某个提交从一个分支移动到另一个分支」这一说法并不准确， &lt;code>cherry-pick&lt;/code> 只会应用在目标提交中引入的更改，即在该提交中更改过的文件。&lt;/p>
+&lt;h3 id="如何应用">如何应用&lt;/h3>
+&lt;p>在确定了 &lt;code>cherry-pick&lt;/code> 只会应用目标提交中更改过的文件后，我们来看下应用更改的具体过程。「应用」在内部其实就是像 &lt;code>merge&lt;/code> 一样执行了一次递归三路合并。关于 Git 的三路合并算法我们在之前的文章中已有详细介绍。这次我们换一种方式来表示三路合并中的各方，当我们执行 &lt;code>git cherry-pick &amp;lt;commit C&amp;gt;&lt;/code> 时：&lt;/p>
+&lt;ol>
+&lt;li>LOCAL：在该提交基础上执行合并（即当前所在分支的 HEAD）。&lt;/li>
+&lt;li>REMOTE：你正在 &lt;code>cherry-pick&lt;/code> 的目标提交（即 &lt;commit C>）。&lt;/li>
+&lt;li>BASE：你要 &lt;code>cherry-pick&lt;/code> 的提交的父提交（即 C^，C 的上一次提交），通常为 LOCAL 和 REMOTE 的共同祖先提交（但也可能不是）。&lt;/li>
+&lt;/ol>
+&lt;p>执行 &lt;code>cherry-pick&lt;/code> 时，就是以 BASE 作为基础，以 LOCAL 和 REMOTE 作为要合并的内容进行递归三路合并，并将合并的结果作为一个新的提交添加到 LOCAL 之后（算法执行的详细过程不再赘述）。我们可以通过如下方式进行验证：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>首先将示例仓库 Git 的 &lt;code>merge.conflictstyle&lt;/code> 更改为 &lt;code>diff3&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">git config merge.conflictstyle diff3
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>然后重新执行上面的示例步骤，并查看发生合并冲突的 &lt;code>main.py&lt;/code> 的文件内容：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;span class="lnt">9
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="k">if&lt;/span> &lt;span class="nv">__name__&lt;/span> &lt;span class="o">==&lt;/span> &lt;span class="s1">&amp;#39;__main__&amp;#39;&lt;/span>:
+print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;Hello world&amp;#39;&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;span class="o">&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&lt;/span>&amp;lt; HEAD
+&lt;span class="o">||||||&lt;/span>&lt;span class="p">|&lt;/span> parent of 77b3860 &lt;span class="o">(&lt;/span>C&lt;span class="o">)&lt;/span>
+print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;Git is easy&amp;#39;&lt;/span>&lt;span class="o">)&lt;/span>
+&lt;span class="o">=======&lt;/span>
+print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;Git is easy&amp;#39;&lt;/span>&lt;span class="o">)&lt;/span>
+print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it can be difficult&amp;#39;&lt;/span>&lt;span class="o">)&lt;/span>
+&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; 77b3860 &lt;span class="o">(&lt;/span>C&lt;span class="o">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>相比常规的 &lt;code>diff&lt;/code> 展示的 LOCAL 和 REMOTE 两方对比，&lt;code>diff3&lt;/code> 会通过 &lt;code>|||||||&lt;/code> 多展示一方来自 BASE 的内容。从结果中我们可以确认，BASE 正是提交 C 的父提交（即提交 B）。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h3 id="处理冲突">处理冲突&lt;/h3>
+&lt;p>&lt;code>cherry-pick&lt;/code> 出现冲突时的处理方式与 &lt;code>rebase&lt;/code> 和 &lt;code>merge&lt;/code> 一致，我们通过 &lt;code>git status&lt;/code> 查看发生冲突的文件，修改这些文件并删除其中的特殊标记，通过 &lt;code>git add&lt;/code> 将其标记为冲突已解决，最后 &lt;code>git commit&lt;/code> 提交更改。&lt;/p>
+&lt;p>在解决冲突过程中，我们还可以在已解决所有冲突后执行 &lt;code>git cherry-pick --continue&lt;/code> 提交已解决的内容，使用 &lt;code>git cherry-pick --skip&lt;/code> 在处理多个提交时跳过此提交，或使用 &lt;code>git cherry-pick --abort&lt;/code> 以取消 &lt;code>cherry-pick&lt;/code> 操作，恢复到执行操作之前的状态。&lt;/p>
+&lt;h2 id="总结">总结&lt;/h2>
+&lt;p>&lt;code>git cherry-pick&lt;/code> 的使用场景并不多，在一些特定场景会很有用，但由于其合并机制有引入意想不到的文件更改的风险，在使用时我们应该谨慎考虑可能发生的结果。&lt;/p>
+&lt;p>对于 &lt;code>cherry-pick&lt;/code> 有两个容易发生的误解需要澄清：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>cherry-pick&lt;/code> 并不会应用提交所代表的整个文件快照，而是只会影响该在提交中新增、删除或更改的文件。&lt;/li>
+&lt;li>&lt;code>cherry-pick&lt;/code> 并不是简单的应用目标提交与其父提交的 &lt;code>diff&lt;/code> 内容，而是会在内部以该父提交作为基础在当前分支指向提交和目标提交之间进行一次递归三路合并，因此有可能发生合并冲突。&lt;/li>
+&lt;/ul>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://git-scm.com/docs/git-cherry-pick">git-cherry-pick-documentation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.atlassian.com/git/tutorials/cherry-pick">Git Cherry Pick Tutorial&lt;/a>&lt;/li>
+&lt;li>&lt;a href="http://think-like-a-git.net/sections/rebase-from-the-ground-up/cherry-picking-explained.html">CHERRY-PICKING EXPLAINED&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://stackoverflow.com/a/52932137/10224392">what does git cherry-pick {commit-hash} do?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://stackoverflow.com/a/10058070/10224392">In a Git cherry-pick or rebase merge conflict, how are BASE (aka “the ancestor”), LOCAL, and REMOTE determined?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://stackoverflow.com/questions/27417656/should-diff3-be-default-conflictstyle-on-git">Should diff3 be default conflictstyle on git?&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/git/">Git</category></item><item><title>Git 撤销操作浅析</title><link>https://www.waynerv.com/posts/git-undo-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-undo-intro/</guid><pubDate>Sat, 09 Jan 2021 12:53:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
 &lt;p>之所以如此，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
 &lt;ul>
 &lt;li>我在本地修改了一些文件还未提交，但我想放弃某些文件的更改。&lt;/li>
