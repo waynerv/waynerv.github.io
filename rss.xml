@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 26 Jan 2021 13:29:26 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Git cherry-pick 操作浅析</title><link>https://www.waynerv.com/posts/git-cherry-pick-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-cherry-pick-intro/</guid><pubDate>Tue, 26 Jan 2021 16:49:50 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 27 Jan 2021 01:50:04 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Git cherry-pick 操作浅析</title><link>https://www.waynerv.com/posts/git-cherry-pick-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-cherry-pick-intro/</guid><pubDate>Tue, 26 Jan 2021 16:49:50 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
 &lt;h2 id="基本用法">基本用法&lt;/h2>
 &lt;p>Git 命令文档的描述不一定直观易懂，但绝对准确，文档对 &lt;code>git cherry-pick&lt;/code> 描述是： &lt;code>Apply the changes introduced by some existing commits&lt;/code>，即应用某些已有提交所引入的更改。通常我们会说 &lt;code>cherry-pick&lt;/code> 是将某个（些）提交从一个分支移动到另一个分支，这种说法更加容易理解，但后面我们会解释为何文档的描述才是最准确的。&lt;/p>
 &lt;p>假设我们有如下提交：&lt;/p>
@@ -57,7 +57,7 @@
 &lt;p>有时因为需求的变化一个功能分支可能会过时，而不会被合并到主分支中。有时，一个 &lt;code>Pull Request&lt;/code> 可能会在没有合并的情况下被关闭。我们可以通过 &lt;code>git log&lt;/code> 和 &lt;code>git reflog&lt;/code> 等命令，从中找出一些有用的提交，并把它们 &lt;code>cherry-pick&lt;/code> 到主分支。&lt;/p>
 &lt;h3 id="其他场景">其他场景&lt;/h3>
 &lt;p>还有一些其他的使用场景，比如你在没有意识到的情况下在一个错误的分支上创建了一个提交，你可以使用 &lt;code>cherry-pick&lt;/code> 将其移动到正确的分支上去；或者出于某些原因你想将团队成员在另一个分支开发的某个提交拿到你自己的分支，诸如此类。&lt;/p>
-&lt;p>从以上有限的场景来看，我们使用 &lt;code>rebase&lt;/code> 或者 &lt;code>merge&lt;/code> 配合 &lt;code>reset&lt;/code> 等命令也能实现同样的效果，但是 &lt;code>cherry-pick&lt;/code> 的优势在与它足够地简单直接，一条命令就能实现原本需要一系列命令来实现的操作。但我们依然需要谨慎的使用 &lt;code>cherry-pick&lt;/code> ，并意识到它的一些危险之处。&lt;/p>
+&lt;p>从以上有限的场景来看，我们使用 &lt;code>rebase&lt;/code> 或者 &lt;code>merge&lt;/code> 配合 &lt;code>reset&lt;/code> 等命令也能实现同样的效果，但是 &lt;code>cherry-pick&lt;/code> 的优势在于它足够地简单直接，一条命令就能实现原本需要一系列命令来实现的操作。但我们依然需要谨慎的使用 &lt;code>cherry-pick&lt;/code> ，并意识到它的一些危险之处。&lt;/p>
 &lt;h2 id="深入理解-cherry-pick">深入理解 &lt;code>cherry-pick&lt;/code>&lt;/h2>
 &lt;p>假设我们有一个刚刚通过提交 A 添加了 &lt;code>main.py&lt;/code> 的代码仓库，&lt;code>main.py&lt;/code> 的文件内容如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -76,7 +76,7 @@
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">git&lt;/span> &lt;span class="n">checkout&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">b&lt;/span> &lt;span class="n">new&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">feature&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout -b new-feature
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>首先创建一个提交 B，加入一个新的文件 &lt;code>setup.py&lt;/code> 并对 &lt;code>main.py&lt;/code> 做如下修改：&lt;/p>
@@ -114,8 +114,8 @@
 &lt;/span>&lt;span class="lnt">2
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">git checkout master
-git cherry-pick new-feature
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git checkout master
+$ git cherry-pick new-feature
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>执行过程很简单，如下示意：&lt;/p>
@@ -126,13 +126,13 @@ git cherry-pick new-feature
 &lt;h3 id="应用哪些更改">应用哪些更改&lt;/h3>
 &lt;p>在 &lt;a href="https://www.waynerv.com/posts/git-undo-intro/#%E6%8F%90%E4%BA%A4%E5%8E%86%E5%8F%B2">Git 撤销操作浅析&lt;/a>中我们了解到每一个提交都是一份完整的文件快照，但从示例来看，&lt;code>cherry-pick&lt;/code> 的过程显然并没有应用目标提交中的所有文件内容（否则当前 &lt;code>master&lt;/code> 将包含在提交 B 中加入的 &lt;code>setup.py&lt;/code> 文件），而是仅仅影响了目标提交中更改过的文件（ &lt;code>README.md&lt;/code> 和 &lt;code>main.py&lt;/code> ）。由此可见，「将某个提交从一个分支移动到另一个分支」这一说法并不准确， &lt;code>cherry-pick&lt;/code> 只会应用在目标提交中引入的更改，即在该提交中更改过的文件。&lt;/p>
 &lt;h3 id="如何应用">如何应用&lt;/h3>
-&lt;p>在确定了 &lt;code>cherry-pick&lt;/code> 只会应用目标提交中更改过的文件后，我们来看下应用更改的具体过程。「应用」在内部其实就是像 &lt;code>merge&lt;/code> 一样执行了一次递归三路合并。关于 Git 的三路合并算法我们在 &lt;a href="https://www.waynerv.com/posts/git-merge-intro/#%E9%80%92%E5%BD%92%E4%B8%89%E8%B7%AF%E5%90%88%E5%B9%B6%E7%AE%97%E6%B3%95">Git 合并操作浅析&lt;/a>中已有详细介绍。这次我们换一种方式来表示三路合并中的各方，当我们执行 &lt;code>git cherry-pick &amp;lt;commit C&amp;gt;&lt;/code> 时：&lt;/p>
+&lt;p>在确定了 &lt;code>cherry-pick&lt;/code> 只会应用目标提交中更改过的文件后，我们来看下应用更改的具体过程。「应用」在内部其实就是像 &lt;code>merge&lt;/code> 一样执行了一次三路合并。关于 Git 的三路合并算法我们在 &lt;a href="https://www.waynerv.com/posts/git-merge-intro/#%E9%80%92%E5%BD%92%E4%B8%89%E8%B7%AF%E5%90%88%E5%B9%B6%E7%AE%97%E6%B3%95">Git 合并操作浅析&lt;/a>中已有详细介绍。这次我们换一种方式来表示三路合并中的各方，当我们执行 &lt;code>git cherry-pick &amp;lt;commit C&amp;gt;&lt;/code> 时：&lt;/p>
 &lt;ol>
 &lt;li>&lt;strong>LOCAL&lt;/strong>：在该提交基础上执行合并（即当前所在分支的 HEAD）。&lt;/li>
 &lt;li>&lt;strong>REMOTE&lt;/strong>：你正在 &lt;code>cherry-pick&lt;/code> 的目标提交（即 &lt;code>&amp;lt;commit C&amp;gt;&lt;/code>）。&lt;/li>
-&lt;li>&lt;strong>BASE&lt;/strong>：你要 &lt;code>cherry-pick&lt;/code> 的提交的父提交（即 C^，C 的上一次提交），通常为 LOCAL 和 REMOTE 的共同祖先提交（但也可能不是）。&lt;/li>
+&lt;li>&lt;strong>BASE&lt;/strong>：你要 &lt;code>cherry-pick&lt;/code> 的提交的父提交（即 C^，C 的上一次提交），通常为 LOCAL 和 REMOTE 的共同祖先提交（但也可能不是，比如在本示例中）。&lt;/li>
 &lt;/ol>
-&lt;p>执行 &lt;code>cherry-pick&lt;/code> 时，就是以 BASE 作为基础，以 LOCAL 和 REMOTE 作为要合并的内容进行递归三路合并，并将合并的结果作为一个新的提交添加到 LOCAL 之后（算法执行的具体过程不再赘述）。我们可以通过如下方式进行验证：&lt;/p>
+&lt;p>执行 &lt;code>cherry-pick&lt;/code> 时，就是以 BASE 作为基础，以 LOCAL 和 REMOTE 作为要合并的内容进行三路合并，并将合并的结果作为一个新的提交添加到 LOCAL 之后（算法执行的具体过程不再赘述）。我们可以通过如下方式进行验证：&lt;/p>
 &lt;ol>
 &lt;li>
 &lt;p>首先将示例仓库 Git 的 &lt;code>merge.conflictstyle&lt;/code> 更改为 &lt;code>diff3&lt;/code>：&lt;/p>
@@ -141,7 +141,7 @@ git cherry-pick new-feature
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">git config merge.conflictstyle diff3
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ git config merge.conflictstyle diff3
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;/li>
@@ -178,11 +178,11 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;p>&lt;code>cherry-pick&lt;/code> 出现冲突时的处理方式与 &lt;code>rebase&lt;/code> 和 &lt;code>merge&lt;/code> 一致，我们通过 &lt;code>git status&lt;/code> 查看发生冲突的文件，修改这些文件并删除其中的特殊标记，通过 &lt;code>git add&lt;/code> 将其标记为冲突已解决，最后 &lt;code>git commit&lt;/code> 提交更改。&lt;/p>
 &lt;p>在解决冲突过程中，我们还可以在解决所有冲突后执行 &lt;code>git cherry-pick --continue&lt;/code> 提交所有内容，使用 &lt;code>git cherry-pick --skip&lt;/code> 在处理多个提交时跳过此提交，或使用 &lt;code>git cherry-pick --abort&lt;/code> 取消 &lt;code>cherry-pick&lt;/code> 操作，恢复到执行操作之前的状态。&lt;/p>
 &lt;h2 id="总结">总结&lt;/h2>
-&lt;p>&lt;code>git cherry-pick&lt;/code> 的使用场景并不多，在一些特定场景会很有用，但由于其合并机制有引入意想不到的文件更改的风险，在使用时我们应该谨慎考虑可能发生的结果。&lt;/p>
+&lt;p>&lt;code>git cherry-pick&lt;/code> 的用途并不广泛，在一些特定场景会很有用，但由于其合并机制有引入意想不到的文件更改的风险，在使用时我们应该谨慎考虑可能发生的结果。&lt;/p>
 &lt;p>&lt;code>cherry-pick&lt;/code> 还有两个容易产生的误解需要澄清：&lt;/p>
 &lt;ul>
 &lt;li>&lt;code>cherry-pick&lt;/code> 并不会应用提交所代表的整个文件快照，而是只会影响该在提交中新增、删除或更改的文件。&lt;/li>
-&lt;li>&lt;code>cherry-pick&lt;/code> 并不是简单的应用目标提交与其父提交的 &lt;code>diff&lt;/code> 内容，而是会在内部以该父提交作为基础在当前分支指向提交和目标提交之间进行一次递归三路合并，因此有可能发生合并冲突。&lt;/li>
+&lt;li>&lt;code>cherry-pick&lt;/code> 并不是简单的应用目标提交与其父提交的 &lt;code>diff&lt;/code> 内容，而是会在内部以该父提交作为基础在当前分支指向提交和目标提交之间进行一次三路合并，因此有可能发生合并冲突。&lt;/li>
 &lt;/ul>
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
