@@ -1,4 +1,65 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 28 Jan 2021 02:35:27 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Git cherry-pick 操作浅析</title><link>https://www.waynerv.com/posts/git-cherry-pick-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-cherry-pick-intro/</guid><pubDate>Tue, 26 Jan 2021 16:49:50 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 30 Mar 2021 12:38:39 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>[CSAPP] 计算机的浮点数表示</title><link>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/csapp-ieee-floating-intro/</guid><pubDate>Mon, 29 Mar 2021 22:48:53 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="mf">0.1&lt;/span> &lt;span class="o">+&lt;/span> &lt;span class="mf">0.2&lt;/span>
+&lt;span class="mf">0.30000000000000004&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>其原因是程序在运行时，所使用的浮点数类型并没有精确地表示 &lt;code>0.1&lt;/code> 和 &lt;code>0.2&lt;/code> ，自然结果也就不等于 &lt;code>0.3&lt;/code>。借着这个问题，我们来了解一下计算机在底层是如何表示这类浮点数的。&lt;/p>
+&lt;h2 id="计算机无法精确地表示所有实数">计算机无法精确地表示所有实数&lt;/h2>
+&lt;p>这是一个需要明确的前提。&lt;/p>
+&lt;p>我们若想精确的表示某个集合中的每个元素，必须满足一个条件：每个元素都有一种与其他元素不同的表示。计算机通过多个位的 0 和 1 来表示信息，而实数是无限的，计算机的硬件资源却是有限的，这就注定了计算机无法精确地表示所有实数。最优解是我们可以找到一种合适的表示方法，利用有限的硬件资源（尽可能短的位数），尽可能精确地表示尽可能大的数值范围。&lt;/p>
+&lt;h2 id="二进制小数">二进制小数&lt;/h2>
+&lt;p>那么我们如何用二进制来表示小数呢？&lt;/p>
+&lt;p>首先考虑十进制是如何用小数点来表示小数的：$d_md_{m−1}...d_1d_0.d_{−1}d_{−2}...d_{−n}$，每一位的值 $d_i$ 取值范围是 0-9，上述表示所代表的数值 $d$ 为：&lt;/p>
+&lt;p>$d = \displaystyle\sum_{{ i = -n}}^m 10^i × d_i$&lt;/p>
+&lt;p>小数点左边第 m 位（从 0 开始）具有 $10^m$ 的加权，右边第 n 位（从 1 开始）具有 $10^{-n}$ 的加权。举例来说 $12.34_{10}$ 即代表 $1×10^1+2×10^0+3×10_{−1}+4×10_{−2}=12\frac{34}{100}$ 。&lt;/p>
+&lt;p>同样地，对二进制表示：$b_mb_{m−1}...b_1b_0.b_{−1}b_{−2}...b_{−n}$，每一位的值 $b_i$ 的取值范围是 0-1，所代表的数值 $b$ 为：&lt;/p>
+&lt;p>$b = \displaystyle\sum_{{ i = -n}}^m 2^i × b_i$&lt;/p>
+&lt;p>小数点左边第 m 位（从 0 开始）具有 $2^m$ 的加权，右边第 n 位（从 1 开始）具有 $2^{-n}$ 的加权。举例来说 $101.11_{2}$ 即代表 $1×2^2+0×2^1+1×2^0+1×2_{−1}+1×2_{−2}=5\frac{3}{4}$ 。&lt;/p>
+&lt;p>如同十进制小数点左移除以 10，右移乘以 10 的规则，二进制小数点也有左移除以 2，右移乘以 2 的规则。由于计算机只能进行有限位数的编码，因此从上述 b 的求值公式可知，这种方法只能精确的表示能够写作 $x × 2^y$ 的值。&lt;/p>
+&lt;h2 id="ieee-754-浮点数">IEEE 754 浮点数&lt;/h2>
+&lt;p>用 $b_mb_{m−1}...b_1b_0.b_{−1}b_{−2}...b_{−n}$ 这种方式来表示很小的数或者很大的数是非常低效的，比如表示 $5 × 2^{500}$ 就需要至少 100 位。因此我们需要一种更聪明的表示方式，既然二进制能够表示的数可以归纳为 $x × 2^y$，我们可以仅表示 $x$ 和 $y$。&lt;/p>
+&lt;p>IEEE 754 浮点数标准是如今最流行和通用的浮点数表示标准。它用 $V = (−1)^s × M × 2^E$ 的形式来表示一个数字：&lt;/p>
+&lt;ul>
+&lt;li>符号位 $s$ 决定该数字是正数（$s=0$）还是负数（$s=1$）。数值 0 是一种特殊的情况，我们会在之后解释。&lt;/li>
+&lt;li>有效数 $M$ 是一个二进制小数，它的取值范围为 1 和无限趋近于 2 之间，或者为 0 和无限趋近于 1 之间。具体处于哪个取值范围由指数部分的比特位是否全部为 0 来决定。&lt;/li>
+&lt;li>指数 $E$ 可能为正数也可能为负数，通过 2 的指数幂对最终表示的浮点数进行加权。&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2021-03-30-floating-fields.png" alt="">&lt;/p>
+&lt;p>下面我们来看看 IEEE 浮点数是如何在计算机中工作的。IEEE 浮点数在计算机中最常见的实际表示分别是 32 位（单精度）和 64 位（双精度），其包含的比特位可以划分为 3 部分（如上图）：&lt;/p>
+&lt;ul>
+&lt;li>最左边的单个比特位 s 代表符号位 $s$ 的值。&lt;/li>
+&lt;li>由 k 个比特位构成的指数部分 &lt;strong>exp&lt;/strong> $= e_{k-1}...e_1e_0$ 对指数 $E$ 进行编码。&lt;/li>
+&lt;li>由 n 个比特位构成的小数部分 &lt;strong>frac&lt;/strong> $= f_{n-1}...f_1f_0$ 对有效数 $M$ 进行编码。&lt;/li>
+&lt;/ul>
+&lt;p>在单精度浮点数表示中，s 为 1 位，指数部分为 8 位（k=8），小数部分为 23 位（n=23），总共 32 位。&lt;/p>
+&lt;p>在双精度浮点数表示中，s 为 1 位，指数部分为 11 位（k=11），小数部分为 52 位（n=52），总共 64 位。&lt;/p>
+&lt;p>取决于指数部分的比特位的值，通过以上表示编码得到的值可分为下面 3 种情况。&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2021-03-30-floating-3-cases.png" alt="">&lt;/p>
+&lt;h3 id="规范化的值normalized">规范化的值（Normalized）&lt;/h3>
+&lt;p>规范化的值是最常见的情况，发生在当指数（exp）部分的比特位既非全部都是 0，也非全部都是 1 时，即其整数表示 $0 &amp;lt; exp &amp;lt; 255$ 时。&lt;/p>
+&lt;p>这时指数部分会被解释为一个偏置形式的有符号整数 $E$，计算方式为 $E = e - Bias$，其中 $e$ 是由指数部分所有比特位 $e_{k-1}...e_1e_0$ 表示的有符号整数，而 $Bias$ 是一个取决于指数部分比特位长度 k 的常数 $2^{k-1}-1$（单精度浮点数为 127， 双精度浮点数为 1023），因此指数 $E$ 的取值范围为 -126 到 127（单精度浮点数）或者 -1022 到 1023（双精度浮点数）。&lt;/p>
+&lt;p>小数部分会被解释为一个小数值 $f$，$f$ 的取值范围为 $0 &amp;lt;= f &amp;lt; 1$，其二进制表示为 $0.f_{n-1}...f_1f_0$。我们默认其小数点位于最左边，小数部分的比特位均表示小数点右边的值。而有效数 $M = 1 + f$，此时 $M$ 可看作二进制表示为 $1.f_{n-1}...f_1f_0$，其取值范围为 $1 &amp;lt;= M &amp;lt; 2$。这里的一个技巧是，我们对小数点左边的一位取固定值（0 或 1），因此不需要用比特位显式地去表示它，从而多争取到了一个比特位来表示小数部分，进一步扩大了小数部分的表示范围和精度。&lt;/p>
+&lt;h3 id="非规范化的值denormalized">非规范化的值（Denormalized）&lt;/h3>
+&lt;p>当 exp 部分的比特位全部都是 0 时，我们称此时浮点数表示的数值形式为非规范化的值。&lt;/p>
+&lt;p>这种情况下，指数 $E = 1 - Bias$，$E$ 成为了一个常数，单精度格式下为 -126，双精度格式下为 -1022；有效数 $M = f$，即不再隐式地在最左边添加一个值为 1 的比特位，其取值范围也变为 $0 &amp;lt;= M &amp;lt; 1$。&lt;/p>
+&lt;p>非规范化表示有两个目的：&lt;/p>
+&lt;ul>
+&lt;li>一是为了表示 0，由于规范化值中 $1 &amp;lt;= M &amp;lt; 2$，因此不管指数部分取什么值，所表示的数字 $V$ 都不可能为 0。而在非规范化值中 $0 &amp;lt;= M &amp;lt; 1$，当 M 的值为 0 时，所表示的数字 $V$ 也为 0，此时指数部分和小数部分的所有比特位均为 0。在 IEEE 标准中，取决于此时符号位 $s$ 的值，0 也有正负符号。当 $s=0$ 时，用来表示该浮点数的所有比特位全部为 0， $V = +0.0$；当 $s=1$ 时，$V = -0.0$。在 IEEE 标准中， +0.0 和 -0.0 在某些场景下是不同的。&lt;/li>
+&lt;li>二是为了表示非常趋近于 0 的数。相比规范化值，非规范化表示能够表示更加接近于 0 的数字，且在表示的值非常趋近于 0 时，这些值的分布能保持相对均匀，这种能力也叫「渐进下溢」。&lt;/li>
+&lt;/ul>
+&lt;h3 id="特殊值special">特殊值（Special）&lt;/h3>
+&lt;p>最后一种情况是当 exp 部分的比特位全部都是 1 时。&lt;/p>
+&lt;p>若小数部分的比特位也全部是 0，其表示的值 $V$ 代表无限大：当 $s=0$ 时， $v = + ∞$；当 $s=1$ 时， $V = -∞$。无限大可以用来表示将会溢出的计算结果，如将两个极大的数相乘，或者除以0时。&lt;/p>
+&lt;p>若小数部分的比特位不全为 0，其表示的值 $V$ 代表 &lt;code>NaN&lt;/code>（&lt;strong>N&lt;/strong>ot &lt;strong>a&lt;/strong> &lt;strong>N&lt;/strong>umber）。这种值通常用来作为某些计算结果不是真实数字或者无限大的操作的返回值，如 $\sqrt{-1}$ 或者 $∞ - ∞$。在某些应用中还会用来表示尚未初始化的数据。&lt;/p>
+&lt;h3 id="示例">示例&lt;/h3>
+&lt;p>我们以一个 8 位的浮点数表示作为示例，其指数部分长度为 4，小数部分长度为 3，偏置值为 7，即 $k=4$，$n=3$，$Bias=7$。其指数（Exponent）以及小数（Fraction）等各个部分的值以及所表示的十进制值如下图：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2021-03-30-floating-examples.png" alt="">&lt;/p></description><category domain="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/">笔记总结</category><category domain="https://www.waynerv.com/tags/csapp/">CSAPP</category></item><item><title>Git cherry-pick 操作浅析</title><link>https://www.waynerv.com/posts/git-cherry-pick-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-cherry-pick-intro/</guid><pubDate>Tue, 26 Jan 2021 16:49:50 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
 &lt;h2 id="基本用法">基本用法&lt;/h2>
 &lt;p>Git 命令文档的描述不一定直观易懂，但绝对准确，文档对 &lt;code>git cherry-pick&lt;/code> 描述是： &lt;code>Apply the changes introduced by some existing commits&lt;/code>，即应用某些已有提交所引入的更改。通常我们会说 &lt;code>cherry-pick&lt;/code> 是将某个（些）提交从一个分支移动到另一个分支，这种说法更加容易理解，但后面我们会解释为何文档的描述才是最准确的。&lt;/p>
 &lt;p>假设我们有如下提交：&lt;/p>
