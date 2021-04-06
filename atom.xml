@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">谈谈天，写写码</subtitle><updated>2021-04-06T08:27:28+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">自己编译一个最新版本的 Python3</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/compiling-a-latest-python/"/><id>https://www.waynerv.com/posts/compiling-a-latest-python/</id><updated>2021-04-06T08:27:14+00:00</updated><published>2021-04-06T10:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。 工……</summary><content type="html">&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">谈谈天，写写码</subtitle><updated>2021-04-06T12:19:15+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">自己编译一个最新版本的 Python3</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/compiling-a-latest-python/"/><id>https://www.waynerv.com/posts/compiling-a-latest-python/</id><updated>2021-04-06T12:19:09+00:00</updated><published>2021-04-06T10:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。 工……</summary><content type="html">&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
 &lt;h2 id="工作环境">工作环境&lt;/h2>
 &lt;p>测试机的操作系统是 Ubuntu 20.10，已安装有 &lt;code>gcc&lt;/code> 、&lt;code>git&lt;/code> 等基础的开发工具。经验证以下步骤同样适用于 macOS 11。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -195,7 +195,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://devguide.python.org/setup/#getting-started">Python Developer’s Guide: Getting Started&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/" term="编译" label="编译"/></entry><entry><title type="text">[CSAPP] 计算机的浮点数表示</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/csapp-ieee-floating-intro/"/><id>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</id><updated>2021-04-06T08:27:14+00:00</updated><published>2021-03-29T22:48:53+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况： 1 2 &amp;gt;&amp;gt;&amp;gt; 0.1 + 0.2 0.30000000000000004 其原因是程序在运行时，所使用的浮点数类型并没有精……</summary><content type="html">&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/" term="编译" label="编译"/></entry><entry><title type="text">[CSAPP] 计算机的浮点数表示</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/csapp-ieee-floating-intro/"/><id>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</id><updated>2021-04-06T12:19:09+00:00</updated><published>2021-03-29T22:48:53+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况： 1 2 &amp;gt;&amp;gt;&amp;gt; 0.1 + 0.2 0.30000000000000004 其原因是程序在运行时，所使用的浮点数类型并没有精……</summary><content type="html">&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -261,7 +261,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;ol>
 &lt;li>虽然使用了不同的计算方式，但非规范化值可以平滑地过渡到规范化值，如上最大的非规范化值为 $\frac{7}{512}$，而最小的规范化值为 $\frac{8}{512}$。&lt;/li>
 &lt;li>随着浮点数的递增，其比特位表示所解释地无符号整数也随之递增，因此我们可以用相对简单的无符号整数的排序规则来对浮点数进行排序，这并非巧合，而是有意设计的。&lt;/li>
-&lt;/ol></content><category scheme="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/" term="笔记总结" label="笔记总结"/><category scheme="https://www.waynerv.com/tags/csapp/" term="CSAPP" label="CSAPP"/></entry><entry><title type="text">Git cherry-pick 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-cherry-pick-intro/"/><id>https://www.waynerv.com/posts/git-cherry-pick-intro/</id><updated>2021-04-06T08:27:14+00:00</updated><published>2021-01-26T16:49:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 rebase，merge，checkout， reset 等多种操作的使用……</summary><content type="html">&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
+&lt;/ol></content><category scheme="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/" term="笔记总结" label="笔记总结"/><category scheme="https://www.waynerv.com/tags/csapp/" term="CSAPP" label="CSAPP"/></entry><entry><title type="text">Git cherry-pick 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-cherry-pick-intro/"/><id>https://www.waynerv.com/posts/git-cherry-pick-intro/</id><updated>2021-04-06T12:19:09+00:00</updated><published>2021-01-26T16:49:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 rebase，merge，checkout， reset 等多种操作的使用……</summary><content type="html">&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
 &lt;h2 id="基本用法">基本用法&lt;/h2>
 &lt;p>Git 命令文档的描述不一定直观易懂，但绝对准确，文档对 &lt;code>git cherry-pick&lt;/code> 描述是： &lt;code>Apply the changes introduced by some existing commits&lt;/code>，即应用某些已有提交所引入的更改。通常我们会说 &lt;code>cherry-pick&lt;/code> 是将某个（些）提交从一个分支移动到另一个分支，这种说法更加容易理解，但后面我们会解释为何文档的描述才是最准确的。&lt;/p>
 &lt;p>假设我们有如下提交：&lt;/p>
@@ -455,7 +455,7 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;li>&lt;a href="https://stackoverflow.com/a/52932137/10224392">what does git cherry-pick {commit-hash} do?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/a/10058070/10224392">In a Git cherry-pick or rebase merge conflict, how are BASE (aka “the ancestor”), LOCAL, and REMOTE determined?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/questions/27417656/should-diff3-be-default-conflictstyle-on-git">Should diff3 be default conflictstyle on git?&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git 撤销操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2021-04-06T08:27:14+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水……</summary><content type="html">&lt;p>对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git 撤销操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2021-04-06T12:19:09+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水……</summary><content type="html">&lt;p>对于新手来说，「怎样撤销 Git 提交」是你一定搜索过的问题，你也许可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
 &lt;p>之所以如此，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
 &lt;ul>
 &lt;li>我在本地修改了一些文件还未提交，但我想放弃某些文件的更改。&lt;/li>
@@ -1271,7 +1271,7 @@ $ git stash pop
 &lt;li>&lt;a href="https://shafiul.github.io//gitbook/7_the_git_index.html">The Git Index&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://mincong.io/2018/04/28/git-index/#:~:text=The%20index%20is%20a%20binary,Git%3A%20they%20are%20used%20interchangeably.">Git: Understanding the Index File&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tom.preston-werner.com/2009/05/19/the-git-parable.html">The Git Parable&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2021-04-06T08:27:14+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常……</summary><content type="html">&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2021-04-06T12:19:09+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常……</summary><content type="html">&lt;p>作为一个程序员，代码质量可以说是我们的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
 &lt;h2 id="linter">Linter&lt;/h2>
 &lt;p>Linter 是一类用于标记程序错误、bug、风格错误和可疑结构的静态代码分析工具，比如 Python 中的 &lt;code>Pylint&lt;/code>、 &lt;code>flake8&lt;/code>，JavaScript 中的 &lt;code>EsLint&lt;/code>，这类工具会找到你代码中的错误，并给出如何修复的提示。&lt;/p>
 &lt;h3 id="为何要使用-linter">为何要使用 Linter&lt;/h3>
@@ -2010,111 +2010,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/quickstart">Quickstart for GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/introduction-to-github-actions">Introduction to GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="http://www.ruanyifeng.com/blog/2019/09/getting-started-with-github-actions.html">GitHub Actions 入门教程&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">Git 合并操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2021-04-06T08:27:14+00:00</updated><published>2020-12-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作，都需要进行合并。 但对新手来说， git merge 这一命令……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
-&lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
-&lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
-&lt;h2 id="认识合并">认识合并&lt;/h2>
-&lt;p>在版本控制系统中，合并是将一组文件中所发生的不同更改进行整合的基础操作。通常来说，我们在使用 Git 时会建立不同的分支，由不同的人对同一组文件执行新增、编辑等操作，最终我们需要合并这些协作的分支，整合所有的更改形成一份文件版本。&lt;/p>
-&lt;p>合并一般由 Git 根据算法自动执行，但如果发生了冲突，比如对同一文件的同一处内容执行了不同的更改，则需要我们手动合并。&lt;/p>
-&lt;h3 id="递归三路合并算法">递归三路合并算法&lt;/h3>
-&lt;p>Git 在自动合并时会使用「&lt;a href="https://en.wikipedia.org/wiki/Merge_(version_control)#Recursive_three-way_merge">递归三路合并&lt;/a>」算法对不同文件进行差异分析，接下来我们简单了解一下该算法。&lt;/p>
-&lt;p>首先从「三路合并」算法开始，假设我们有以下提交历史：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
-&lt;p>上图中我们在 &lt;code>master&lt;/code> 合并了 &lt;code>feature&lt;/code> 分支，现在我们回溯一下合并的过程：&lt;/p>
-&lt;p>此时 &lt;code>master&lt;/code> 正指向提交 C，Git 首先找到两个分支最近的唯一共同祖先提交 A，然后分别对 A、C、F 提交的文件快照进行对比，我们下文称呼它们为 A、C、F 文件。接下来 Git 将逐「行」对三个文件的内容进行比较，如果三个文件中有两个文件该行的内容一致，则丢弃 A 文件中该行的内容，保留与 A 文件中不同的内容放到结果文件中。&lt;/p>
-&lt;p>具体来说，假如 A、C 内容一致，说明这是在 F 中更改的内容，需要保留该更改；A、F 内容一致同理；假如 C、F 内容一致，说明 C 和 F 都相对于 A 做了同样的更改，同样需要保留。除此之外的内容差异仅剩两种情况：如果 A、C、F 的内容都一致，说明什么都没有发生；如果该行在 A、C、F 的内容都不一致，说明发生了冲突，需要我们手动合并选择需要保留的内容。&lt;/p>
-&lt;p>结束对比后 Git 会以最终的结果文件快照创建一个新的 Merge 提交并指向它。&lt;/p>
-&lt;p>三路合并算法的基础是找到被合并文件的共同祖先，在一些简单的场景中这还能行的通，但在遇到&lt;a href="https://zh.wikipedia.org/wiki/%E5%90%88%E5%B9%B6_(%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6)#cite_note-2">十字交叉合并（criss-cross merge）&lt;/a>时，不存在唯一的最近共同祖先，如下图：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/20201229152228-criss-cross-merge.png" alt="20201229152228-criss-cross-merge">&lt;/p>
-&lt;p>现在我们需要从 &lt;code>main&lt;/code> 分支合并 &lt;code>feature&lt;/code> 分支，即把 C7 合并到 C8，会发现 C8 和 C7 有两个共同祖先，这下怎么办呢？Git 采取的是递归三路合并（Recursive three-way merge），会先合并 C3 和 C5 这两个共同祖先创建一个虚拟的唯一最近祖先（假设为 C9），接着在 C9、C7、C8 之间执行三路合并，如果在合并 C3 和 C5 的过程中又发生没有唯一共同祖先的情况，则递归执行上述过程。&lt;/p>
-&lt;p>关于递归三路合并算法我们就了解到这里。&lt;/p>
-&lt;h3 id="合并冲突">合并冲突&lt;/h3>
-&lt;p>如果你在两个不同的分支中，对同一个文件的同一个部分进行了不同的修改，Git 就无法自动地合并它们，而是会暂停合并过程，等待你去手动解决冲突。&lt;/p>
-&lt;p>首先我们需要找到这些需要解决冲突的文件，使用 &lt;code>git status&lt;/code> 可以查看这些因包含合并冲突而处于未合并状态的文件：&lt;/p>
-&lt;pre>&lt;code>$ git status
-On branch master
-You have unmerged paths.
-(fix conflicts and run &amp;quot;git commit&amp;quot;)
-Unmerged paths:
-(use &amp;quot;git add &amp;lt;file&amp;gt;...&amp;quot; to mark resolution)
-both modified: main.py
-no changes added to commit (use &amp;quot;git add&amp;quot; and/or &amp;quot;git commit -a&amp;quot;)
-&lt;/code>&lt;/pre>&lt;p>手动解决冲突类似于二选一的过程，Git 会在有冲突的文件中加入特殊的标记，看起来像下面这样：&lt;/p>
-&lt;pre>&lt;code>&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt; HEAD:main.py
-print(&amp;quot;Hello World&amp;quot;)
-=======
-print(&amp;quot;World Hello&amp;quot;)
-&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; feature:main.py
-&lt;/code>&lt;/pre>&lt;p>通过 &lt;code>=======&lt;/code> 进行分割，以 &lt;code>&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt; HEAD:main.py&lt;/code> 标记为上界的上半部分是当前分支 &lt;code>master&lt;/code> 所做的更改，以 &lt;code>&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; feature:main.py&lt;/code> 标记为下界的下半部分是要合并的 &lt;code>feature&lt;/code> 对同一内容所做的不同更改。我们需要编辑文件删除这些标记，仅保留我们需要的内容：&lt;/p>
-&lt;pre>&lt;code>print(&amp;quot;Hello World&amp;quot;)
-&lt;/code>&lt;/pre>&lt;p>当然也可以不从中选择，而是用一段全新的内容去替换它。&lt;/p>
-&lt;p>在解决了所有文件里的冲突之后，需要使用 &lt;code>git add&lt;/code> 暂存这些文件来将其标记为冲突已解决。然后再执行 &lt;code>git commit&lt;/code> 来完成合并提交。 Git 会将解决的这些冲突，加入到上文提到的新增的 Merge 提交里。&lt;/p>
-&lt;h3 id="快进合并">快进合并&lt;/h3>
-&lt;p>也有些时候，我们在执行了合并操作后，会发现并没有增加一个新的 Merge 提交。这种情况我们称之为快进（fast-forward）合并。&lt;/p>
-&lt;p>假设我们基于 &lt;code>master&lt;/code> 创建了 &lt;code>feature&lt;/code> 分支，并新增了一些提交。现在我们将 &lt;code>feature&lt;/code> 的更改合入 &lt;code>master&lt;/code> 分支：&lt;/p>
-&lt;pre>&lt;code>$ git checkout master
-$ git merge feature
-Updating f42c576..3a0874c
-Fast-forward
-main.py | 2 ++
-task.py | 3 ++
-worker.py | 1 ++
-3 file changed, 6 insertions(+)
-&lt;/code>&lt;/pre>&lt;p>过程示意如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-fast-forward.gif" alt="Dec-29-2020 22-50-28">&lt;/p>
-&lt;p>由于我们想要合并的分支 &lt;code>feature&lt;/code> 所指向的提交 D 是 &lt;code>master&lt;/code> 的直接后继， 因此 Git 会直接将 &lt;code>HEAD&lt;/code> 指针向前移动。换句话说，如果顺着一个分支走下去一定能够到达另一个分支，那么 Git 在合并两者时只会简单的将指针向前推进（右移），因为这种情况下的合并操作没有需要解决的分歧——这就叫做快进（fast-forward）。&lt;/p>
-&lt;h2 id="git-的不同合并策略">Git 的不同合并策略&lt;/h2>
-&lt;p>我们在使用 Git 时，通常会基于主分支拉出若干条功能分支进行开发，开发完毕后再将功能分支合入主分支。有以下不同的分支合并策略：&lt;/p>
-&lt;ul>
-&lt;li>通过 &lt;code>merge&lt;/code> 显式合并&lt;/li>
-&lt;li>通过 &lt;code>rebase&lt;/code> 或 &lt;code>fast-forward&lt;/code> 隐式合并&lt;/li>
-&lt;li>&lt;code>squash&lt;/code> 后隐式合并&lt;/li>
-&lt;/ul>
-&lt;h3 id="通过-merge-显式合并">通过 &lt;code>merge&lt;/code> 显式合并&lt;/h3>
-&lt;p>这是最常见和最直接的合并方式，也是 GitHub 和 GitLab 等代码托管平台的默认实现方式。&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
-&lt;p>当我们将功能分支合入主分支时，Git 会对两个分支进行递归三路合并，并以合并结果创建一个新的 Merge 提交。这个 Merge 提交和普通的提交本质上是一样的，但是它有两个父提交：&lt;/p>
-&lt;pre>&lt;code>$ git cat-file -p 44ba027
-tree 5a1692ba62ef346b59e65e4aa441c731bebc51ff
-parent 75bf5c59c2e7e493c98e026a415f16b8f0445e4a
-parent bbbe6a4c02aa709299ac891779448daf8203df53
-author xx &amp;lt;xx@xx.com&amp;gt; 1609141855 +0800
-committer xx &amp;lt;xx@xx.com&amp;gt; 1609141855 +0800
-Merge branch 'feature' into 'master'
-&lt;/code>&lt;/pre>&lt;p>我们能在提交历史中，很明了地根据 Merge 提交查看发生的合并事件。但另一方面，大量的 Merge 提交会使你的提交历史有很多分叉，甚至十分凌乱，有些开发者或者团队可能会想要一个看上去更加整洁的线性提交历史。&lt;/p>
-&lt;p>需要注意的是，默认情况下 Git 不会在快进合并的情况下创建单独的 Merge 提交。假如我们想在所有情况下都创建一个 Merge 提交，需要在执行 &lt;code>git merge&lt;/code> 命令时添加 &lt;code>--no-ff&lt;/code> 选项。&lt;/p>
-&lt;h3 id="通过-rebase-或-fast-forward-隐式合并">通过 &lt;code>rebase&lt;/code> 或 &lt;code>fast-forward&lt;/code> 隐式合并&lt;/h3>
-&lt;p>我们可以用 &lt;code>rebase&lt;/code> 替换 &lt;code>merge&lt;/code> 进行合并，我在之前的一篇文章&lt;a href="https://waynerv.github.io/posts/git-rebase-intro/">git-rebase 浅析&lt;/a>中详细介绍过 &lt;code>rebase&lt;/code> 的原理和用法，简单来说 &lt;code>rebase&lt;/code> 操作会找到两个分支的最近的祖先提交，并基于目标分支按顺序重新应用当前分支在祖先提交之后的更改。假设我们有如下图的 &lt;code>master&lt;/code> 和 &lt;code>feature&lt;/code> 两个分支，执行下列操作：&lt;/p>
-&lt;pre>&lt;code>$ git checkout feature
-$ git rebase master
-$ git checkout master
-$ git merge feature
-&lt;/code>&lt;/pre>&lt;p>过程如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-31-2020-rebase&amp;amp;fast-forfward.gif" alt="Dec-31-2020-rebase&amp;fast-forfward">&lt;/p>
-&lt;p>我们首先用 &lt;code>rebase&lt;/code> 将 &lt;code>master&lt;/code> 合并到了 &lt;code>feature&lt;/code>，即使两个分支都有不同的提交，也得到了一条完全线性的 &lt;code>feature&lt;/code> 分支，而且没有额外的 Merge 提交。&lt;/p>
-&lt;p>接着又切换到 &lt;code>master&lt;/code> 分支合并了 &lt;code>feature&lt;/code>。&lt;code>rebase&lt;/code> 之后的 &lt;code>feature&lt;/code> 分支上，所有提交都是 &lt;code>master&lt;/code> 的后继提交，因此我们将直接执行快进合并。快进合并只有在 &lt;code>master&lt;/code> 分支中没有比 &lt;code>feature&lt;/code> 更新的提交时才会发生（使用 &lt;code>rebase&lt;/code> 能够确保该结果），在这种情况下，&lt;code>master&lt;/code> 的 &lt;code>HEAD&lt;/code> 可以直接右移到 &lt;code>feature&lt;/code> 分支的最新提交。这样合并也不会生成单独的 Merge 提交，它只是将分支标签快速指向了新的提交。&lt;/p>
-&lt;p>通过 &lt;code>rebase&lt;/code> 或 &lt;code>fast-forward&lt;/code> 隐式的合并，我们能够得到一条整洁线性的提交历史，但同时也会丢失这些提交曾经的上下文信息。&lt;/p>
-&lt;h3 id="squash-后隐式合并">&lt;code>squash&lt;/code> 后隐式合并&lt;/h3>
-&lt;p>还有一种合并变更的策略是，在执行快进合并或 &lt;code>rebase&lt;/code> 之前，将所有功能分支的提交通过 &lt;code>rebase&lt;/code> 交互模式的 &lt;code>squash&lt;/code> 命令压缩成一个提交。这样可以进一步保持主分支提交历史的线性和整洁。它将一个完整的功能单独保存在一次提交中，但也失去了对整个功能分支开发过程的记录和细节。具体的操作方法可参考&lt;a href="https://waynerv.github.io/posts/git-rebase-intro/#%E9%87%8D%E5%86%99%E6%8F%90%E4%BA%A4%E5%8E%86%E5%8F%B2">重写提交历史&lt;/a>。&lt;/p>
-&lt;p>这三种策略都有明显的优缺点，我们可以根据具体的场景以及自己的需求进行选择。&lt;/p>
-&lt;h2 id="参考链接">参考链接&lt;/h2>
-&lt;ul>
-&lt;li>
-&lt;p>&lt;a href="https://en.wikipedia.org/wiki/Merge_(version_control)">Merge (version control)&lt;/a>&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>&lt;a href="https://git-scm.com/docs/git-merge">git-merge - Join two or more development histories together&lt;/a>&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>&lt;a href="https://blog.developer.atlassian.com/pull-request-merge-strategies-the-great-debate/#:~:text=And%20the%20merge%20can%20complete,of%20an%20earlier%20feature%20branch">Pull Request Merge Strategies: The Great Debate&lt;/a>&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>&lt;a href="https://git-scm.com/book/zh/v2/Git-%E5%88%86%E6%94%AF-%E5%88%86%E6%94%AF%E7%9A%84%E6%96%B0%E5%BB%BA%E4%B8%8E%E5%90%88%E5%B9%B6">Git 分支 - 分支的新建与合并&lt;/a>&lt;/p>
-&lt;/li>
-&lt;li>
-&lt;p>&lt;a href="https://segmentfault.com/a/1190000021712743">git merge的原理（递归三路合并算法）&lt;/a>&lt;/p>
-&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 部署个人博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-04-06T08:27:14+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。 刚学编程的时候，我还开源过一个基于 Flask 和 MongoDB 的博客项……</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 部署个人博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-04-06T12:19:09+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。 刚学编程的时候，我还开源过一个基于 Flask 和 MongoDB 的博客项……</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
 &lt;p>刚学编程的时候，我还开源过一个基于 Flask 和 MongoDB 的&lt;a href="https://github.com/waynerv/originblog">博客项目&lt;/a>，但后面就没怎么使用和维护了，除开主观上的懒，还因为：&lt;/p>
 &lt;ul>
 &lt;li>自建博客绕不开主机和域名，这是一笔持续的经济成本。国内的主机往往是第一年割肉第二年宰猪，国外的主机访问延迟很高。&lt;/li>
@@ -2328,7 +2224,111 @@ publish_dir: ./public
 &lt;p>在本地做一些更改，预览效果后提交并推送，然后在项目仓库的 GitHub Actions 页面检查相应的 &lt;code>workflow&lt;/code> 是否运行成功。不出意外的话，很快个人主页仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，访问个人博客页面也会发现页面已经更新。&lt;/p>
 &lt;h2 id="个人体验">个人体验&lt;/h2>
 &lt;p>由于先后选择的 3 个主题均遭遇了上述发布地址不能包含子路径的问题，我在基本按照官方文档操作的前提下，依然花了超过 10 个小时才把&lt;a href="https://waynerv.github.io/">博客&lt;/a>上线，浪费了很多时间在配置主题以及寻找问题的解决方案上。本以为选择了一个简单快捷的省心方案，结果还是免不了过程的一顿踩坑和折腾。&lt;/p>
-&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/></entry><entry><title type="text">Git Rebase 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2021-04-06T08:27:14+00:00</updated><published>2020-12-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">之所以写这篇文章，是因为之前对 git rebase -i 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面……</summary><content type="html">&lt;p>之所以写这篇文章，是因为之前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
+&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/></entry><entry><title type="text">Git 合并操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2021-04-06T12:19:09+00:00</updated><published>2020-11-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作，都需要进行合并。 但对新手来说， git merge 这一命令……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
+&lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
+&lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
+&lt;h2 id="认识合并">认识合并&lt;/h2>
+&lt;p>在版本控制系统中，合并是将一组文件中所发生的不同更改进行整合的基础操作。通常来说，我们在使用 Git 时会建立不同的分支，由不同的人对同一组文件执行新增、编辑等操作，最终我们需要合并这些协作的分支，整合所有的更改形成一份文件版本。&lt;/p>
+&lt;p>合并一般由 Git 根据算法自动执行，但如果发生了冲突，比如对同一文件的同一处内容执行了不同的更改，则需要我们手动合并。&lt;/p>
+&lt;h3 id="递归三路合并算法">递归三路合并算法&lt;/h3>
+&lt;p>Git 在自动合并时会使用「&lt;a href="https://en.wikipedia.org/wiki/Merge_(version_control)#Recursive_three-way_merge">递归三路合并&lt;/a>」算法对不同文件进行差异分析，接下来我们简单了解一下该算法。&lt;/p>
+&lt;p>首先从「三路合并」算法开始，假设我们有以下提交历史：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
+&lt;p>上图中我们在 &lt;code>master&lt;/code> 合并了 &lt;code>feature&lt;/code> 分支，现在我们回溯一下合并的过程：&lt;/p>
+&lt;p>此时 &lt;code>master&lt;/code> 正指向提交 C，Git 首先找到两个分支最近的唯一共同祖先提交 A，然后分别对 A、C、F 提交的文件快照进行对比，我们下文称呼它们为 A、C、F 文件。接下来 Git 将逐「行」对三个文件的内容进行比较，如果三个文件中有两个文件该行的内容一致，则丢弃 A 文件中该行的内容，保留与 A 文件中不同的内容放到结果文件中。&lt;/p>
+&lt;p>具体来说，假如 A、C 内容一致，说明这是在 F 中更改的内容，需要保留该更改；A、F 内容一致同理；假如 C、F 内容一致，说明 C 和 F 都相对于 A 做了同样的更改，同样需要保留。除此之外的内容差异仅剩两种情况：如果 A、C、F 的内容都一致，说明什么都没有发生；如果该行在 A、C、F 的内容都不一致，说明发生了冲突，需要我们手动合并选择需要保留的内容。&lt;/p>
+&lt;p>结束对比后 Git 会以最终的结果文件快照创建一个新的 Merge 提交并指向它。&lt;/p>
+&lt;p>三路合并算法的基础是找到被合并文件的共同祖先，在一些简单的场景中这还能行的通，但在遇到&lt;a href="https://zh.wikipedia.org/wiki/%E5%90%88%E5%B9%B6_(%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6)#cite_note-2">十字交叉合并（criss-cross merge）&lt;/a>时，不存在唯一的最近共同祖先，如下图：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/20201229152228-criss-cross-merge.png" alt="20201229152228-criss-cross-merge">&lt;/p>
+&lt;p>现在我们需要从 &lt;code>main&lt;/code> 分支合并 &lt;code>feature&lt;/code> 分支，即把 C7 合并到 C8，会发现 C8 和 C7 有两个共同祖先，这下怎么办呢？Git 采取的是递归三路合并（Recursive three-way merge），会先合并 C3 和 C5 这两个共同祖先创建一个虚拟的唯一最近祖先（假设为 C9），接着在 C9、C7、C8 之间执行三路合并，如果在合并 C3 和 C5 的过程中又发生没有唯一共同祖先的情况，则递归执行上述过程。&lt;/p>
+&lt;p>关于递归三路合并算法我们就了解到这里。&lt;/p>
+&lt;h3 id="合并冲突">合并冲突&lt;/h3>
+&lt;p>如果你在两个不同的分支中，对同一个文件的同一个部分进行了不同的修改，Git 就无法自动地合并它们，而是会暂停合并过程，等待你去手动解决冲突。&lt;/p>
+&lt;p>首先我们需要找到这些需要解决冲突的文件，使用 &lt;code>git status&lt;/code> 可以查看这些因包含合并冲突而处于未合并状态的文件：&lt;/p>
+&lt;pre>&lt;code>$ git status
+On branch master
+You have unmerged paths.
+(fix conflicts and run &amp;quot;git commit&amp;quot;)
+Unmerged paths:
+(use &amp;quot;git add &amp;lt;file&amp;gt;...&amp;quot; to mark resolution)
+both modified: main.py
+no changes added to commit (use &amp;quot;git add&amp;quot; and/or &amp;quot;git commit -a&amp;quot;)
+&lt;/code>&lt;/pre>&lt;p>手动解决冲突类似于二选一的过程，Git 会在有冲突的文件中加入特殊的标记，看起来像下面这样：&lt;/p>
+&lt;pre>&lt;code>&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt; HEAD:main.py
+print(&amp;quot;Hello World&amp;quot;)
+=======
+print(&amp;quot;World Hello&amp;quot;)
+&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; feature:main.py
+&lt;/code>&lt;/pre>&lt;p>通过 &lt;code>=======&lt;/code> 进行分割，以 &lt;code>&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt;&amp;lt; HEAD:main.py&lt;/code> 标记为上界的上半部分是当前分支 &lt;code>master&lt;/code> 所做的更改，以 &lt;code>&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt;&amp;gt; feature:main.py&lt;/code> 标记为下界的下半部分是要合并的 &lt;code>feature&lt;/code> 对同一内容所做的不同更改。我们需要编辑文件删除这些标记，仅保留我们需要的内容：&lt;/p>
+&lt;pre>&lt;code>print(&amp;quot;Hello World&amp;quot;)
+&lt;/code>&lt;/pre>&lt;p>当然也可以不从中选择，而是用一段全新的内容去替换它。&lt;/p>
+&lt;p>在解决了所有文件里的冲突之后，需要使用 &lt;code>git add&lt;/code> 暂存这些文件来将其标记为冲突已解决。然后再执行 &lt;code>git commit&lt;/code> 来完成合并提交。 Git 会将解决的这些冲突，加入到上文提到的新增的 Merge 提交里。&lt;/p>
+&lt;h3 id="快进合并">快进合并&lt;/h3>
+&lt;p>也有些时候，我们在执行了合并操作后，会发现并没有增加一个新的 Merge 提交。这种情况我们称之为快进（fast-forward）合并。&lt;/p>
+&lt;p>假设我们基于 &lt;code>master&lt;/code> 创建了 &lt;code>feature&lt;/code> 分支，并新增了一些提交。现在我们将 &lt;code>feature&lt;/code> 的更改合入 &lt;code>master&lt;/code> 分支：&lt;/p>
+&lt;pre>&lt;code>$ git checkout master
+$ git merge feature
+Updating f42c576..3a0874c
+Fast-forward
+main.py | 2 ++
+task.py | 3 ++
+worker.py | 1 ++
+3 file changed, 6 insertions(+)
+&lt;/code>&lt;/pre>&lt;p>过程示意如下：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-fast-forward.gif" alt="Dec-29-2020 22-50-28">&lt;/p>
+&lt;p>由于我们想要合并的分支 &lt;code>feature&lt;/code> 所指向的提交 D 是 &lt;code>master&lt;/code> 的直接后继， 因此 Git 会直接将 &lt;code>HEAD&lt;/code> 指针向前移动。换句话说，如果顺着一个分支走下去一定能够到达另一个分支，那么 Git 在合并两者时只会简单的将指针向前推进（右移），因为这种情况下的合并操作没有需要解决的分歧——这就叫做快进（fast-forward）。&lt;/p>
+&lt;h2 id="git-的不同合并策略">Git 的不同合并策略&lt;/h2>
+&lt;p>我们在使用 Git 时，通常会基于主分支拉出若干条功能分支进行开发，开发完毕后再将功能分支合入主分支。有以下不同的分支合并策略：&lt;/p>
+&lt;ul>
+&lt;li>通过 &lt;code>merge&lt;/code> 显式合并&lt;/li>
+&lt;li>通过 &lt;code>rebase&lt;/code> 或 &lt;code>fast-forward&lt;/code> 隐式合并&lt;/li>
+&lt;li>&lt;code>squash&lt;/code> 后隐式合并&lt;/li>
+&lt;/ul>
+&lt;h3 id="通过-merge-显式合并">通过 &lt;code>merge&lt;/code> 显式合并&lt;/h3>
+&lt;p>这是最常见和最直接的合并方式，也是 GitHub 和 GitLab 等代码托管平台的默认实现方式。&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
+&lt;p>当我们将功能分支合入主分支时，Git 会对两个分支进行递归三路合并，并以合并结果创建一个新的 Merge 提交。这个 Merge 提交和普通的提交本质上是一样的，但是它有两个父提交：&lt;/p>
+&lt;pre>&lt;code>$ git cat-file -p 44ba027
+tree 5a1692ba62ef346b59e65e4aa441c731bebc51ff
+parent 75bf5c59c2e7e493c98e026a415f16b8f0445e4a
+parent bbbe6a4c02aa709299ac891779448daf8203df53
+author xx &amp;lt;xx@xx.com&amp;gt; 1609141855 +0800
+committer xx &amp;lt;xx@xx.com&amp;gt; 1609141855 +0800
+Merge branch 'feature' into 'master'
+&lt;/code>&lt;/pre>&lt;p>我们能在提交历史中，很明了地根据 Merge 提交查看发生的合并事件。但另一方面，大量的 Merge 提交会使你的提交历史有很多分叉，甚至十分凌乱，有些开发者或者团队可能会想要一个看上去更加整洁的线性提交历史。&lt;/p>
+&lt;p>需要注意的是，默认情况下 Git 不会在快进合并的情况下创建单独的 Merge 提交。假如我们想在所有情况下都创建一个 Merge 提交，需要在执行 &lt;code>git merge&lt;/code> 命令时添加 &lt;code>--no-ff&lt;/code> 选项。&lt;/p>
+&lt;h3 id="通过-rebase-或-fast-forward-隐式合并">通过 &lt;code>rebase&lt;/code> 或 &lt;code>fast-forward&lt;/code> 隐式合并&lt;/h3>
+&lt;p>我们可以用 &lt;code>rebase&lt;/code> 替换 &lt;code>merge&lt;/code> 进行合并，我在之前的一篇文章&lt;a href="https://waynerv.github.io/posts/git-rebase-intro/">git-rebase 浅析&lt;/a>中详细介绍过 &lt;code>rebase&lt;/code> 的原理和用法，简单来说 &lt;code>rebase&lt;/code> 操作会找到两个分支的最近的祖先提交，并基于目标分支按顺序重新应用当前分支在祖先提交之后的更改。假设我们有如下图的 &lt;code>master&lt;/code> 和 &lt;code>feature&lt;/code> 两个分支，执行下列操作：&lt;/p>
+&lt;pre>&lt;code>$ git checkout feature
+$ git rebase master
+$ git checkout master
+$ git merge feature
+&lt;/code>&lt;/pre>&lt;p>过程如下图所示：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-31-2020-rebase&amp;amp;fast-forfward.gif" alt="Dec-31-2020-rebase&amp;fast-forfward">&lt;/p>
+&lt;p>我们首先用 &lt;code>rebase&lt;/code> 将 &lt;code>master&lt;/code> 合并到了 &lt;code>feature&lt;/code>，即使两个分支都有不同的提交，也得到了一条完全线性的 &lt;code>feature&lt;/code> 分支，而且没有额外的 Merge 提交。&lt;/p>
+&lt;p>接着又切换到 &lt;code>master&lt;/code> 分支合并了 &lt;code>feature&lt;/code>。&lt;code>rebase&lt;/code> 之后的 &lt;code>feature&lt;/code> 分支上，所有提交都是 &lt;code>master&lt;/code> 的后继提交，因此我们将直接执行快进合并。快进合并只有在 &lt;code>master&lt;/code> 分支中没有比 &lt;code>feature&lt;/code> 更新的提交时才会发生（使用 &lt;code>rebase&lt;/code> 能够确保该结果），在这种情况下，&lt;code>master&lt;/code> 的 &lt;code>HEAD&lt;/code> 可以直接右移到 &lt;code>feature&lt;/code> 分支的最新提交。这样合并也不会生成单独的 Merge 提交，它只是将分支标签快速指向了新的提交。&lt;/p>
+&lt;p>通过 &lt;code>rebase&lt;/code> 或 &lt;code>fast-forward&lt;/code> 隐式的合并，我们能够得到一条整洁线性的提交历史，但同时也会丢失这些提交曾经的上下文信息。&lt;/p>
+&lt;h3 id="squash-后隐式合并">&lt;code>squash&lt;/code> 后隐式合并&lt;/h3>
+&lt;p>还有一种合并变更的策略是，在执行快进合并或 &lt;code>rebase&lt;/code> 之前，将所有功能分支的提交通过 &lt;code>rebase&lt;/code> 交互模式的 &lt;code>squash&lt;/code> 命令压缩成一个提交。这样可以进一步保持主分支提交历史的线性和整洁。它将一个完整的功能单独保存在一次提交中，但也失去了对整个功能分支开发过程的记录和细节。具体的操作方法可参考&lt;a href="https://waynerv.github.io/posts/git-rebase-intro/#%E9%87%8D%E5%86%99%E6%8F%90%E4%BA%A4%E5%8E%86%E5%8F%B2">重写提交历史&lt;/a>。&lt;/p>
+&lt;p>这三种策略都有明显的优缺点，我们可以根据具体的场景以及自己的需求进行选择。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;a href="https://en.wikipedia.org/wiki/Merge_(version_control)">Merge (version control)&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://git-scm.com/docs/git-merge">git-merge - Join two or more development histories together&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://blog.developer.atlassian.com/pull-request-merge-strategies-the-great-debate/#:~:text=And%20the%20merge%20can%20complete,of%20an%20earlier%20feature%20branch">Pull Request Merge Strategies: The Great Debate&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://git-scm.com/book/zh/v2/Git-%E5%88%86%E6%94%AF-%E5%88%86%E6%94%AF%E7%9A%84%E6%96%B0%E5%BB%BA%E4%B8%8E%E5%90%88%E5%B9%B6">Git 分支 - 分支的新建与合并&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://segmentfault.com/a/1190000021712743">git merge的原理（递归三路合并算法）&lt;/a>&lt;/p>
+&lt;/li>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git Rebase 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2021-04-06T12:19:09+00:00</updated><published>2020-10-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">之所以写这篇文章，是因为之前对 git rebase -i 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面……</summary><content type="html">&lt;p>之所以写这篇文章，是因为之前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
 &lt;h2 id="理解-rebase-命令">理解 Rebase 命令&lt;/h2>
 &lt;p>&lt;code>git rebase&lt;/code> 命令的文档描述是 &lt;code>Reapply commits on top of another base tip&lt;/code>，从字面上理解是「在另一个基端之上重新应用提交」，这个定义听起来有点抽象，换个角度可以理解为「将分支的基础从一个提交改成另一个提交，使其看起来就像是从另一个提交中创建了分支一样」，如下图：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
