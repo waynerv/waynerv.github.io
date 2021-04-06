@@ -1,4 +1,197 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 31 Mar 2021 16:18:19 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>[CSAPP] 计算机的浮点数表示</title><link>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/csapp-ieee-floating-intro/</guid><pubDate>Mon, 29 Mar 2021 22:48:53 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 06 Apr 2021 07:13:31 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>自己编译一个最新版本的 Python3</title><link>https://www.waynerv.com/posts/compiling-a-latest-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/compiling-a-latest-python/</guid><pubDate>Tue, 06 Apr 2021 10:15:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
+&lt;h2 id="工作环境">工作环境&lt;/h2>
+&lt;p>测试机的操作系统是 Ubuntu 20.10，已安装有 Git 等基础的开发工具。经验证以下步骤同样适用于 macOS 11。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">uname -a
+Linux waynerv-woqutech 5.8.0-48-generic &lt;span class="c1">#54-Ubuntu SMP Fri Mar 19 14:25:20 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="下载源码">下载源码&lt;/h2>
+&lt;p>从 CPython 的官方仓库 &lt;a href="https://github.com/python/cpython">https://github.com/python/cpython&lt;/a> 克隆源码：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">git clone https://github.com/python/cpython.git
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这个仓库的文件体积很大，如果克隆时遇到网络问题，可尝试使用 Gitee 的「同步 GitHub 仓库」功能。&lt;/p>
+&lt;h2 id="配置">配置&lt;/h2>
+&lt;p>核心的 CPython 编译器只需要一个基本的 C 编译器就可以编译，但一些扩展模块会需要开发头文件来提供一些额外的库（如压缩功能需要的&lt;code>zlib&lt;/code>库），这也是为什么我们用操作系统提供的包管理器（如&lt;code>apt&lt;/code>）安装 Python 时会需要 &lt;code>python3-dev&lt;/code> 等等一大堆依赖。&lt;/p>
+&lt;p>由于我并不打算将自行编译的 Python 用于开发或生产，因此将跳过安装依赖这一步。&lt;/p>
+&lt;p>首先进入我们所克隆的仓库目录：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="nb">cd&lt;/span> cpython
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>然后需要进行配置：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">./configure --prefix&lt;span class="o">=&lt;/span>/root/build-python
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>默认情况下，后续的 &lt;code>make install&lt;/code> 命令会将编译得到的文件安装到 &lt;code>/usr/local/bin&lt;/code> 或 &lt;code>/usr/local/lib&lt;/code>，这可能会覆盖系统已有的安装文件，为了不和系统已安装的 Python 版本产生冲突，我们通过指定 &lt;code>--prefix&lt;/code> 选项将其安装到一个自定义的目录。&lt;/p>
+&lt;h2 id="编译">编译&lt;/h2>
+&lt;p>配置结束后运行编译：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">make -s -j &lt;span class="m">4&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>执行编译时可通过 &lt;code>-j&lt;/code> 选项指定并行的任务数量来加快速度，通常我们将其设置为编译机器的 CPU 数量，可以结合 &lt;code>nproc&lt;/code> 命令使用：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">make -s -j &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="k">$(&lt;/span>nproc&lt;span class="k">)&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>-s&lt;/code> 选项意为 &lt;code>silence&lt;/code>，即不打印编译的过程日志，也可启用。&lt;/p>
+&lt;p>编译的过程可能会比较耗时，成功后的输出如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">Python build finished successfully!
+The necessary bits to build these optional modules were not found:
+_bz2 _curses _curses_panel
+_dbm _gdbm _hashlib
+_lzma _sqlite3 _ssl
+_tkinter _uuid readline
+To find the necessary bits, look in setup.py in detect_modules&lt;span class="o">()&lt;/span> &lt;span class="k">for&lt;/span> the module&lt;span class="err">&amp;#39;&lt;/span>s name.
+The following modules found by detect_modules&lt;span class="o">()&lt;/span> in setup.py, have been
+built by the Makefile instead, as configured by the Setup files:
+_abc &lt;span class="nb">pwd&lt;/span> &lt;span class="nb">time&lt;/span>
+Could not build the ssl module!
+Python requires an OpenSSL 1.0.2 or 1.1 compatible libssl with X509_VERIFY_PARAM_set1_host&lt;span class="o">()&lt;/span>.
+LibreSSL 2.6.4 and earlier &lt;span class="k">do&lt;/span> not provide the necessary APIs, https://github.com/libressl-portable/portable/issues/381
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>由于我们没有安装依赖，所以提示有部分模块未找到，但不影响使用 Python 的基本功能。&lt;/p>
+&lt;h2 id="安装">安装&lt;/h2>
+&lt;p>编译成功后其实已经可以运行 Python 了。上述构建过程会在当前目录（非&lt;code>--prefix&lt;/code>指定的目录）生成一个名为 &lt;code>python&lt;/code> 的二进制文件（macOS 下是 &lt;code>python.exe&lt;/code>），运行它即可启动 Python 解释器：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">./python
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>它会使用当前目录中编译生成的临时文件作为资源文件，现在我们将其安装到在配置步骤中指定的目录：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">make install
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>安装过程会进行大量的资源复制，并调用 Python 解释器将使用 Python 实现的标准库编译为字节码（&lt;code>.pyc&lt;/code>），此外默认还会安装 &lt;code>setuptools&lt;/code> 和 &lt;code>pip&lt;/code> 这两个 Python 包，因此当我们安装较新版本的 Python 版本时，基本不再需要手动安装 &lt;code>pip&lt;/code>。&lt;/p>
+&lt;p>安装完成后 &lt;code>/root/build-python&lt;/code> 的目录结构如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">.
+├── bin
+│   ├── 2to3 -&amp;gt; 2to3-3.10
+│   ├── 2to3-3.10
+│   ├── idle3 -&amp;gt; idle3.10
+│   ├── idle3.10
+│   ├── pip3
+│   ├── pip3.10
+│   ├── pydoc3 -&amp;gt; pydoc3.10
+│   ├── pydoc3.10
+│   ├── python3 -&amp;gt; python3.10
+│   ├── python3.10 &lt;span class="c1"># Python 可执行文件&lt;/span>
+│   ├── python3.10-config
+│   └── python3-config -&amp;gt; python3.10-config
+├── include
+│   └── python3.10 &lt;span class="c1"># 头文件目录&lt;/span>
+├── lib
+│   ├── libpython3.10.a &lt;span class="c1"># 静态库文件&lt;/span>
+│   ├── pkgconfig
+│   └── python3.10 &lt;span class="c1"># 标准库文件及 site-packages&lt;/span>
+└── share
+└── man
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>现在执行 &lt;code>./bin/python3&lt;/code> 运行我们自己编译安装好的 Python：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">Python 3.10.0a6+ &lt;span class="o">(&lt;/span>heads/master:80017752ba, Apr &lt;span class="m">6&lt;/span> 2021, 13:47:23&lt;span class="o">)&lt;/span> &lt;span class="o">[&lt;/span>GCC 10.2.0&lt;span class="o">]&lt;/span> on linux
+Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;copyright&amp;#34;&lt;/span>, &lt;span class="s2">&amp;#34;credits&amp;#34;&lt;/span> or &lt;span class="s2">&amp;#34;license&amp;#34;&lt;/span> &lt;span class="k">for&lt;/span> more information.
+&amp;gt;&amp;gt;&amp;gt;
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>大功告成！可以看到安装的 Python 版本是 &lt;code>3.10.0a6+&lt;/code>，一个尚未发布的开发中版本。&lt;/p>
+&lt;p>如果我们需要其他稳定版本的 Python，只需要在源码仓库中 &lt;code>git checkout&lt;/code> 到指定的 release 标签，然后再重新运行配置-编译-安装 3 个步骤就可以了。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://devguide.python.org/setup/#getting-started">Python Developer’s Guide: Getting Started&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/python/">Python</category><category domain="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/">编译</category></item><item><title>[CSAPP] 计算机的浮点数表示</title><link>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/csapp-ieee-floating-intro/</guid><pubDate>Mon, 29 Mar 2021 22:48:53 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
