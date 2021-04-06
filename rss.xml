@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 06 Apr 2021 07:13:31 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>自己编译一个最新版本的 Python3</title><link>https://www.waynerv.com/posts/compiling-a-latest-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/compiling-a-latest-python/</guid><pubDate>Tue, 06 Apr 2021 10:15:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 06 Apr 2021 08:27:28 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>自己编译一个最新版本的 Python3</title><link>https://www.waynerv.com/posts/compiling-a-latest-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/compiling-a-latest-python/</guid><pubDate>Tue, 06 Apr 2021 10:15:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
 &lt;h2 id="工作环境">工作环境&lt;/h2>
-&lt;p>测试机的操作系统是 Ubuntu 20.10，已安装有 Git 等基础的开发工具。经验证以下步骤同样适用于 macOS 11。&lt;/p>
+&lt;p>测试机的操作系统是 Ubuntu 20.10，已安装有 &lt;code>gcc&lt;/code> 、&lt;code>git&lt;/code> 等基础的开发工具。经验证以下步骤同样适用于 macOS 11。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -122,7 +122,7 @@ LibreSSL 2.6.4 and earlier &lt;span class="k">do&lt;/span> not provide the neces
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>安装过程会进行大量的资源复制，并调用 Python 解释器将使用 Python 实现的标准库编译为字节码（&lt;code>.pyc&lt;/code>），此外默认还会安装 &lt;code>setuptools&lt;/code> 和 &lt;code>pip&lt;/code> 这两个 Python 包，因此当我们安装较新版本的 Python 版本时，基本不再需要手动安装 &lt;code>pip&lt;/code>。&lt;/p>
-&lt;p>安装完成后 &lt;code>/root/build-python&lt;/code> 的目录结构如下：&lt;/p>
+&lt;p>安装完成后切换到 &lt;code>/root/build-python&lt;/code> 目录下，并查看其目录结构：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -147,9 +147,13 @@ LibreSSL 2.6.4 and earlier &lt;span class="k">do&lt;/span> not provide the neces
 &lt;/span>&lt;span class="lnt">20
 &lt;/span>&lt;span class="lnt">21
 &lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">.
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="nb">cd&lt;/span> /root/build-python
+tree -L &lt;span class="m">2&lt;/span> .
+.
 ├── bin
 │   ├── 2to3 -&amp;gt; 2to3-3.10
 │   ├── 2to3-3.10
@@ -173,7 +177,7 @@ LibreSSL 2.6.4 and earlier &lt;span class="k">do&lt;/span> not provide the neces
 └── man
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>现在执行 &lt;code>./bin/python3&lt;/code> 运行我们自己编译安装好的 Python：&lt;/p>
+&lt;/div>&lt;p>现在执行 &lt;code>./bin/python3&lt;/code> 即可运行我们自己编译安装好的 Python：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -186,7 +190,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &amp;gt;&amp;gt;&amp;gt;
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>大功告成！可以看到安装的 Python 版本是 &lt;code>3.10.0a6+&lt;/code>，一个尚未发布的开发中版本。&lt;/p>
+&lt;/div>&lt;p>大功告成！可以看到运行的 Python 版本是 &lt;code>3.10.0a6+&lt;/code>，一个尚未发布的开发中版本。&lt;/p>
 &lt;p>如果我们需要其他稳定版本的 Python，只需要在源码仓库中 &lt;code>git checkout&lt;/code> 到指定的 release 标签，然后再重新运行配置-编译-安装 3 个步骤就可以了。&lt;/p>
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
