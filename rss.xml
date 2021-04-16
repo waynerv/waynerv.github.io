@@ -1,12 +1,20 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 15 Apr 2021 16:05:15 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Python中的描述符</title><link>https://www.waynerv.com/posts/python%E4%B8%AD%E7%9A%84%E6%8F%8F%E8%BF%B0%E7%AC%A6/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python%E4%B8%AD%E7%9A%84%E6%8F%8F%E8%BF%B0%E7%AC%A6/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="描述符的定义">描述符的定义&lt;/h2>
-&lt;p>什么是描述符？很简单，在 Python 中实现了下列&lt;em>任意一个方法&lt;/em>的&lt;strong>对象&lt;/strong>就是一个描述符（descriptor）：&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 16 Apr 2021 05:34:11 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
+&lt;h2 id="什么是描述符">什么是描述符&lt;/h2>
+&lt;p>描述符的定义很简单，实现了下列&lt;em>任意一个方法&lt;/em>的 Python 对象就是一个描述符（descriptor）：&lt;/p>
 &lt;ul>
-&lt;li>&lt;code>__get__()&lt;/code>&lt;/li>
-&lt;li>&lt;code>__set__()&lt;/code>&lt;/li>
-&lt;li>&lt;code>__delete__()&lt;/code>&lt;/li>
+&lt;li>&lt;code>__get__(self, obj, type=None)&lt;/code>&lt;/li>
+&lt;li>&lt;code>__set__(self, obj, value)&lt;/code>&lt;/li>
+&lt;li>&lt;code>__delete__(self, obj)&lt;/code>&lt;/li>
 &lt;/ul>
-&lt;h2 id="描述符的作用">描述符的作用&lt;/h2>
-&lt;p>描述符有什么用？它可以用来控制对属性的访问行为，我们先来举个简单的栗子：&lt;/p>
+&lt;p>参数含义如下：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>self&lt;/code> 是当前定义的描述符对象实例。&lt;/li>
+&lt;li>&lt;code>obj&lt;/code> 是该描述符将作用的对象实例。&lt;/li>
+&lt;li>&lt;code>type&lt;/code> 是该描述符作用的对象的类型（即所属的类）。&lt;/li>
+&lt;/ul>
+&lt;p>上述方法也被称为&lt;em>描述符协议&lt;/em>，Python 会在特定的时机按协议传入参数调用某一方法，如果我们未按协议约定的参数定义方法，调用可能会出错。&lt;/p>
+&lt;h2 id="描述符有什么用">描述符有什么用&lt;/h2>
+&lt;p>&lt;strong>描述符可以用来控制对属性的访问行为，实现计算属性、懒加载属性、属性访问控制等功能&lt;/strong>，我们先来举个简单的例子：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -41,7 +49,7 @@
 &lt;span class="n">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Descriptor&lt;/span>&lt;span class="p">()&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>在示例中我们实例化了一个描述符对象，并将其赋值给 &lt;code>Foo&lt;/code> 类的 &lt;code>x&lt;/code> 属性变量。现在访问 &lt;code>Foo.x&lt;/code> ，会发现 Python 自动调用了该属性所绑定的描述符对象的 &lt;code>__get__()&lt;/code> 方法：&lt;/p>
+&lt;/div>&lt;p>在示例中我们创建了一个描述符实例，并将其赋值给 &lt;code>Foo&lt;/code> 类的 &lt;code>x&lt;/code> 属性变量。现在访问 &lt;code>Foo.x&lt;/code> ，会发现 Python 自动调用了该属性所绑定的描述符实例的 &lt;code>__get__()&lt;/code> 方法：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -54,7 +62,7 @@
 &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">__main__&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">Descriptor&lt;/span> &lt;span class="nb">object&lt;/span> &lt;span class="n">at&lt;/span> &lt;span class="mh">0x106e138e0&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>我们实例化一个对象 &lt;code>foo&lt;/code>，并通过 &lt;code>foo&lt;/code> 对象访问 &lt;code>x&lt;/code> 属性：&lt;/p>
+&lt;/div>&lt;p>接下来实例化一个对象 &lt;code>foo&lt;/code>，并通过 &lt;code>foo&lt;/code> 对象访问 &lt;code>x&lt;/code> 属性：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -69,8 +77,8 @@
 &lt;span class="n">X&lt;/span> &lt;span class="kn">from&lt;/span> &lt;span class="nn">descriptor&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>同样执行了描述符所定义的相应方法。
-如果我们尝试对 &lt;code>foo&lt;/code> 对象的 &lt;code>x&lt;/code> 进行赋值，也会调用描述符的 &lt;code>__set__()&lt;/code> 方法：&lt;/p>
+&lt;/div>&lt;p>同样执行了描述符所定义的相应方法。&lt;/p>
+&lt;p>如果我们尝试对 &lt;code>foo&lt;/code> 对象的 &lt;code>x&lt;/code> 进行赋值，也会调用描述符的 &lt;code>__set__()&lt;/code> 方法：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -91,18 +99,27 @@
 &lt;span class="p">{&lt;/span>&lt;span class="s1">&amp;#39;_x&amp;#39;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">}&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>同理如果我们在描述符中定义了 &lt;code>__delete__()&lt;/code> 方法，该方法将在执行 &lt;code>del foo.x&lt;/code> 时被调用。&lt;/p>
-&lt;p>根据所实现的方法不同，描述符又可分为两类：&lt;/p>
+&lt;/div>&lt;p>同理，如果我们在描述符中定义了 &lt;code>__delete__()&lt;/code> 方法，该方法将在执行 &lt;code>del foo.x&lt;/code> 时被调用。&lt;/p>
+&lt;p>描述符在属性查找过程中会被 &lt;code>.&lt;/code> 点操作符调用，且只有在作为类变量使用时才有效。&lt;/p>
+&lt;p>如果直接赋值给实例属性，描述符不会生效。&lt;/p>
+&lt;pre>&lt;code>&amp;gt;&amp;gt;&amp;gt; foo.__dict__['y'] = Descriptor()
+&amp;gt;&amp;gt;&amp;gt; print(foo.y)
+&amp;lt;__main__.Descriptor object at 0x100f0d130&amp;gt;
+&lt;/code>&lt;/pre>&lt;p>如果用 &lt;code>some_class.__dict__[descriptor_name]&lt;/code> 的方式间接访问描述符，也不会调用描述符的协议方法，而是返回描述符实例本身。&lt;/p>
+&lt;pre>&lt;code>print(Foo.__dict__['x'])
+&amp;lt;__main__.Descriptor object at 0x10b66d8e0&amp;gt;
+&lt;/code>&lt;/pre>&lt;h2 id="描述符的类型">描述符的类型&lt;/h2>
+&lt;p>根据所实现的协议方法不同，描述符又可分为两类：&lt;/p>
 &lt;ul>
 &lt;li>若实现了 &lt;code>__set__()&lt;/code> 或 &lt;code>__delete__()&lt;/code> 任一方法，该描述符是一个数据描述符（&lt;code>data descriptor&lt;/code>）。&lt;/li>
 &lt;li>若仅实现 &lt;code>__get__()&lt;/code> 方法，该描述符是一个非数据描述符（&lt;code>non-data descriptor&lt;/code>）。&lt;/li>
 &lt;/ul>
 &lt;p>两者的在表现行为上存在差异：&lt;/p>
 &lt;ul>
-&lt;li>数据描述符总是会覆盖实例字典 &lt;code>__dict__&lt;/code> 中的属性&lt;/li>
-&lt;li>而非数据描述可能会被实例字典 &lt;code>__dict__&lt;/code> 中定义的属性所覆盖&lt;/li>
+&lt;li>数据描述符总是会覆盖实例字典 &lt;code>__dict__&lt;/code> 中的属性。&lt;/li>
+&lt;li>而非数据描述可能会被实例字典 &lt;code>__dict__&lt;/code> 中定义的属性所覆盖。&lt;/li>
 &lt;/ul>
-&lt;p>在上面的示例中我们已经实现了一个数据描述符，接下来去掉 &lt;code>__set__()&lt;/code> 方法实现一个非数据描述符:&lt;/p>
+&lt;p>在上面的示例中我们已经展示数据描述符的效果，接下来去掉 &lt;code>__set__()&lt;/code> 方法实现一个非数据描述符:&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -133,7 +150,7 @@
 &lt;span class="n">bar&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">Bar&lt;/span>&lt;span class="p">()&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>在初始状态下，访问 &lt;code>bar.y&lt;/code> 和 &lt;code>foo.x&lt;/code> 的行为是一致的：&lt;/p>
+&lt;/div>&lt;p>当 &lt;code>bar.__dict__&lt;/code> 不存在键为 &lt;code>y&lt;/code> 的属性时，访问 &lt;code>bar.y&lt;/code> 和 &lt;code>foo.x&lt;/code> 的行为是一致的：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -144,7 +161,7 @@
 &lt;span class="n">Y&lt;/span> &lt;span class="kn">from&lt;/span> &lt;span class="nn">non&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">data&lt;/span> &lt;span class="n">descriptor&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>但如果我们直接修改 &lt;code>bar&lt;/code> 对象的 &lt;code>__dict__&lt;/code>，向其中添加 &lt;code>y&lt;/code> 属性，则该对象属性将覆盖在 &lt;code>Bar&lt;/code> 类中定义的 &lt;code>y&lt;/code> 描述符，访问 &lt;code>bar.y&lt;/code> 将不再调用 &lt;code>__get__()&lt;/code> 方法：&lt;/p>
+&lt;/div>&lt;p>但如果我们直接修改 &lt;code>bar&lt;/code> 对象的 &lt;code>__dict__&lt;/code>，向其中添加 &lt;code>y&lt;/code> 属性，则该对象属性将覆盖在 &lt;code>Bar&lt;/code> 类中定义的 &lt;code>y&lt;/code> 描述符，访问 &lt;code>bar.y&lt;/code> 将不再调用描述符的 &lt;code>__get__()&lt;/code> 方法：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -157,7 +174,7 @@
 &lt;span class="mi">2&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>而在一开始的数据描述符示例中，即使我们修改 &lt;code>foo.__dict__&lt;/code>，对 &lt;code>x&lt;/code> 属性的访问始终都由描述符所控制：&lt;/p>
+&lt;/div>&lt;p>而在上文的数据描述符示例中，即使我们修改 &lt;code>foo.__dict__&lt;/code>，对 &lt;code>x&lt;/code> 属性的访问始终都由描述符所控制：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -172,8 +189,8 @@
 &lt;/div>
 &lt;/div>&lt;p>在下文中我们会介绍这两者的差异是如何实现的。&lt;/p>
 &lt;h2 id="描述符的实现">描述符的实现&lt;/h2>
-&lt;p>描述符控制属性访问的关键，在于从执行 &lt;code>foo.x&lt;/code> 到 &lt;code>__get()__&lt;/code> 方法被调用这中间所发生的过程。为了探究这一过程我们需要先了解一些其他概念。&lt;/p>
-&lt;h3 id="对象的属性是如何保存的">对象的属性是如何保存的&lt;/h3>
+&lt;p>描述符控制属性访问的关键，在于从执行 &lt;code>foo.x&lt;/code> 到 &lt;code>__get()__&lt;/code> 方法被调用这中间所发生的过程。&lt;/p>
+&lt;h3 id="对象属性如何保存">对象属性如何保存&lt;/h3>
 &lt;p>一般来说，对象的属性保存在 &lt;code>__dict__&lt;/code> 属性中：&lt;/p>
 &lt;ul>
 &lt;li>根据 Python 文档介绍，&lt;code>object.__dict__&lt;/code> 是一个字典或其他的映射类型对象，用于存储一个对象的（可写）属性。&lt;/li>
@@ -193,8 +210,8 @@
 &lt;span class="p">{&lt;/span>&lt;span class="s1">&amp;#39;x&amp;#39;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s1">&amp;#39;b&amp;#39;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">}&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>问题来了，当我们对 &lt;code>foo.b&lt;/code> 赋值时，Python 是如何判断应该调用描述符方法还是将对应的值保存到 &lt;code>__dict__&lt;/code> 中的呢，这其中起关键作用的是 &lt;code>.&lt;/code> 这个 dot 操作符。&lt;/p>
-&lt;h3 id="对象的属性是如何被访问的">对象的属性是如何被访问的&lt;/h3>
+&lt;/div>&lt;p>当我们对 &lt;code>foo.b&lt;/code> 赋值时，Python 是如何判断应该调用描述符方法还是将对应的值保存到 &lt;code>__dict__&lt;/code> 中的呢？其中起关键作用的是 &lt;code>.&lt;/code> 这个点操作符。&lt;/p>
+&lt;h3 id="对象属性如何访问">对象属性如何访问&lt;/h3>
 &lt;p>点操作符的查找逻辑位于 &lt;code>object.__getattribute__()&lt;/code> 方法中，每一次向对象执行点操作符都会调用对象的该方法。CPython 中该方法由 C 实现，我们来看一下它的等价 Python 版本：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -245,7 +262,7 @@
 &lt;li>如果 &lt;code>cls_var&lt;/code> 不是描述符，则将其直接返回。&lt;/li>
 &lt;li>如果最后还没找到，唤起 &lt;code>AttributeError&lt;/code> 异常。&lt;/li>
 &lt;/ol>
-&lt;p>注意，在以上过程我们从 &lt;code>obj&lt;/code> 所属的类 &lt;code>objtype&lt;/code> 中获取 &lt;code>name&lt;/code> 属性时，若 &lt;code>objtype&lt;/code> 中没找到将尝试从其所继承的父类中查找，具体的顺序取决于 &lt;code>cls.__mro__&lt;/code> 类方法的返回结果：&lt;/p>
+&lt;p>在以上过程中，当我们从 &lt;code>obj&lt;/code> 所属的类 &lt;code>objtype&lt;/code> 中获取 &lt;code>name&lt;/code> 属性时，若 &lt;code>objtype&lt;/code> 中没找到将尝试从其所继承的父类中查找，具体的顺序取决于 &lt;code>cls.__mro__&lt;/code> 类方法的返回结果：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -256,9 +273,32 @@
 &lt;span class="p">(&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="k">class&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="nc">__main__&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">Foo&lt;/span>&lt;span class="s1">&amp;#39;&amp;gt;, &amp;lt;class &amp;#39;&lt;/span>&lt;span class="nb">object&lt;/span>&lt;span class="s1">&amp;#39;&amp;gt;)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>我们甚至可以自定义 &lt;code>object.__getattribute__()&lt;/code> 方法，但大部分情况下都不建议这么做。&lt;/p>
+&lt;/div>&lt;p>现在我们知道，描述符在 &lt;code>object.__getattribute__()&lt;/code> 方法中根据不同条件被调用，这就是描述符控制属性访问的工作机制。如果我们重载 &lt;code>object.__getattribute__()&lt;/code> 方法，甚至可以取消所有的描述符调用。&lt;/p>
 &lt;h3 id="__getattr__-方法">&lt;code>__getattr__&lt;/code> 方法&lt;/h3>
-&lt;p>在属性访问的场景中，如果 &lt;code>obj.__getattribute__()&lt;/code> 的结果引发异常，且存在 &lt;code>obj.__getattr__()&lt;/code>方法，该方法将被执行。&lt;/p>
+&lt;p>实际上，属性查找并不会直接调用 &lt;code>object.__getattribute__()&lt;/code> ，点操作符会通过一个辅助函数来执行属性查找：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="k">def&lt;/span> &lt;span class="nf">getattr_hook&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">obj&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;span class="s2">&amp;#34;Emulate slot_tp_getattr_hook() in Objects/typeobject.c&amp;#34;&lt;/span>
+&lt;span class="k">try&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="n">obj&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="fm">__getattribute__&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">name&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="k">except&lt;/span> &lt;span class="ne">AttributeError&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="k">if&lt;/span> &lt;span class="ow">not&lt;/span> &lt;span class="nb">hasattr&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nb">type&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">obj&lt;/span>&lt;span class="p">),&lt;/span> &lt;span class="s1">&amp;#39;__getattr__&amp;#39;&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;span class="k">raise&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="nb">type&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">obj&lt;/span>&lt;span class="p">)&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="fm">__getattr__&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">obj&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="c1"># __getattr__&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>因此，如果 &lt;code>obj.__getattribute__()&lt;/code> 的结果引发异常，且存在 &lt;code>obj.__getattr__()&lt;/code>方法，该方法将被执行。如果用户直接调用 &lt;code>obj.__getattribute__()&lt;/code>，&lt;code>__getattr__()&lt;/code> 的补充查找机制就会被绕过。&lt;/p>
 &lt;p>我们为 &lt;code>Foo&lt;/code> 类添加该方法：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -279,20 +319,40 @@
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>然后分别调用 &lt;code>foo.z&lt;/code> 和 &lt;code>bar.z&lt;/code>：&lt;/p>
-&lt;pre>&lt;code>&amp;gt;&amp;gt;&amp;gt; foo.z
-z is indeed not found
-&amp;gt;&amp;gt;&amp;gt; bar.z
-AttributeError: 'Bar' object has no attribute 'z'
-&lt;/code>&lt;/pre>&lt;p>该行为仅在对象所属的类定义了 &lt;code>__getattr__()&lt;/code>方法时才生效，在对象中定义 &lt;code>__getattr__&lt;/code> 方法，即在 &lt;code>obj.__dict__&lt;/code> 中添加该属性是无效的，这一点同样适用于 &lt;code>__getattribute__()&lt;/code> 方法：&lt;/p>
-&lt;pre>&lt;code>&amp;gt;&amp;gt;&amp;gt; bar.__getattr__ = lambda item:print(f'{item} is indeed not found')
-&amp;gt;&amp;gt;&amp;gt; print(bar.__dict__)
-{'__getattr__': &amp;lt;function &amp;lt;lambda&amp;gt; at 0x1086e1430&amp;gt;}
-&amp;gt;&amp;gt;&amp;gt; bar.z
-AttributeError: 'Bar' object has no attribute 'z'
-&lt;/code>&lt;/pre>&lt;h2 id="使用场景">使用场景&lt;/h2>
-&lt;p>了解了描述符如何工作之后，我们来看看它的用途。其实除了一些自定义的场景，Python 本身的语言机制中就有很多描述符。&lt;/p>
-&lt;h3 id="python-内部的描述符">Python 内部的描述符&lt;/h3>
-&lt;h4 id="property">property&lt;/h4>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">foo&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">z&lt;/span>
+&lt;span class="n">z&lt;/span> &lt;span class="ow">is&lt;/span> &lt;span class="n">indeed&lt;/span> &lt;span class="ow">not&lt;/span> &lt;span class="n">found&lt;/span>
+&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">bar&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">z&lt;/span>
+&lt;span class="ne">AttributeError&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s1">&amp;#39;Bar&amp;#39;&lt;/span> &lt;span class="nb">object&lt;/span> &lt;span class="n">has&lt;/span> &lt;span class="n">no&lt;/span> &lt;span class="n">attribute&lt;/span> &lt;span class="s1">&amp;#39;z&amp;#39;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>该行为仅在对象所属的类定义了 &lt;code>__getattr__()&lt;/code>方法时才生效，在对象中定义 &lt;code>__getattr__&lt;/code> 方法，即在 &lt;code>obj.__dict__&lt;/code> 中添加该属性是无效的，这一点同样适用于 &lt;code>__getattribute__()&lt;/code> 方法：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">bar&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="fm">__getattr__&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="k">lambda&lt;/span> &lt;span class="n">item&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">f&lt;/span>&lt;span class="s1">&amp;#39;{item} is indeed not found&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">bar&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="vm">__dict__&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="p">{&lt;/span>&lt;span class="s1">&amp;#39;__getattr__&amp;#39;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="n">function&lt;/span> &lt;span class="o">&amp;lt;&lt;/span>&lt;span class="k">lambda&lt;/span>&lt;span class="o">&amp;gt;&lt;/span> &lt;span class="n">at&lt;/span> &lt;span class="mh">0x1086e1430&lt;/span>&lt;span class="o">&amp;gt;&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">bar&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">z&lt;/span>
+&lt;span class="ne">AttributeError&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s1">&amp;#39;Bar&amp;#39;&lt;/span> &lt;span class="nb">object&lt;/span> &lt;span class="n">has&lt;/span> &lt;span class="n">no&lt;/span> &lt;span class="n">attribute&lt;/span> &lt;span class="s1">&amp;#39;z&amp;#39;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="python-内部的描述符">Python 内部的描述符&lt;/h2>
+&lt;p>除了一些自定义的场景，Python 本身的语言机制中就大量使用了描述符。&lt;/p>
+&lt;h3 id="property">property&lt;/h3>
 &lt;p>&lt;code>property&lt;/code> 的具体效果我们不再赘述，下面是其常见的语法糖用法：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -329,7 +389,7 @@ AttributeError: 'Bar' object has no attribute 'z'
 &lt;span class="k">del&lt;/span> &lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">_x&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>property&lt;/code> 本身是一个实现了描述符协议的类（即定义了 &lt;code>__get__()&lt;/code> 等方法），它还可以通过以下等价方式使用：&lt;/p>
+&lt;/div>&lt;p>&lt;code>property&lt;/code> 本身是一个实现了描述符协议的类，它还可以通过以下等价方式使用：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -360,7 +420,7 @@ AttributeError: 'Bar' object has no attribute 'z'
 &lt;span class="n">x&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="nb">property&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">getx&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">setx&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">delx&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;I&amp;#39;m the &amp;#39;x&amp;#39; property.&amp;#34;&lt;/span>&lt;span class="p">)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>在上面例子中 &lt;code>property(getx, setx, delx, &amp;quot;I'm the 'x' property.&amp;quot;)&lt;/code> 创建了一个描述符对象，并赋值给了 &lt;code>x&lt;/code>。&lt;code>property&lt;/code> 类的实现与下面的 Python 代码等价：&lt;/p>
+&lt;/div>&lt;p>在上面例子中 &lt;code>property(getx, setx, delx, &amp;quot;I'm the 'x' property.&amp;quot;)&lt;/code> 创建了一个描述符实例，并赋值给了 &lt;code>x&lt;/code>。&lt;code>property&lt;/code> 类的实现与下面的 Python 代码等价：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -432,10 +492,10 @@ AttributeError: 'Bar' object has no attribute 'z'
 &lt;span class="k">return&lt;/span> &lt;span class="nb">type&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="p">)(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">fget&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">fset&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">fdel&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="vm">__doc__&lt;/span>&lt;span class="p">)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;h4 id="function">function&lt;/h4>
-&lt;p>没错，每一个我们定义的函数都是一个非数据描述符，函数是对象，描述符也是对象，函数自然也可以是描述符。&lt;/p>
-&lt;p>这个描述符的主要作用，是让在类定义中所定义的函数在通过对象调用时成为方法。&lt;/p>
-&lt;p>方法在调用时会自动传入对象实例作为第一个参数，这是方法和函数的唯一区别。通常我们会在定义方法时，将这个形参指定为 &lt;code>self&lt;/code>。方法对象的类定义与下面的代码等价：&lt;/p>
+&lt;/div>&lt;h3 id="函数">函数&lt;/h3>
+&lt;p>没错，每一个我们定义的函数对象都是一个非数据描述符实例。&lt;/p>
+&lt;p>这里使用描述符的目的，是让在类定义中所定义的&lt;strong>函数&lt;/strong>在通过对象调用时成为&lt;strong>绑定方法&lt;/strong>（bound method）。&lt;/p>
+&lt;p>方法在调用时会自动传入对象实例作为第一个参数，这是方法和普通函数的唯一区别。通常我们会在定义方法时，将这个形参指定为 &lt;code>self&lt;/code>。方法对象的类定义与下面的代码等价：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -462,21 +522,37 @@ AttributeError: 'Bar' object has no attribute 'z'
 &lt;span class="k">return&lt;/span> &lt;span class="n">func&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">obj&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">args&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="o">**&lt;/span>&lt;span class="n">kwargs&lt;/span>&lt;span class="p">)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>它在初始化方法中接收一个函数 &lt;code>func&lt;/code> 和一个对象 &lt;code>obj&lt;/code>。&lt;/p>
+&lt;/div>&lt;p>它在初始化方法中接收一个函数 &lt;code>func&lt;/code> 和一个对象 &lt;code>obj&lt;/code>，并在调用时将 &lt;code>obj&lt;/code> 传入 &lt;code>func&lt;/code> 中。&lt;/p>
 &lt;p>我们举一个实际的例子：&lt;/p>
-&lt;pre>&lt;code>&amp;gt;&amp;gt;&amp;gt; class D:
-... def f(self, x):
-... return x
-...
-...
-...
-&amp;gt;&amp;gt;&amp;gt; d = D()
-&amp;gt;&amp;gt;&amp;gt; D.f(None, 2)
-2
-&amp;gt;&amp;gt;&amp;gt; d.f(2)
-2
-&lt;/code>&lt;/pre>&lt;p>可以看到，当通过类属性调用 &lt;code>f&lt;/code> 时，其行为就是一个正常的函数，可以将任意对象作为 &lt;code>self&lt;/code> 参数传入；当通过实例属性访问 &lt;code>f&lt;/code> 时，其效果变成了方法调用，因此在调用时会自动将当前对象作为第一个参数。显然在通过实例访问属性时创建一个 &lt;code>MethodType&lt;/code> 对象，这正是我们可以通过描述符实现的效果。&lt;/p>
-&lt;p>具体的实现如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="k">class&lt;/span> &lt;span class="nc">D&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="o">...&lt;/span> &lt;span class="k">def&lt;/span> &lt;span class="nf">f&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">x&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;span class="o">...&lt;/span> &lt;span class="k">return&lt;/span> &lt;span class="n">x&lt;/span>
+&lt;span class="o">...&lt;/span>
+&lt;span class="o">...&lt;/span>
+&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">d&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">D&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">D&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">f&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">None&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="mi">2&lt;/span>
+&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">d&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">f&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">2&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="mi">2&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>可以看到，当通过类属性调用 &lt;code>f&lt;/code> 时，其行为就是一个正常的函数，可以将任意对象作为 &lt;code>self&lt;/code> 参数传入；当通过实例属性访问 &lt;code>f&lt;/code> 时，其效果变成了绑定方法调用，因此在调用时会自动将绑定的对象作为第一个参数。
+显然在通过实例访问属性时创建一个 &lt;code>MethodType&lt;/code> 对象，这正是我们可以通过描述符实现的效果。&lt;/p>
+&lt;p>函数的具体实现如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -498,16 +574,16 @@ AttributeError: 'Bar' object has no attribute 'z'
 &lt;span class="k">return&lt;/span> &lt;span class="n">MethodType&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">obj&lt;/span>&lt;span class="p">)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>通过 &lt;code>def f()&lt;/code> 定义函数时，等价于&lt;code> f = Function()&lt;/code> ，此时 &lt;code>f&lt;/code> 变量指向一个非数据描述符。&lt;/p>
+&lt;/div>&lt;p>通过 &lt;code>def f()&lt;/code> 定义函数时，等价于&lt;code> f = Function()&lt;/code> ，即创建一个非数据描述符实例并赋值给 &lt;code>f&lt;/code> 变量。&lt;/p>
 &lt;p>当我们通过类方法访问该属性时，调用 &lt;code>__get__()&lt;/code> 方法返回了函数对象本身：&lt;/p>
 &lt;pre>&lt;code>&amp;gt;&amp;gt;&amp;gt; D.f
 &amp;lt;function D.f at 0x10f1903a0&amp;gt;
 &lt;/code>&lt;/pre>&lt;p>当我们通过对象实例访问该属性时， 调用 &lt;code>__get__()&lt;/code> 方法创建一个使用以上函数和对象所初始化的 &lt;code>MethodType&lt;/code> 对象：&lt;/p>
 &lt;pre>&lt;code>&amp;gt;&amp;gt;&amp;gt; d.f
 &amp;lt;bound method D.f of &amp;lt;__main__.D object at 0x10eb6fb50&amp;gt;&amp;gt;
-&lt;/code>&lt;/pre>&lt;p>概括地说，函数作为对象有一个 &lt;code>__get__()&lt;/code> 方法，使其成为一个非数据描述符，这样当它们作为属性访问时就可以转换为方法。非数据描述符将通过实例调用 &lt;code>obj.f(*args)&lt;/code> 转换为 &lt;code>f(obj, *args)&lt;/code>，通过类调用 &lt;code>cls.f(*args)&lt;/code> 转换成 &lt;code>f(*args)&lt;/code>。&lt;/p>
-&lt;h4 id="classmethod">classmethod&lt;/h4>
-&lt;p>&lt;code>classmethod&lt;/code> 是在 &lt;code>function&lt;/code> 基础上实现的变种，其用法如下：&lt;/p>
+&lt;/code>&lt;/pre>&lt;p>概括地说，函数作为对象有一个 &lt;code>__get__()&lt;/code> 方法，使其成为一个非数据描述符实例，这样当它们作为属性访问时就可以转换为绑定方法。非数据描述符将通过实例调用 &lt;code>obj.f(*args)&lt;/code> 转换为 &lt;code>f(obj, *args)&lt;/code>，通过类调用 &lt;code>cls.f(*args)&lt;/code> 转换成 &lt;code>f(*args)&lt;/code>。&lt;/p>
+&lt;h3 id="classmethod">classmethod&lt;/h3>
+&lt;p>&lt;code>classmethod&lt;/code> 是在函数描述符基础上实现的变种，其用法如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -531,7 +607,7 @@ AttributeError: 'Bar' object has no attribute 'z'
 &lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;F&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">3&lt;/span>&lt;span class="p">)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>有了上面的铺垫会很容易理解，其等价 Python 实现如下：&lt;/p>
+&lt;/div>&lt;p>其等价 Python 实现如下，有了上面的铺垫会很容易理解：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -561,8 +637,8 @@ AttributeError: 'Bar' object has no attribute 'z'
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>&lt;code>@classmethod&lt;/code> 返回一个非数据描述符，实现了将通过实例调用 &lt;code>obj.f(*args)&lt;/code> 转换为 &lt;code>f(type(obj), *args)&lt;/code>，通过类调用 &lt;code>cls.f(*args)&lt;/code> 转换成 &lt;code>f(*args)&lt;/code>。&lt;/p>
-&lt;h4 id="staticmethod">staticmethod&lt;/h4>
-&lt;p>&lt;code>staticmethod&lt;/code> 实现的效果是，不管我们通过实例调用还是通过类调用，最终都会调用最初的函数：&lt;/p>
+&lt;h3 id="staticmethod">staticmethod&lt;/h3>
+&lt;p>&lt;code>staticmethod&lt;/code> 实现的效果是，不管我们通过实例调用还是通过类调用，最终都会调用原始的函数：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -607,13 +683,15 @@ AttributeError: 'Bar' object has no attribute 'z'
 &lt;span class="k">return&lt;/span> &lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">f&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>@staticmethod&lt;/code> 返回一个非数据描述符，实现了将通过实例调用 &lt;code>obj.f(*args)&lt;/code> 转换为 &lt;code>f(*args)&lt;/code>，通过类调用 &lt;code>cls.f(*args)&lt;/code> 也转换成 &lt;code>f(*args)&lt;/code>。&lt;/p>
-&lt;h2 id="reference">Reference&lt;/h2>
+&lt;/div>&lt;p>调用 &lt;code>__get__()&lt;/code> 方法时返回了保存在 &lt;code>__dict__&lt;/code> 中的函数对象本身，因此不会进一步触发函数的描述符行为。&lt;/p>
+&lt;p>&lt;code>@staticmethod&lt;/code> 返回一个非数据描述符，实现了将通过实例调用 &lt;code>obj.f(*args)&lt;/code> 转换为 &lt;code>f(*args)&lt;/code>，通过类调用 &lt;code>cls.f(*args)&lt;/code> 也转换成 &lt;code>f(*args)&lt;/code>。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://docs.python.org/3/howto/descriptor.html">Descriptor HowTo Guide&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.python.org/3/reference/datamodel.html#implementing-descriptors">Python Refenrence - Data model - Implementing Descriptors&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://realpython.com/python-descriptors/">Python Descriptors: An Introduction&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://blog.peterlamut.com/2018/11/04/python-attribute-lookup-explained-in-detail/">Python attribute lookup explained in detail&lt;/a>&lt;/li>
-&lt;/ul></description></item><item><title>自己编译一个最新版本的 Python3</title><link>https://www.waynerv.com/posts/compiling-a-latest-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/compiling-a-latest-python/</guid><pubDate>Tue, 06 Apr 2021 10:15:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/python/">Python</category></item><item><title>自己编译一个最新版本的 Python3</title><link>https://www.waynerv.com/posts/compiling-a-latest-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/compiling-a-latest-python/</guid><pubDate>Tue, 06 Apr 2021 10:15:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
 &lt;h2 id="工作环境">工作环境&lt;/h2>
 &lt;p>测试机的操作系统是 Ubuntu 20.10，已安装有 &lt;code>gcc&lt;/code> 、&lt;code>git&lt;/code> 等基础的开发工具。经验证以下步骤同样适用于 macOS 11。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
