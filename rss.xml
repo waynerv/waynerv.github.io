@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 16 Apr 2021 06:19:43 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 16 Apr 2021 09:46:51 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
 &lt;h2 id="什么是描述符">什么是描述符&lt;/h2>
 &lt;p>描述符的定义很简单，实现了下列&lt;em>任意一个方法&lt;/em>的 Python 对象就是一个描述符（descriptor）：&lt;/p>
 &lt;ul>
@@ -6,7 +6,7 @@
 &lt;li>&lt;code>__set__(self, obj, value)&lt;/code>&lt;/li>
 &lt;li>&lt;code>__delete__(self, obj)&lt;/code>&lt;/li>
 &lt;/ul>
-&lt;p>参数含义如下：&lt;/p>
+&lt;p>这些方法的参数含义如下：&lt;/p>
 &lt;ul>
 &lt;li>&lt;code>self&lt;/code> 是当前定义的描述符对象实例。&lt;/li>
 &lt;li>&lt;code>obj&lt;/code> 是该描述符将作用的对象实例。&lt;/li>
@@ -494,7 +494,8 @@
 &lt;span class="k">return&lt;/span> &lt;span class="nb">type&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="p">)(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">fget&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">fset&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">fdel&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="vm">__doc__&lt;/span>&lt;span class="p">)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;h3 id="函数">函数&lt;/h3>
+&lt;/div>&lt;p>&lt;code>property&lt;/code> 在描述符实例的字典内保存读、写、删除函数，然后在协议方法被调用时判断是否存在相应函数，实现对属性的读、写与删除的控制。&lt;/p>
+&lt;h3 id="函数">函数&lt;/h3>
 &lt;p>没错，每一个我们定义的函数对象都是一个非数据描述符实例。&lt;/p>
 &lt;p>这里使用描述符的目的，是让在类定义中所定义的&lt;strong>函数&lt;/strong>在通过对象调用时成为&lt;strong>绑定方法&lt;/strong>（bound method）。&lt;/p>
 &lt;p>方法在调用时会自动传入对象实例作为第一个参数，这是方法和普通函数的唯一区别。通常我们会在定义方法时，将这个形参指定为 &lt;code>self&lt;/code>。方法对象的类定义与下面的代码等价：&lt;/p>
