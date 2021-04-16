@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 16 Apr 2021 05:34:11 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 16 Apr 2021 06:02:50 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
 &lt;h2 id="什么是描述符">什么是描述符&lt;/h2>
 &lt;p>描述符的定义很简单，实现了下列&lt;em>任意一个方法&lt;/em>的 Python 对象就是一个描述符（descriptor）：&lt;/p>
 &lt;ul>
@@ -203,14 +203,16 @@
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;span class="lnt">2
 &lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">foo&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">b&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">2&lt;/span>
-&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">foo&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="vm">__dict__&lt;/span>&lt;span class="p">)&lt;/span>
-&lt;span class="p">{&lt;/span>&lt;span class="s1">&amp;#39;x&amp;#39;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s1">&amp;#39;b&amp;#39;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">2&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">foo&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="vm">__dict__&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="p">{&lt;/span>&lt;span class="s1">&amp;#39;_x&amp;#39;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">foo&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">x&lt;/span>
+&lt;span class="mi">1&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>当我们对 &lt;code>foo.b&lt;/code> 赋值时，Python 是如何判断应该调用描述符方法还是将对应的值保存到 &lt;code>__dict__&lt;/code> 中的呢？其中起关键作用的是 &lt;code>.&lt;/code> 这个点操作符。&lt;/p>
+&lt;/div>&lt;p>当我们访问 &lt;code>foo.x&lt;/code> ，Python 是如何判断应该调用描述符方法还是从 &lt;code>__dict__&lt;/code> 中获取对应值的呢？其中起关键作用的是 &lt;code>.&lt;/code> 这个点操作符。&lt;/p>
 &lt;h3 id="对象属性如何访问">对象属性如何访问&lt;/h3>
 &lt;p>点操作符的查找逻辑位于 &lt;code>object.__getattribute__()&lt;/code> 方法中，每一次向对象执行点操作符都会调用对象的该方法。CPython 中该方法由 C 实现，我们来看一下它的等价 Python 版本：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -273,7 +275,7 @@
 &lt;span class="p">(&lt;/span>&lt;span class="o">&amp;lt;&lt;/span>&lt;span class="k">class&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="nc">__main__&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">Foo&lt;/span>&lt;span class="s1">&amp;#39;&amp;gt;, &amp;lt;class &amp;#39;&lt;/span>&lt;span class="nb">object&lt;/span>&lt;span class="s1">&amp;#39;&amp;gt;)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>现在我们知道，描述符在 &lt;code>object.__getattribute__()&lt;/code> 方法中根据不同条件被调用，这就是描述符控制属性访问的工作机制。如果我们重载 &lt;code>object.__getattribute__()&lt;/code> 方法，甚至可以取消所有的描述符调用。&lt;/p>
+&lt;/div>&lt;p>现在我们知道，&lt;strong>描述符在 &lt;code>object.__getattribute__()&lt;/code> 方法中根据不同条件被调用，这就是描述符控制属性访问的工作机制&lt;/strong>。如果我们重载 &lt;code>object.__getattribute__()&lt;/code> 方法，甚至可以取消所有的描述符调用。&lt;/p>
 &lt;h3 id="__getattr__-方法">&lt;code>__getattr__&lt;/code> 方法&lt;/h3>
 &lt;p>实际上，属性查找并不会直接调用 &lt;code>object.__getattribute__()&lt;/code> ，点操作符会通过一个辅助函数来执行属性查找：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -299,7 +301,7 @@
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>因此，如果 &lt;code>obj.__getattribute__()&lt;/code> 的结果引发异常，且存在 &lt;code>obj.__getattr__()&lt;/code>方法，该方法将被执行。如果用户直接调用 &lt;code>obj.__getattribute__()&lt;/code>，&lt;code>__getattr__()&lt;/code> 的补充查找机制就会被绕过。&lt;/p>
-&lt;p>我们为 &lt;code>Foo&lt;/code> 类添加该方法：&lt;/p>
+&lt;p>假如为 &lt;code>Foo&lt;/code> 类添加该方法：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
