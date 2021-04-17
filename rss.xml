@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 16 Apr 2021 09:53:47 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sat, 17 Apr 2021 04:13:04 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
 &lt;h2 id="描述符的定义">描述符的定义&lt;/h2>
 &lt;p>描述符的定义很简单，实现了下列&lt;em>任意一个方法&lt;/em>的 Python 对象就是一个描述符（descriptor）：&lt;/p>
 &lt;ul>
@@ -3559,4 +3559,316 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>
 &lt;p>&lt;a href="https://medium.com/@fabisiakradoslaw/understand-how-does-git-rebase-work-and-compare-with-git-merge-and-git-interactive-rebase-cce2c9775e43">Understand how does git rebase work and compare with git merge and git interactive rebase&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/git/">Git</category></item></channel></rss>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/git/">Git</category></item><item><title>Web API 设计规范</title><link>https://www.waynerv.com/posts/my-web-api-spcification/</link><guid isPermaLink="true">https://www.waynerv.com/posts/my-web-api-spcification/</guid><pubDate>Sat, 17 Oct 2020 11:40:09 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>基于 &lt;a href="https://developer.github.com/v3">GitHub REST API v3&lt;/a> 和 &lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a> ，并结合自己在工作中的一些实践，编写了这份 Web API 规范。&lt;/p>
+&lt;p>本规范虽然整体上遵循 RESTful 风格，但并未强制要求使用超媒体表示，严格来说不符合 REST API 的要求，因此基于此规范构建的项目应该定义为 Web API。&lt;/p>
+&lt;h2 id="概览">概览&lt;/h2>
+&lt;p>所有 API 应该使用统一的根域名。&lt;/p>
+&lt;p>所有访问 API 的请求均基于 HTTP 协议，出于安全性考虑尽量使用 &lt;code>HTTPS&lt;/code> 。&lt;/p>
+&lt;p>除文件上传下载外所有的数据均通过 &lt;code>JSON&lt;/code> 格式发送和接收，请求和响应的 &lt;code>Content Type&lt;/code> 首部均设置为 &lt;code>application/json&lt;/code>。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">curl&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">i&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">H&lt;/span> &lt;span class="s2">&amp;#34;Authorization: Bearer TOKEN&amp;#34;&lt;/span> &lt;span class="n">http&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">qcs&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">woqutech&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">api&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">employees&lt;/span>
+&lt;span class="n">HTTP&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="mf">1.1&lt;/span> &lt;span class="mi">200&lt;/span> &lt;span class="n">OK&lt;/span>
+&lt;span class="n">Server&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">nginx&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="mf">1.12&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="mi">2&lt;/span>
+&lt;span class="n">Date&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">Thu&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="mi">19&lt;/span> &lt;span class="n">Sep&lt;/span> &lt;span class="mi">2019&lt;/span> &lt;span class="mi">09&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="mo">07&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="mi">27&lt;/span> &lt;span class="n">GMT&lt;/span>
+&lt;span class="n">Content&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">Type&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">application&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">json&lt;/span>
+&lt;span class="n">Content&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">Length&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">1115&lt;/span>
+&lt;span class="n">Connection&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">keep&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">alive&lt;/span>
+&lt;span class="n">Access&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">Control&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">Allow&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">Origin&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="o">*&lt;/span>
+&lt;span class="p">{&lt;/span>&lt;span class="n">RESPONSE&lt;/span> &lt;span class="n">BODY&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>空白字段将提供为 &lt;code>null&lt;/code> 的值，而不是忽略该字段或提供 &lt;code>&amp;quot;&amp;quot;&lt;/code> 空字符串值。&lt;/p>
+&lt;p>所有响应中的时间戳以 ISO 8601 格式表示：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="mi">2019&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">09&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="mi">16&lt;/span>&lt;span class="n">T08&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="mi">42&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="mi">47&lt;/span>&lt;span class="n">Z&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="uri命名">URI命名&lt;/h2>
+&lt;h3 id="动词-or-名词">动词 or 名词?&lt;/h3>
+&lt;p>基于 RESTful 的基本原则：&lt;/p>
+&lt;blockquote>
+&lt;p>将所有的 API 划分为逻辑的资源，并通过 HTTP 请求方法来对资源进行操作&lt;/p>
+&lt;/blockquote>
+&lt;p>所有的资源都应该表述为名词而不是动词，且该资源并不需要和应用程序的数据模型完全对应。&lt;/p>
+&lt;h3 id="单数-or-复数">单数 or 复数?&lt;/h3>
+&lt;p>为了保持简单和一致，不管是资源的单个实例还是集合，在 URI 中都将使用复数形式来表示。如 &lt;code>/tickets&lt;/code> 和 &lt;code>/tickets/12&lt;/code> 。&lt;/p>
+&lt;h3 id="如何表示集合关系">如何表示集合关系?&lt;/h3>
+&lt;p>当资源之间存在集合关系时（即某一资源存在于另一资源的作用域中），我们应当在请求 URI 中体现集合关系，以工单中的评论为例：&lt;/p>
+&lt;ul>
+&lt;li>GET /tickets/12/comments - 获取编号为12的工单的所有评论&lt;/li>
+&lt;li>GET /tickets/12/comments/5 - 获取编号为12的工单中编号为5的评论&lt;/li>
+&lt;/ul>
+&lt;p>若想获取某一集合中的子资源，必须通过其父资源端点进行访问，在接口中也将对其上一级资源进行校验。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">GET&lt;/span> &lt;span class="n">https&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="p">{&lt;/span>&lt;span class="n">serviceRoot&lt;/span>&lt;span class="p">}&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="p">{&lt;/span>&lt;span class="n">collection&lt;/span>&lt;span class="p">}&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="p">{&lt;/span>&lt;span class="nb">id&lt;/span>&lt;span class="p">}&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="p">{&lt;/span>&lt;span class="n">subcollection&lt;/span>&lt;span class="p">}&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="p">{&lt;/span>&lt;span class="nb">id&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>但当集合层级过于复杂时，会考虑分拆集合关系以构造简单易懂的 URI，如：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">/&lt;/span>&lt;span class="n">api&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">tickets&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="mi">12&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">comments&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="mi">5&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">replies&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="mi">20&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">likes&lt;/span>
+&lt;span class="o">---&amp;gt;&lt;/span> &lt;span class="o">/&lt;/span>&lt;span class="n">api&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">replies&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="mi">20&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">likes&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="如何表示不适用于-crud-的行为">如何表示不适用于 CRUD 的行为?&lt;/h3>
+&lt;ol>
+&lt;li>将该行为重新组织为资源下的某一字段，通过 PATCH 方法更新该字段执行操作。&lt;/li>
+&lt;li>将其视为一种 RESTful 原则下的子资源，如 GitHub's API 通过 &lt;code>PUT /gists/:id/star&lt;/code> 来 star 某个仓库，通过 &lt;code>DELETE /gists/:id/star&lt;/code> 取消 star。&lt;/li>
+&lt;li>某些动作实在无法映射到合理的 RESTful 结构， 例如对多种资源同时进行搜索，很难对应到特定资源的端点。在这种情况下，即使它不是资源也可以使用 &lt;code>/search&lt;/code> 作为端点，只需要API的使用者能够清晰地理解其意义即可。&lt;/li>
+&lt;/ol>
+&lt;h2 id="http-方法">HTTP 方法&lt;/h2>
+&lt;p>REST 以资源为核心，HTTP 方法所操作的对象也是资源，对资源的操作即为&lt;strong>状态转移。&lt;/strong>&lt;/p>
+&lt;p>数据的增删改查则是持久层的具体实现，一次状态转移可能会对应多个数据库表的增删改操作，所以 HTTP 方法和数据库 CRUD 之间也不是严格的一一对应关系。&lt;/p>
+&lt;p>对资源的操作在任何时候都必须使用正确的HTTP方法，并且必须遵守操作幂等性。&lt;/p>
+&lt;p>&lt;a href="https://www.notion.so/d59669685ed64becbb86dcbbe7a88d31">支持的HTTP方法&lt;/a>&lt;/p>
+&lt;h3 id="post-方法的响应">POST 方法的响应&lt;/h3>
+&lt;p>POST 请求成功时将返回 &lt;code>201 Created&lt;/code> 状态码，此外响应根据需要有两种形式：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>在响应中添加 &lt;code>Location&lt;/code> 首部并指定被创建资源的位置&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Location&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">http&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">qcs&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">woqutech&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">api&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">employees&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="mi">123&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>在响应中返回被创建资源的数据表示&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="put-和-patch方法">PUT 和 PATCH方法&lt;/h3>
+&lt;p>PUT 和 PATCH 都表示更新资源的操作，但是 PUT 是全量替换而 PATCH 是部分更新。理论上来说前者应当将未传入的字段视作为 &lt;code>null&lt;/code> 或默认值并且更新到数据库中。目前我们的实现中分别使用了 PUT 和 PATCH，但是 PUT 方法会忽略未传字段，本质上也是一种部分更新。有置空需求的业务需要显式地传入字段并设为 &lt;code>null&lt;/code>。&lt;/p>
+&lt;p>注意置空或表示 &lt;code>无&lt;/code> 统一使用 &lt;code>null&lt;/code> （后端及数据库可能表示为 &lt;code>None&lt;/code> 或 &lt;code>NULL&lt;/code>），不使用空字符串 &lt;code>&amp;quot;&amp;quot;&lt;/code>。&lt;/p>
+&lt;h2 id="身份认证">身份认证&lt;/h2>
+&lt;p>访问需要身份认证的端点时，若请求未携带凭据或凭据无效，将返回 &lt;code>401 Unauthorized&lt;/code> 。&lt;/p>
+&lt;p>进行身份认证所需的 OAuth2 令牌需要放置在请求的 &lt;code>Authorization&lt;/code> 首部中，并使用 &lt;code>Bearer&lt;/code> 认证方式：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">curl&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="n">H&lt;/span> &lt;span class="s2">&amp;#34;Authorization: Bearer TOKEN&amp;#34;&lt;/span> &lt;span class="n">http&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="o">//&lt;/span>&lt;span class="n">qcs&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">woqutech&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">com&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">api&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">employees&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="请求参数">请求参数&lt;/h2>
+&lt;p>对于 &lt;code>GET&lt;/code> 请求，将参数作为 HTTP 查询字符串添加到 URL 中可对获取的结果进行查询和过滤。&lt;/p>
+&lt;p>对于 &lt;code>POST&lt;/code>， &lt;code>PATCH&lt;/code>， &lt;code>PUT&lt;/code> 和 &lt;code>DELETE&lt;/code> 请求，仍然可以在 URL 中使用查询字符串，URL中未包含的参数应编码为 JSON 。&lt;/p>
+&lt;p>请求体内的内容不应该进行包装，若发送的内容为集合，应当直接发送包含对象集合的数组类型。&lt;/p>
+&lt;h2 id="响应格式">响应格式&lt;/h2>
+&lt;p>所有的响应都使用 &lt;code>200 OK&lt;/code> 状态码是错误的。&lt;/p>
+&lt;h3 id="包装与可见性">包装与可见性&lt;/h3>
+&lt;p>在约定响应的格式时，应始终考虑可见性。API 客户端可以根据约定理解和解析响应，从消息体获取所需要的详细信息，但服务端并非直接与客户端交互，还需考虑反向代理、网关、缓存、监控中间件等 HTTP 中间处理层。HTTP 消息体是用来表述资源的，HTTP 分层系统的中间层不会解析消息体，而是根据头部信息进行相应处理（如缓存层根据状态码决定是否缓存响应内容，监控层根据状态码监控可用状态）。&lt;/p>
+&lt;p>使用包装结构的响应并弃用状态码时，请求是否成功以及响应内容仅在消息体中体现，对中间层组件不可见，可能会导致其执行错误的逻辑或增加不必要的解析逻辑。&lt;/p>
+&lt;p>为了确保可见性，应始终保证响应具有丰富和准确的头部信息，消息体中不应包含除资源表述之外的其他信息，除非资源的表述需要（如集合资源的分页）不进行多余的包装。&lt;/p>
+&lt;h3 id="错误">错误&lt;/h3>
+&lt;p>对于未成功的请求，服务端应当对请求过程中的错误或异常进行处理，并返回统一的响应对象。&lt;/p>
+&lt;p>API 客户端需要（通过状态码）被告知响应的高级错误类，比如当用户无权限访问端点时，返回的 &lt;code>403 Forbidden&lt;/code> 状态码会告知 HTTP 中间组件（如客户端库、缓存和代理）响应的整体语义。&lt;/p>
+&lt;p>同时，API 客户端还需要获取关于错误的详细信息，比如发生错误的具体原因以及解决方案，当这些信息以机器可读的方式包含在响应体中时，客户端还能根据错误响应触发相应操作。&lt;/p>
+&lt;p>&lt;strong>对象示例：&lt;/strong>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="err">HTTP/&lt;/span>&lt;span class="mf">1.1&lt;/span> &lt;span class="mi">422&lt;/span> &lt;span class="err">Unprocessable&lt;/span> &lt;span class="err">Entity&lt;/span>
+&lt;span class="err">Content-Type:&lt;/span> &lt;span class="err">application/json&lt;/span>
+&lt;span class="p">{&lt;/span>
+&lt;span class="nt">&amp;#34;type&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;ValadationError&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;message&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;请求数据验证失败&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;status&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">422&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;detail&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>
+&lt;span class="p">{&lt;/span>
+&lt;span class="nt">&amp;#34;loc&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">],&lt;/span>
+&lt;span class="nt">&amp;#34;msg&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;field required&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;type&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;value_error.missing&amp;#34;&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;span class="p">]&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;strong>对象成员：&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;code>type&lt;/code> (string) &lt;em>required&lt;/em>&lt;/p>
+&lt;p>由服务端定义，一个简短的、人类可读的、指示问题类型的标识。在不同服务间对于同类问题的类型标识唯一，API 客户端能够对所有的问题类型进行处理。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>message&lt;/code> (string) &lt;em>required&lt;/em>&lt;/p>
+&lt;p>一个人类可读的关于发生该问题的简要解释。该信息返回给客户端开发者使用。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>status&lt;/code> (number) &lt;em>optional&lt;/em>&lt;/p>
+&lt;p>由源头服务器生成的关于发生该问题的 HTTP 状态码&lt;/p>
+&lt;p>API 客户端可以使用该字段来确定发生该问题时使用的原始状态代码，以防它在传递时被改变（如中间设备或缓存），而消息体在没有 HTTP 信息的情况下能够维持一致。 HTTP 中间组件仍将使用响应的 HTTP 状态码。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>detail&lt;/code> (object) &lt;em>optional&lt;/em>&lt;/p>
+&lt;p>关于发生该问题的详细信息，可用于帮助 API 客户端修正错误。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>&lt;strong>注意&lt;/strong>：在必要时，可对错误响应对象的成员进行扩展。&lt;/p>
+&lt;p>不要轻易去定义新的问题类型，只有当区别对待问题类型对客户端有意义时，才设计对应的问题类型。尽量将问题归类到已有的能够自解释的 HTTP 错误状态码中，仅通过 &lt;code>message&lt;/code> 字段传递必要的提示信息，同时注意不应在错误响应对象描述过多和过于详细的服务端错误细节，避免引入安全风险。&lt;/p>
+&lt;h3 id="详情表示">详情表示&lt;/h3>
+&lt;p>详情表示无需进行任何封装。&lt;/p>
+&lt;p>获取单个独立的资源时，响应通常包括该资源的所有属性。 这种情况定义为资源的详情表示。（API 客户端的身份认证有时会影响详情表示中包含的信息量。）&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="p">{&lt;/span>
+&lt;span class="s2">&amp;#34;isbn&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;9780321125217&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="s2">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;Domain-Driven Design&amp;#34;&lt;/span>
+&lt;span class="s2">&amp;#34;authors&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;Matin Fowler&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;Levis Knuth&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="集合表示">集合表示&lt;/h3>
+&lt;p>获取资源列表时，响应包括该资源的属性子集，这种情况定义为资源的集合表示。（出于计算和IO性能原因，集合表示会排除资源的部分属性，可通过详情表示获取这部分属性。）&lt;/p>
+&lt;p>集合资源通过标准的 JSON 数组来表示，对于集合资源，分页是一种常规需求，集合表示响应中可能会包括资源集合表示和分页信息表示两部分。为了保持简单和一致，所有的集合表示响应无论是否包含分页信息都会对结构进行包装，示例如下：&lt;/p>
+&lt;ul>
+&lt;li>包含分页信息&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="p">{&lt;/span>
+&lt;span class="nt">&amp;#34;data&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>
+&lt;span class="p">{&lt;/span>&lt;span class="nt">&amp;#34;isbn&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;9780321125217&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nt">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;Domain-Driven Design&amp;#34;&lt;/span>&lt;span class="p">},&lt;/span>
+&lt;span class="err">......&lt;/span>
+&lt;span class="p">{&lt;/span>&lt;span class="nt">&amp;#34;isbn&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;9780596805821&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nt">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;REST in Practice&amp;#34;&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;span class="p">],&lt;/span>
+&lt;span class="nt">&amp;#34;pagination&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="nt">&amp;#34;page&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">1&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;per_page&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">30&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;pages&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">9&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;total&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">256&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ul>
+&lt;li>不包含分页信息&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="p">{&lt;/span>
+&lt;span class="nt">&amp;#34;data&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>
+&lt;span class="p">{&lt;/span>&lt;span class="nt">&amp;#34;isbn&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;9780321125217&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nt">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;Domain-Driven Design&amp;#34;&lt;/span>&lt;span class="p">},&lt;/span>
+&lt;span class="err">......&lt;/span>
+&lt;span class="p">{&lt;/span>&lt;span class="nt">&amp;#34;isbn&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;9780596805821&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="nt">&amp;#34;name&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;REST in Practice&amp;#34;&lt;/span>&lt;span class="p">}&lt;/span>
+&lt;span class="p">],&lt;/span>
+&lt;span class="nt">&amp;#34;pagination&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="kc">null&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="分页">分页&lt;/h3>
+&lt;p>默认情况下，集合表示的分页行为由 API 客户端驱动，使用 &lt;code>?page&lt;/code> 参数指定要返回页面编号（服务端默认值为 1）， 使用 &lt;code>?per_page&lt;/code> 参数指定每一页包含的资源数量（服务端默认值不大于 30）。&lt;/p>
+&lt;p>注意页码编号从 1 开始，省略 &lt;code>?page&lt;/code> 参数将使用服务端的默认值而不是返回集合表示的所有资源，以免返回的数据量过大造成服务端数据库阻塞以及网络阻塞。API 客户端必须能够对消费任何给定请求的分页或非分页集合表示具有弹性，并进行相应约束（如设置分页参数的默认值和最大值）。&lt;/p>
+&lt;h3 id="过滤与排序">过滤与排序&lt;/h3>
+&lt;p>在事先约定的情况下，可根据需要对指定的资源字段进行过滤或排序。&lt;/p>
+&lt;h2 id="cors">CORS&lt;/h2>
+&lt;p>API 支持指定来源的跨域资源共享（CORS）请求。示例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="err">curl&lt;/span> &lt;span class="err">-i&lt;/span> &lt;span class="err">-H&lt;/span> &lt;span class="s2">&amp;#34;Authorization: Bearer TOKEN&amp;#34;&lt;/span> &lt;span class="err">http://qcs.woqutech.com&lt;/span> &lt;span class="err">-H&lt;/span> &lt;span class="s2">&amp;#34;Origin: http://example.com&amp;#34;&lt;/span>
+&lt;span class="err">HTTP/&lt;/span>&lt;span class="mf">1.1&lt;/span> &lt;span class="mi">200&lt;/span> &lt;span class="err">OK&lt;/span>
+&lt;span class="err">...&lt;/span>
+&lt;span class="err">Access-Control-Allow-Origin:&lt;/span> &lt;span class="err">http://example.com&lt;/span>
+&lt;span class="err">Vary:&lt;/span> &lt;span class="err">Origin&lt;/span>
+&lt;span class="err">RESPONSE&lt;/span> &lt;span class="err">BODY&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="版本化">版本化&lt;/h2>
+&lt;p>本规范暂不涉及。&lt;/p>
+&lt;h2 id="超媒体">超媒体&lt;/h2>
+&lt;p>对资源进行操作的请求地址由 API 客户端自行构造，不使用超媒体表示。&lt;/p>
+&lt;h2 id="接口文档">接口文档&lt;/h2>
+&lt;p>使用 &lt;a href="https://swagger.io/specification/">OpenAPI Specification (OAS) 3.0&lt;/a> 作为 API 的交互式文档标准。&lt;/p>
+&lt;p>API 客户端可访问指定地址获取拥有 UI 界面的接口文档，以及 JSON 格式的文档文本。&lt;/p>
+&lt;h2 id="参考">参考&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://developer.github.com/v3">GitHub REST API v3&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md">Microsoft api guidelines&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">Best Practices for Designing a Pragmatic RESTful API&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/web/">Web</category><category domain="https://www.waynerv.com/tags/restful/">RESTful</category></item></channel></rss>
