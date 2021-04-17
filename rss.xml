@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sat, 17 Apr 2021 04:13:04 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sat, 17 Apr 2021 04:21:58 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
 &lt;h2 id="描述符的定义">描述符的定义&lt;/h2>
 &lt;p>描述符的定义很简单，实现了下列&lt;em>任意一个方法&lt;/em>的 Python 对象就是一个描述符（descriptor）：&lt;/p>
 &lt;ul>
@@ -3871,4 +3871,223 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>&lt;a href="https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md">Microsoft api guidelines&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">Best Practices for Designing a Pragmatic RESTful API&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a>&lt;/li>
-&lt;/ul></description><category domain="https://www.waynerv.com/categories/web/">Web</category><category domain="https://www.waynerv.com/tags/restful/">RESTful</category></item></channel></rss>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/web/">Web</category><category domain="https://www.waynerv.com/tags/restful/">RESTful</category></item><item><title>记录一次迁移MySQL数据文件到新硬盘的过程</title><link>https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/</link><guid isPermaLink="true">https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/</guid><pubDate>Tue, 08 Sep 2020 12:14:24 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="迁移前的环境">迁移前的环境&lt;/h2>
+&lt;p>MySQL Server 程序编译安装于 &lt;code>qmysql&lt;/code> 用户的 &lt;code>/home/qmysql/qmysql/packages&lt;/code> 目录下，文件夹结构如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">.
+├── data
+│   ├── auto.cnf
+│   ├── binlog
+│   ├── conf
+│   ├── ib_buffer_pool
+│   ├── ibdata1
+│   ├── ib_logfile0
+│   ├── ib_logfile1
+│   ├── innodb_log
+│   ├── innodb_ts
+│   ├── log
+│   ├── mydata
+│   ├── qcs-server.err
+│   ├── relaylog
+│   ├── slowlog
+│   ├── sock
+│   ├── tmpdir
+│   └── undo
+├── mysql -&amp;gt; /home/qmysql/qmysql/packages/mysql-5.7.21-linux-glibc2.12-x86_64
+└── mysql-5.7.21-linux-glibc2.12-x86_64
+├── bin
+├── COPYING
+├── data -&amp;gt; /home/qmysql/qmysql/packages/data &lt;span class="o">[&lt;/span>recursive, not followed&lt;span class="o">]&lt;/span>
+├── docs
+├── include
+├── lib
+├── man
+├── README
+├── share
+└── support-files
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>现在在服务器上新加了一块固态硬盘，想将原来存放在机械硬盘的数据库的所有数据文件即 &lt;code>data&lt;/code> 文件夹迁移到新硬盘中，以加快数据库的读写效率。&lt;/p>
+&lt;p>通过 &lt;code>fdisk -l&lt;/code> 获取硬盘信息如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">Disk /dev/sdb: 1197.8 GB, &lt;span class="m">1197759004672&lt;/span> bytes, &lt;span class="m">2339373056&lt;/span> sectors
+&lt;span class="nv">Units&lt;/span> &lt;span class="o">=&lt;/span> sectors of &lt;span class="m">1&lt;/span> * &lt;span class="nv">512&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="m">512&lt;/span> bytes
+Sector size &lt;span class="o">(&lt;/span>logical/physical&lt;span class="o">)&lt;/span>: &lt;span class="m">512&lt;/span> bytes / &lt;span class="m">4096&lt;/span> bytes
+I/O size &lt;span class="o">(&lt;/span>minimum/optimal&lt;span class="o">)&lt;/span>: &lt;span class="m">4096&lt;/span> bytes / &lt;span class="m">4096&lt;/span> bytes
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>考虑到现在挂载的硬盘均以 &lt;code>lvm&lt;/code> 的方式进行分卷，计划从固态硬盘中创建 300G 的逻辑卷，挂载到系统根目录的 &lt;code>/data&lt;/code> 目录，然后将 &lt;code>mysql&lt;/code> 的数据文件拷贝至该位置，再&lt;strong>软链接&lt;/strong>到原来的位置，这样可以在不更改任何mysql配置的情况下完成迁移。&lt;/p>
+&lt;h2 id="创建数据卷">创建数据卷&lt;/h2>
+&lt;ol>
+&lt;li>
+&lt;p>初始化物理卷&lt;/p>
+&lt;p>将物理硬盘分区初始化为物理卷，以便LVM使用。参数为要创建的物理卷对应的设备文件名。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pvcreate /dev/sdb
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>创建卷组&lt;/p>
+&lt;p>vgcreate命令用于创建LVM卷组。卷组（Volume Group）将多个物理卷组织成一个整体，屏蔽了底层物理卷细节。在卷组上创建逻辑卷时不用考虑具体的物理卷信息。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">vgcreate data_vg /dev/sdb
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>创建逻辑卷&lt;/p>
+&lt;p>创建大小300G大小的逻辑卷 ，-L 指定大小，-n指定名称，最后指定卷组名称&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">lvcreate -L 300G -n mysqldata data_vg
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>格式化逻辑卷&lt;/p>
+&lt;p>对逻辑卷进行xfs格式化&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">mkfs.xfs /dev/data_vg/mysqldata
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>挂载文件目录&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">mount /dev/data_vg/mysqldata /data
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>设置开机磁盘自动挂载&lt;/p>
+&lt;p>要让系统开机自动挂载磁盘，需要将挂载信息写入到/etc/fstab文件中，否则重启后需要手动挂载。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ vim /etc/fstab
+/dev/mapper/centos00-root / xfs defaults &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;span class="nv">UUID&lt;/span>&lt;span class="o">=&lt;/span>80f8fe62-70ab-4c9e-8d28-52c0d5e97979 /boot xfs defaults &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span>
+/dev/mapper/centos00-home /home xfs defaults &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span>
+/dev/mapper/centos00-swap swap swap defaults &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span>
+/dev/centos00/backup /backup xfs defaults &lt;span class="m">0&lt;/span> &lt;span class="m">2&lt;/span>
+/dev/mapper/data_vg-mysqldata /data xfs defaults &lt;span class="m">0&lt;/span> &lt;span class="m">2&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>添加最下面一行命令后保存退出。完成。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="迁移数据文件">迁移数据文件&lt;/h2>
+&lt;p>开始迁移前需要关闭 &lt;code>mysql&lt;/code> 服务，终止运行数据库。&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>切换用户&lt;/p>
+&lt;p>为保证文件复制前后的所有者一致，避免出现文件权限问题，首先切换到当前mysql程序下文件的所有者用户 &lt;code>qmysql&lt;/code>。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>复制文件&lt;/p>
+&lt;p>复制所有 &lt;code>mysql&lt;/code> 数据文件到固态硬盘的新目录，并保留所有文件目录属性。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">cp -ar /home/qmysql/qmysql/packages/data /data/
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>备份原文件&lt;/p>
+&lt;p>保险起见，将原来的数据文件进行备份。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">mv data data.bak
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>重新链接数据文件&lt;/p>
+&lt;p>将固态硬盘中的数据文件目录软链接到原来的数据文件位置&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">ln -s /data/data /home/qmysql/qmysql/packages/
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ol>
+&lt;p>重启数据库服务，大功告成！&lt;/p></description><category domain="https://www.waynerv.com/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</category><category domain="https://www.waynerv.com/tags/mysql/">MySQL</category></item></channel></rss>
