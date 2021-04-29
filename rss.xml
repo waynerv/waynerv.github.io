@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 29 Apr 2021 09:26:32 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Time和datetime模块的区别</title><link>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</guid><pubDate>Thu, 29 Apr 2021 17:07:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，即使熟悉 Python 也可能记混它们的用法，本文将力求清晰地阐述它们之间的区别。&lt;/p>
-&lt;p>我将分别介绍每个模块的主要目的、核心对象、常用函数以及用途，并在最后做分析对比。另外本文将避免涉及字符串格式化、时区、冬夏令时等更复杂深入的话题。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 29 Apr 2021 10:04:57 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Python 中 time 和 datetime 模块的区别</title><link>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</guid><pubDate>Thu, 29 Apr 2021 17:07:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，即使熟悉 Python 也可能记混它们的用法，本文将力求清晰地阐述它们之间的区别。&lt;/p>
+&lt;p>我将分别介绍每个模块的主要目的、核心对象、常用方法以及用途，并在最后做分析对比。另外本文将避免涉及字符串格式化、时区、冬夏令时等更复杂深入的话题。&lt;/p>
 &lt;h2 id="time-模块">time 模块&lt;/h2>
-&lt;p>首先是 &lt;code>time&lt;/code> 模块。概括来说，该模块通过底层系统硬件的计时器获取自 &lt;code>epoch&lt;/code> 以来经过的总秒数（可能为浮点数），即我们常说的时间戳（timestamp）。用法较为低阶，适合用做精确计时。对 Unix 系统来说， &lt;code>epoch&lt;/code> 为 &lt;code>1970年1月1日 00:00:00（UTC）&lt;/code>，因此该模块也可以将时间戳转换为日期时间，但表示日期时间的对象结构非常简单，不适合进行复杂的操作和表示。&lt;/p>
+&lt;p>概括来说，&lt;code>time&lt;/code> 模块通过底层系统硬件的计时器获取自 &lt;code>epoch&lt;/code> 以来经过的总秒数（可能为浮点数），即我们常说的时间戳（timestamp）。它的用法较为低阶，适合用做精确计时。对 Unix 系统来说， &lt;code>epoch&lt;/code> 为 &lt;code>1970年1月1日 00:00:00（UTC）&lt;/code>，因此该模块也可以将时间戳转换为具体的日期时间，但表示日期时间的对象结构非常简单，不适合进行复杂的操作和表示。&lt;/p>
 &lt;h3 id="核心对象">核心对象&lt;/h3>
 &lt;p>&lt;code>time&lt;/code> 模块的 API 中只有一个类： &lt;code>time.struct_time&lt;/code>。&lt;/p>
-&lt;p>&lt;code>struct_time&lt;/code> 是一个转换 &lt;code>epoch&lt;/code> 以来经过秒数得到的结构化的时间对象，它提供了类似 &lt;code>namedtuple&lt;/code> 的 API，可以通过下标或属性名称获取对象的年月日时分秒等属性。调用 &lt;code>gmtime()&lt;/code> ，&lt;code>localtime()&lt;/code>，&lt;code>strptime()&lt;/code> 等方法可得到 &lt;code>struct_time&lt;/code> 对象。&lt;/p>
+&lt;p>&lt;code>struct_time&lt;/code> 是一个转换 &lt;code>epoch&lt;/code> 以来经过秒数得到的结构化的时间对象，它提供了类似 &lt;code>namedtuple&lt;/code> 的 API，可以通过下标或属性名称获取对象的年月日时分秒等属性。调用 &lt;code>gmtime()&lt;/code> ，&lt;code>localtime()&lt;/code>，&lt;code>strptime()&lt;/code> 等方法可得到 &lt;code>struct_time&lt;/code> 实例。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -25,7 +25,7 @@
 &lt;span class="mi">4&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>从示例中可以看到，&lt;code>struct_time&lt;/code> 实质是一个数字组成的类元祖序列，该模块中接收 &lt;code>struct_time&lt;/code> 对象作为参数的函数都可以直接接收一个同样长度的元祖。它只能简单的记录通过换算秒数得到的年月日时分等属性，没有提供支持额外操作的其他方法，因此实践中的用途非常有限。&lt;/p>
+&lt;/div>&lt;p>从示例中可以看到，&lt;code>struct_time&lt;/code> 实例实质是一个数字组成的类元祖序列，该模块中接收 &lt;code>struct_time&lt;/code> 实例作为参数的函数都可以直接接收一个同样长度的元祖。它只能简单的记录通过换算时间戳得到的年月日时分等属性，没有提供支持额外操作的其他方法，因此实践中的用途非常有限。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -68,24 +68,26 @@
 &lt;p>&lt;code>time.sleep(seconds)&lt;/code> 暂停调用线程的执行，暂停时间为给定的秒数。经常用于测试模拟，实际的暂停时间可能超出给定秒数。&lt;/p>
 &lt;/li>
 &lt;li>
-&lt;p>&lt;code>time.perf_counter()&lt;/code> 计算较短时间间隔的更好方法，结果更为精确，在计算执行时间时可替代上述的 &lt;code>time.time()&lt;/code>。&lt;/p>
+&lt;p>&lt;code>time.perf_counter()&lt;/code> 是计算较短时间间隔的更好方法，结果更为精确，在计算执行时间时可替代上述的 &lt;code>time.time()&lt;/code>。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;span class="lnt">2
 &lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">end&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">time&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">perf_counter&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">start&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">time&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">perf_counter&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">end&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">time&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">perf_counter&lt;/span>&lt;span class="p">()&lt;/span>
 &lt;span class="o">&amp;gt;&amp;gt;&amp;gt;&lt;/span> &lt;span class="n">end&lt;/span> &lt;span class="o">-&lt;/span> &lt;span class="n">start&lt;/span>
-&lt;span class="mf">9.731515233999744&lt;/span>
+&lt;span class="mf">2.731515233999744&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;/li>
 &lt;/ul>
 &lt;/li>
 &lt;li>
-&lt;p>在&lt;code>struct_time&lt;/code>和秒数之间进行转换&lt;/p>
+&lt;p>在 &lt;code>struct_time&lt;/code> 和时间戳之间进行转换&lt;/p>
 &lt;ul>
 &lt;li>
 &lt;p>&lt;code>time.gmtime([secs])&lt;/code> 将给定秒数转换为一个 UTC 时区 &lt;code>struct_time&lt;/code> 对象，若未提供秒数将使用 &lt;code>time.time()&lt;/code> 得到的返回值。&lt;/p>
@@ -135,7 +137,7 @@
 &lt;/ul>
 &lt;/li>
 &lt;li>
-&lt;p>在&lt;code>struct_time&lt;/code>和字符串之间进行转换&lt;/p>
+&lt;p>在 &lt;code>struct_time&lt;/code> 和字符串之间进行转换&lt;/p>
 &lt;ul>
 &lt;li>
 &lt;p>&lt;code>time.strftime(format[, t])&lt;/code> 将一个 &lt;code>struct_time&lt;/code> 对象按指定的 &lt;code>format&lt;/code> 编码格式化为字符串，&lt;code>t&lt;/code> 的默认值是 &lt;code>time.localtime()&lt;/code> 的返回值。&lt;/p>
@@ -170,7 +172,7 @@
 &lt;/li>
 &lt;/ol>
 &lt;h2 id="datetime-模块">datetime 模块&lt;/h2>
-&lt;p>&lt;code>datetime&lt;/code> 模块虽然支持日期和时间的运算，但实现的重点是为输出格式化和操作提供高效的属性提取。&lt;/p>
+&lt;p>&lt;code>datetime&lt;/code> 模块支持日期和时间的运算，但实现的重点是为输出格式化和操作提供高效的属性提取。&lt;/p>
 &lt;p>&lt;code>datetime&lt;/code> 模块提供了一些用于操作日期和时间的类。该模块的绝大部分功能都围绕着以下 4 个类（以及另外两个关于时区的类）的方法和属性来实现。一个容易让人混淆的点是，虽然它们全都是 Python 类，但在命名中并未遵循首字母大写的惯例，在导入时看上去就像是 &lt;code>datetime&lt;/code> 下的子包或者子模块。&lt;/p>
 &lt;p>我们将简要介绍每一个类&lt;strong>常用的&lt;/strong>实例构造方式、支持的操作符、实例方法以及实例属性。&lt;/p>
 &lt;h3 id="date">&lt;code>date&lt;/code>&lt;/h3>
@@ -225,7 +227,7 @@
 &lt;li>支持与另一 &lt;code>date&lt;/code> 对象进行 &lt;code>==&lt;/code>，&lt;code>≤&lt;/code>，&lt;code>&amp;lt;&lt;/code>，&lt;code>≥&lt;/code>，&lt;code>&amp;gt;&lt;/code> 等比较操作。&lt;/li>
 &lt;li>支持与 &lt;code>timedelta&lt;/code> 对象进行加减操作，结果依然为 &lt;code>date&lt;/code> 对象。&lt;/li>
 &lt;li>支持与另一 &lt;code>date&lt;/code> 对象进行相减操作，得到 &lt;code>timedelta&lt;/code> 对象。&lt;/li>
-&lt;li>支持哈希&lt;/li>
+&lt;li>支持哈希。&lt;/li>
 &lt;/ul>
 &lt;h4 id="实例方法">实例方法&lt;/h4>
 &lt;ul>
@@ -635,16 +637,16 @@
 &lt;/div>&lt;h2 id="总结对比">总结对比&lt;/h2>
 &lt;p>&lt;code>time&lt;/code> 模块与 &lt;code>datetime&lt;/code> 模块的区别：&lt;/p>
 &lt;ul>
-&lt;li>&lt;code>time&lt;/code> 模块，获取系统时间戳，主要用于计时或表示某一时间戳，可以通过数值元祖表示结构化的日期时间，但不支持进一步的转换或操作。&lt;/li>
+&lt;li>&lt;code>time&lt;/code> 模块，获取系统时间戳，主要用于计时或表示某一时间点，可以通过数值元祖表示结构化的日期时间，但不支持进一步的转换或操作。&lt;/li>
 &lt;li>&lt;code>datetime&lt;/code> 模块，基于时间戳构建高阶的日期、时间、间隔等对象，支持丰富的转换方式和操作。&lt;/li>
 &lt;/ul>
 &lt;p>&lt;code>datetime&lt;/code> 模块中不同对象的区别：&lt;/p>
 &lt;ul>
-&lt;li>&lt;code>date&lt;/code> 只表示日期。&lt;/li>
-&lt;li>&lt;code>time&lt;/code> 只表示时分。&lt;/li>
-&lt;li>&lt;code>datetime&lt;/code> 同时表示日期和时分的时间对象。&lt;/li>
-&lt;li>&lt;code>timedelta&lt;/code> 表示两个时间之间的间隔。&lt;/li>
-&lt;/ul></description></item><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
+&lt;li>&lt;code>date&lt;/code> 只表示日期。支持与 &lt;code>date&lt;/code> 或 &lt;code>timedelta&lt;/code> 进行加减操作.&lt;/li>
+&lt;li>&lt;code>time&lt;/code> 只表示时分。不支持与 &lt;code>time&lt;/code> 或 &lt;code>timedelta&lt;/code> 进行加减操作，计算间隔需要先转换成 &lt;code>datetime&lt;/code> 对象。&lt;/li>
+&lt;li>&lt;code>datetime&lt;/code> 同时表示日期和时分的时间对象。同时具备 &lt;code>date&lt;/code> 和 &lt;code>time&lt;/code> 对象的行为和属性，可以从中解析出单独的 &lt;code>date&lt;/code> 和 &lt;code>time&lt;/code> 对象。&lt;/li>
+&lt;li>&lt;code>timedelta&lt;/code> 表示两个时间之间的间隔。只通过 &lt;code>days&lt;/code> 、&lt;code>seconds&lt;/code>，&lt;code>microseconds&lt;/code> 这 3 种单位来表示。&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/python/">Python</category></item><item><title>理解 Python 中的描述符</title><link>https://www.waynerv.com/posts/python-descriptor-in-detail/</link><guid isPermaLink="true">https://www.waynerv.com/posts/python-descriptor-in-detail/</guid><pubDate>Thu, 15 Apr 2021 21:32:47 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
 &lt;h2 id="描述符的定义">描述符的定义&lt;/h2>
 &lt;p>描述符的定义很简单，实现了下列&lt;em>任意一个方法&lt;/em>的 Python 对象就是一个描述符（descriptor）：&lt;/p>
 &lt;ul>
