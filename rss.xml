@@ -1,5 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 30 Apr 2021 05:32:50 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Python 中 time 和 datetime 模块的区别</title><link>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</guid><pubDate>Thu, 29 Apr 2021 17:07:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，即使熟悉 Python 也可能记混它们的用法，本文将力求清晰地阐述它们之间的区别。&lt;/p>
-&lt;p>我将分别介绍每个模块的主要目的、核心对象、常用方法以及用途，并在最后做分析对比。另外本文将避免涉及字符串格式化、时区、冬夏令时等更复杂深入的话题。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 06 May 2021 03:13:00 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Python 中 time 和 datetime 模块的区别</title><link>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</guid><pubDate>Thu, 29 Apr 2021 17:07:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
+&lt;p>下文将分别介绍每个模块的主要目的、核心对象、常用方法以及用途，并在最后做分析对比，如果已经了解这些细节可以直接跳转到结尾的总结对比部分。&lt;/p>
+&lt;p>另外本文将避免涉及字符串格式化、时区、冬夏令时等更复杂深入的话题。&lt;/p>
 &lt;h2 id="time-模块">time 模块&lt;/h2>
 &lt;p>概括来说，&lt;code>time&lt;/code> 模块通过系统底层的计时器获取自 &lt;code>epoch&lt;/code> 以来经过的总秒数（可能为浮点数），即我们常说的 POSIX 时间戳（timestamp）。它的用法较为低阶，适合用做精确计时。对 Unix 系统来说， &lt;code>epoch&lt;/code> 为 &lt;code>1970年1月1日 00:00:00（UTC）&lt;/code>，因此该模块也可以将时间戳转换为具体的日期时间，但表示日期时间的对象结构非常简单，不适合进行复杂的操作和表示。&lt;/p>
 &lt;h3 id="核心对象">核心对象&lt;/h3>
@@ -620,7 +621,7 @@
 &lt;/div>
 &lt;/div>&lt;/li>
 &lt;/ul>
-&lt;h4 id="主要方法">主要方法&lt;/h4>
+&lt;h4 id="实例方法-3">实例方法&lt;/h4>
 &lt;ul>
 &lt;li>&lt;code>total_seconds(self)&lt;/code> 返回该时间间隔的所有秒数。&lt;/li>
 &lt;/ul>
@@ -661,18 +662,38 @@
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;h2 id="总结对比">总结对比&lt;/h2>
-&lt;p>&lt;code>time&lt;/code> 模块与 &lt;code>datetime&lt;/code> 模块的区别：&lt;/p>
+&lt;h3 id="time-与-datetime-模块的区别">&lt;code>time&lt;/code> 与 &lt;code>datetime&lt;/code> 模块的区别：&lt;/h3>
 &lt;ul>
 &lt;li>&lt;code>time&lt;/code> 模块，获取系统时间戳，主要用于计时或表示某一时间点，可以通过数值元祖表示结构化的日期时间，但不支持进一步的转换或操作。&lt;/li>
 &lt;li>&lt;code>datetime&lt;/code> 模块，基于时间戳构建高阶的日期、时间、间隔等对象，支持丰富的转换方式和操作。&lt;/li>
 &lt;/ul>
-&lt;p>&lt;code>datetime&lt;/code> 模块中不同对象的区别：&lt;/p>
+&lt;h3 id="datetime-模块中不同对象的区别">&lt;code>datetime&lt;/code> 模块中不同对象的区别：&lt;/h3>
 &lt;ul>
 &lt;li>&lt;code>date&lt;/code> 只表示日期。支持与 &lt;code>date&lt;/code> 或 &lt;code>timedelta&lt;/code> 进行加减操作.&lt;/li>
 &lt;li>&lt;code>time&lt;/code> 只表示时分。不支持与 &lt;code>time&lt;/code> 或 &lt;code>timedelta&lt;/code> 进行加减操作，计算间隔需要先转换成 &lt;code>datetime&lt;/code> 对象。&lt;/li>
 &lt;li>&lt;code>datetime&lt;/code> 同时表示日期和时分的时间对象。同时具备 &lt;code>date&lt;/code> 和 &lt;code>time&lt;/code> 对象的行为和属性，可以从中解析出单独的 &lt;code>date&lt;/code> 和 &lt;code>time&lt;/code> 对象。&lt;/li>
 &lt;li>&lt;code>timedelta&lt;/code> 表示两个时间之间的间隔。只通过 &lt;code>days&lt;/code> 、&lt;code>seconds&lt;/code>，&lt;code>microseconds&lt;/code> 这 3 种单位来表示。&lt;/li>
 &lt;/ul>
+&lt;h3 id="字符串格式化">字符串格式化&lt;/h3>
+&lt;p>字符串格式化与解析：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;code>time.struct_time&lt;/code>、&lt;code>datetime.date&lt;/code>、&lt;code>datetime.time&lt;/code>、&lt;code>datetime.datetime&lt;/code> 等对象都可以通过 &lt;code>strftime()&lt;/code> （string format）实例方法或函数转换为指定格式的字符串。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>特定格式的字符串仅可以通过 &lt;code>strptime()&lt;/code>（string parse）类方法或函数直接转换为&lt;code>time.struct_time&lt;/code>、&lt;code>datetime.datetime&lt;/code> 对象。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>ISO 格式字符串格式化与解析：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;code>datetime.date&lt;/code>、&lt;code>datetime.time&lt;/code>、&lt;code>datetime.datetime&lt;/code> 等对象都可以通过 &lt;code>isoformat()&lt;/code> 实例方法转换为 ISO 8601 格式的字符串。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>ISO 8601 格式的字符串可以通过 &lt;code>fromisoformat()&lt;/code> 类方法直接转换为&lt;code>datetime.date&lt;/code>、&lt;code>datetime.time&lt;/code>、&lt;code>datetime.datetime&lt;/code> 对象。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="图表">图表&lt;/h3>
 &lt;p>用一张&lt;a href="http://www.plantuml.com/plantuml/png/hLHDhzCm4BpxLrYFIoALSgzKzCI52pUELVNan4uRYEF8NYFuzzYhr67fAlZ0RJzcnfl9sgy1b8Te9t4VjP63Sz2vds99nR4V5pM3XD6QXBAB4AabNt8khTDnCY_o2NaCu6CFRpaMPjOoSLQYLc08-TsNyNQ7pzwOcUWyWCSSy1sKPpjhiCFJPWBrrsnVmO_pxJ7IfobIVW1FyZ6umNchu2rtYjJb_SVDhfCi9pQj4EVprfAzctyO3_9y5biHoTJ1LMDolPfGw0BXsbPnRfOI24OoWzhlI0ZG2d80jVP4q-FWdIte1aAxmyNfdakC1i4m0xlkst5Zj0SiHEYt6ZgUowQ7F-ocognzHHpYCfc66QQ6HcOgKbIhsg3UsMwSJPCB1pow5MIb_uyI1fmQVXn6pR_Wn0lsavdBU98XTk1L3rBD3kx68sZzVUAPm4oejFvGLBfVKl4IQr0_I25K3uC1Fn2HmWqDu2K-9Vb4BHVbWqbxojxOb9xAuWtexs3XSaYDA_ql1PwF8cYwE5Ku3FQn8gNihIYL1S4fIECcohL5IkNQ4W7au_Mcpp1duxCf6wLyIYarZ3crU0pgE8BqcLKk3-l6Ii1sXqTzmxHUW3UVux-QMKSx_GO0">时序图&lt;/a>总结上文内容：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/datetime-sequence.png" alt="datetime-sequence">&lt;/p>
 &lt;ul>
