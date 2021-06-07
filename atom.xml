@@ -1,4 +1,416 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">谈谈天，写写码</subtitle><updated>2021-05-19T09:28:28+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">Python 中 time 和 datetime 模块的区别</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/"/><id>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2021-04-29T17:07:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，即使熟悉 Python 也可能记混它们的用法，本文将力求清晰地阐述它们之间的区别。</summary><content type="html">&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">谈谈天，写写码</subtitle><updated>2021-06-07T14:14:44+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">使用 Sphinx 为项目自动生成 API 文档</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/use-sphinx-to-automatically-generate-api-reference/"/><id>https://www.waynerv.com/posts/use-sphinx-to-automatically-generate-api-reference/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2021-06-07T21:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分项目的潜在用户拒之门外。 从开源项目中可以总结整理出一些关……</summary><content type="html">&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分项目的潜在用户拒之门外。&lt;/p>
+&lt;p>从开源项目中可以总结整理出一些关于文档的最佳实践：&lt;/p>
+&lt;ul>
+&lt;li>文档和代码库在一个仓库中维护以做到同步更新（个别体量超大的项目例外）&lt;/li>
+&lt;li>使用纯文本格式编写文档，如 &lt;code>markdown&lt;/code> 或 &lt;code>reStructText&lt;/code>，然后再用文档生成工具将其转换成易于阅读且样式丰富的静态网页，进一步可通过 CI 将静态网页托管到可公开访问的站点&lt;/li>
+&lt;li>在文档中直接引用实际的代码，并提供 API 文档&lt;/li>
+&lt;/ul>
+&lt;p>API 文档通常位于文档中的 &lt;code>API Reference&lt;/code> 或 &lt;code>References&lt;/code> 章节，它能节省用户查阅源码的时间，帮助用户快速理解项目的内部组成，很多流行的开源项目都会提供组织良好的 API 文档，如 &lt;a href="https://flask.palletsprojects.com/en/2.0.x/#api-reference">Flask&lt;/a>、&lt;a href="https://click.palletsprojects.com/en/8.0.x/api/#module-click">Click&lt;/a> 等，本文就将介绍如何使用 &lt;a href="https://www.sphinx-doc.org/en/master/index.html">Sphinx&lt;/a> 为项目生成 API 文档。&lt;/p>
+&lt;h2 id="为什么是-sphinx">为什么是 sphinx&lt;/h2>
+&lt;p>有许多开源工具可以用来将纯文本转换为静态网页，选择 Sphinx 的理由有以下几点：&lt;/p>
+&lt;ul>
+&lt;li>经典老牌，使用相当广泛，Python 的官方文档也是用它生成的&lt;/li>
+&lt;li>功能全面，支持各种主题和插件，和 Python 具有语言上的亲和性&lt;/li>
+&lt;li>能够很方便地根据代码的文档字符串自动生成 API 文档&lt;/li>
+&lt;/ul>
+&lt;p>Sphinx 的默认文本格式是 &lt;a href="https://docutils.sourceforge.io/rst.html">reStructuredText&lt;/a>（简称 rst），它是一种极其强大的标记语言，配合 Sphinx 可以实现很多 markdown 所不具备的解析、引用特性，缺点是规则和指令较为复杂。这原本并不算缺点，但随着 markdown 的流行，人们似乎无法再接受任何比 markdown 更复杂一点的标记语言了。&lt;/p>
+&lt;p>不过这并不是问题，我们也可以借助 &lt;code>[MyST](https://myst-parser.readthedocs.io/en/latest/)&lt;/code> 解析器实现 Sphinx 和 markdown 的完全兼容，接下来的示例中我们将混合使用 &lt;code>md&lt;/code> 和 &lt;code>rst&lt;/code> 两种格式，当然你也可以只使用任意一种格式。&lt;/p>
+&lt;h2 id="新建一个文档项目">新建一个文档项目&lt;/h2>
+&lt;h3 id="安装-sphinx">安装 Sphinx&lt;/h3>
+&lt;p>示例将是一个 Python 语言项目，因此最直接的方式当然是通过 pip 安装：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pip install sphinx
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>对于其他语言及平台， Sphinx 也提供了丰富的安装途径，详见 &lt;a href="https://www.sphinx-doc.org/en/master/usage/installation.html#installing-sphinx">Installing Sphinx&lt;/a>。&lt;/p>
+&lt;h3 id="设置文档源目录">设置文档源目录&lt;/h3>
+&lt;p>我们将在同一个项目中维护代码和文档，因此首先需要在项目根目录新建一个 &lt;code>docs&lt;/code> 文件夹存放所有和文档有关的文件（也可以使用其他名称），我们将使用该文件夹作为 Sphinx 工作的源目录（&lt;a href="https://www.sphinx-doc.org/en/master/glossary.html#term-source-directory">source directory&lt;/a>）。&lt;/p>
+&lt;h3 id="初始化项目">初始化项目&lt;/h3>
+&lt;p>切换到 &lt;code>docs&lt;/code> 目录，执行以下命令在该目录初始化一个新的 Sphinx 文档项目：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">sphinx-quickstart
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>接下来根据命令行提示完成初始化项目的各项配置，如填写项目名称和作者，对于不理解的选项回车使用默认选项即可。&lt;/p>
+&lt;p>初始化后的 &lt;code>docs&lt;/code> 目录内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">docs
+├── Makefile
+├── _build
+├── _static
+├── _templates
+├── conf.py
+├── index.rst
+└── make.bat
+&lt;span class="m">3&lt;/span> directories, &lt;span class="m">4&lt;/span> files
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>其中最重要的是 &lt;code>[conf.py](http://conf.py)&lt;/code> 文件，它是一个 Sphinx 将会运行的 Python 模块，保存着刚刚通过命令行输入的配置，还可以编辑文件来修改配置或添加插件，并通过该文件运行需要的 Python 代码。&lt;/p>
+&lt;p>&lt;code>Makefile&lt;/code> 和 &lt;code>make.bat&lt;/code> 提供了一些快捷命令，在 &lt;code>docs&lt;/code> 目录执行 &lt;code>make html&lt;/code> 即可通过源文件生成静态网页。&lt;/p>
+&lt;p>&lt;code>index.rst&lt;/code> 是文档源文件的首页，文档里有一些默认的样板内容，我们也可以将其替换为 &lt;code>index.md&lt;/code>。&lt;/p>
+&lt;p>此时已经可以运行 &lt;code>make html&lt;/code> 生成静态网页看看效果了，生成的 HTML 页面保存在 &lt;code>_build/html&lt;/code> 目录。打开后效果如下：&lt;/p>
+&lt;p>![%E4%BD%BF%E7%94%A8%20sphinx%20%E4%B8%BA%E9%A1%B9%E7%9B%AE%E7%94%9F%E6%88%90%20API%20%E6%96%87%E6%A1%A3%205a681cef56c64ff7aef54869dbfc5aca/Untitled.png](C:/Users/amped/Desktop/使用 sphinx 为项目生成 API 文档 5a681cef56c64ff7aef54869dbfc5aca/Untitled.png)&lt;/p>
+&lt;h3 id="初始-restructuredtext">初始 reStructuredText&lt;/h3>
+&lt;p>接下来我们借助 &lt;code>index.rst&lt;/code> 简单认识一下 reStructuredText 格式。&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>标题&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Welcome&lt;/span> &lt;span class="n">to&lt;/span> &lt;span class="n">sphinx&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">demo&lt;/span>&lt;span class="s1">&amp;#39;s documentation!&lt;/span>
+&lt;span class="o">=======================================&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在文本的下一行连续输入同一标点符号，即可将文本标记为标题，另外还有很违反直觉的两点要求：&lt;/p>
+&lt;ul>
+&lt;li>符号的长度需要超出文本&lt;/li>
+&lt;li>无法显式地指定标题级别，如果解析到另一种符号标记的标题，将根据出现顺序指定为新的标题级别，如&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Secondary&lt;/span> &lt;span class="n">Title&lt;/span>
+&lt;span class="o">----------------&lt;/span>
+&lt;span class="n">Third&lt;/span> &lt;span class="n">Title&lt;/span>
+&lt;span class="o">~~~~~~~~~~~~&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>相比 markdown 直接使用符号的个数指示标题级别，这种规则并不算直观。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>目录树&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">..&lt;/span> &lt;span class="n">toctree&lt;/span>&lt;span class="p">::&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">maxdepth&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">2&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">caption&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">Contents&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="n">install&lt;/span>
+&lt;span class="n">reference&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>形如 &lt;code>.. {directive}::&lt;/code> 这样的文本在 &lt;code>rst&lt;/code> 中被称为指令，可以实现各种特殊效果，比如 &lt;code>.. toctree::&lt;/code> 将在当前位置插入一颗目录树。在指令的下一行可以通过 &lt;code>:{option}: value&lt;/code> 指定选项，如上示例中指定了该目录树的最大深度和标题。&lt;/p>
+&lt;p>再往下就是目录树的条目了，Sphinx 将根据条目名称如 &lt;code>install&lt;/code> 作为相对路径在源目录即 &lt;code>docs&lt;/code> 中寻找名为 &lt;code>install.rst&lt;/code> 或 &lt;code>[install.md](http://install.md)&lt;/code> 的文件，并生成指向该文件的链接。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>引用&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Indices&lt;/span> &lt;span class="ow">and&lt;/span> &lt;span class="n">tables&lt;/span>
+&lt;span class="o">==================&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`genindex`&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`modindex`&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`search`&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这部分内容包含了 3 种格式：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>首先是我们上面介绍过的标题。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>然后是和 markdown 类似地通过 &lt;code>*&lt;/code> 渲染列表项。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>最后是 &lt;code>:ref:&lt;/code>label_name`` ，生成一条指向 &lt;code>label_name&lt;/code> 标签的交叉引用，这时需要通过 &lt;code>.. _label_name:&lt;/code> 指令提前创建一个全局唯一的标签，如为一个标题创建标签：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">..&lt;/span> &lt;span class="n">_label_name&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="n">Section&lt;/span> &lt;span class="n">to&lt;/span> &lt;span class="n">cross&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">reference&lt;/span>
+&lt;span class="o">--------------------------&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ol>
+&lt;p>我们仅简单介绍几种在 &lt;code>index.rst&lt;/code> 中出现过的格式，实际上 reStructuredText 能实现的功能远不限于此。&lt;/p>
+&lt;h3 id="添加-markdown-支持">添加 markdown 支持&lt;/h3>
+&lt;p>为 Sphinx 添加 markdown 支持非常简单。&lt;/p>
+&lt;p>首先安装 &lt;code>MyST&lt;/code> 插件：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pip install myst-parser
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>接着修改 &lt;code>[conf.py](http://conf.py)&lt;/code> 文件，找到 &lt;code>extensions = []&lt;/code> 所在的一行，向该列表中添加 &lt;code>&amp;quot;myst_parser&amp;quot;&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">extensions&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;myst_parser&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>之后源目录中所有的 &lt;code>.md&lt;/code> 文件就会像 &lt;code>.rst&lt;/code> 一样被 Sphinx 正常解析。&lt;/p>
+&lt;h3 id="添加新的文档内容">添加新的文档内容&lt;/h3>
+&lt;ol>
+&lt;li>
+&lt;p>向首页添加新的文本段落&lt;/p>
+&lt;p>在已有的标题和指令之外直接插入文本即可，如：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Welcome&lt;/span> &lt;span class="n">to&lt;/span> &lt;span class="n">sphinx&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">demo&lt;/span>&lt;span class="s1">&amp;#39;s documentation!&lt;/span>
+&lt;span class="o">=======================================&lt;/span>
+&lt;span class="o">..&lt;/span> &lt;span class="n">toctree&lt;/span>&lt;span class="p">::&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">maxdepth&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">2&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">caption&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">Contents&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="n">Indices&lt;/span> &lt;span class="ow">and&lt;/span> &lt;span class="n">tables&lt;/span>
+&lt;span class="o">==================&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`genindex`&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`modindex`&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`search`&lt;/span>
+&lt;span class="err">新内容&lt;/span>
+&lt;span class="o">======&lt;/span>
+&lt;span class="err">这是一个新的段落&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>生成 HTML 页面如下：&lt;/p>
+&lt;p>![%E4%BD%BF%E7%94%A8%20sphinx%20%E4%B8%BA%E9%A1%B9%E7%9B%AE%E7%94%9F%E6%88%90%20API%20%E6%96%87%E6%A1%A3%205a681cef56c64ff7aef54869dbfc5aca/Untitled%201.png](C:/Users/amped/Desktop/使用 sphinx 为项目生成 API 文档 5a681cef56c64ff7aef54869dbfc5aca/Untitled 1.png)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>添加新的 &lt;code>.rst&lt;/code> 文件&lt;/p>
+&lt;p>在 &lt;code>docs&lt;/code> 目录中创建一个新的 &lt;code>install.rst&lt;/code> ，在文件中写入标题，然后在首页文件中添加相应的目录条目或者引用，本例中我们添加到目录树：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">..&lt;/span> &lt;span class="n">toctree&lt;/span>&lt;span class="p">::&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">maxdepth&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">2&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">caption&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">Contents&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="n">install&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>添加新文件时需要注意两点：&lt;/p>
+&lt;ul>
+&lt;li>新文件中需要至少有一个标题，否则不会生成相应的链接，且链接默认会使用该标题作为展示文本。&lt;/li>
+&lt;li>在引用中添加子目录前缀即可在源目录中通过子目录管理文件。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>添加新的 &lt;code>.md&lt;/code> 文件&lt;/p>
+&lt;p>我们尝试在 &lt;code>docs&lt;/code> 中创建一个子目录 &lt;code>references&lt;/code> ，然后在该目录中添加 &lt;code>api_reference.md&lt;/code> 文件，接着在 &lt;code>index.rst&lt;/code> 文件中添加以下内容引用新添加的文件：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Appendix&lt;/span>
+&lt;span class="o">=========&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">doc&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`references/api_reference`&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>实质上与添加 &lt;code>.rst&lt;/code> 文件完全相同，因此新的文档中也需要包含标题才能生成链接。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;p>最终通过 &lt;code>make html&lt;/code> 生成的 HTML 页面效果如下：&lt;/p>
+&lt;p>![%E4%BD%BF%E7%94%A8%20sphinx%20%E4%B8%BA%E9%A1%B9%E7%9B%AE%E7%94%9F%E6%88%90%20API%20%E6%96%87%E6%A1%A3%205a681cef56c64ff7aef54869dbfc5aca/Untitled%202.png](C:/Users/amped/Desktop/使用 sphinx 为项目生成 API 文档 5a681cef56c64ff7aef54869dbfc5aca/Untitled 2.png)&lt;/p>
+&lt;h2 id="生成-api-文档">生成 API 文档&lt;/h2>
+&lt;p>以上介绍的内容，已经足够为项目编写一般的文本内容文档，最后来看如何通过代码自动生成 API 文档。&lt;/p>
+&lt;p>以单文件模块作为示例，结果同样适用于多文件的包和模块，假设我们的代码位于根目录下的 &lt;code>[main.py](http://main.py)&lt;/code> 文件（即 &lt;code>main&lt;/code> 模块）中，内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="k">class&lt;/span> &lt;span class="nc">Human&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;Foo class&amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="fm">__init__&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">gender&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;Make a virtual human.
+&lt;/span>&lt;span class="s2">
+&lt;/span>&lt;span class="s2"> :param sex: gender of human.
+&lt;/span>&lt;span class="s2"> :param name: name of human.
+&lt;/span>&lt;span class="s2"> &amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">gender&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">gender&lt;/span>
+&lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">name&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="nf">speak&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">words&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;speak some words.
+&lt;/span>&lt;span class="s2">
+&lt;/span>&lt;span class="s2"> :param words: words to speak.
+&lt;/span>&lt;span class="s2"> :return: None
+&lt;/span>&lt;span class="s2"> &amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">words&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="nf">get_intro&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;get man&amp;#39;s introduction.
+&lt;/span>&lt;span class="s2">
+&lt;/span>&lt;span class="s2"> :return: self introduction string.
+&lt;/span>&lt;span class="s2"> &amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="n">f&lt;/span>&lt;span class="s1">&amp;#39;Name: {self.name};Gender: {self.gender}&amp;#39;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Sphinx 通过 &lt;code>autodoc&lt;/code> 扩展从源代码中导入文档字符串并转换成文档。此外还可通过 &lt;code>viewcode&lt;/code> 扩展直接从文档访问 API 对应的源代码页面。&lt;/p>
+&lt;p>首先编辑 &lt;code>[conf.py](http://conf.py)&lt;/code> 文件以启用扩展，在 extensions 配置项中加入两个扩展项：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="n">extensions&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">sphinx&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ext&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">autodoc&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">sphinx&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ext&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">viewcode&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>为了获取文档字符串，Sphinx 需要能够导入文档所在的代码模块。也就是说，我们的源码模块必须位于 Sphinx 的导入层级结构中，这有许多种实现途径，本例选择在 &lt;code>[conf.py](http://conf.py)&lt;/code> 中将代码模块所在的目录（即 &lt;code>conf.py&lt;/code> 文件所在的上一级目录）加入到 &lt;code>sys.path&lt;/code> 中，在 &lt;code>conf.py&lt;/code> 中加入以下代码：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="kn">import&lt;/span> &lt;span class="nn">osimport&lt;/span> &lt;span class="nn">syssys.path.insert&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">os&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">path&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">abspath&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;..&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>最后，在 &lt;code>references/api_reference.md&lt;/code> 文档中通过 &lt;code>automodule&lt;/code> 指令导入 &lt;code>main&lt;/code> 模块的文档：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-markdown" data-lang="markdown">&lt;span class="gh"># API Reference
+&lt;/span>&lt;span class="gh">&lt;/span>
+​```{eval-rst}
+.. automodule:: main
+:members:
+​```
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>注意：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>除了 &lt;code>automodule&lt;/code> ，还可使用 &lt;code>autoclass&lt;/code> 、 &lt;code>autofunction&lt;/code> 等指令为其他类型的 Python 对象自动生成文档。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>为了在 markdown 格式中使用 &lt;code>autodoc&lt;/code> ，我们使用 &lt;code>eval-rst&lt;/code> 指令对导入文档的指令做了一层封装，详见 &lt;a href="https://myst-parser.readthedocs.io/en/latest/using/howto.html#use-sphinx-ext-autodoc-in-markdown-files">Use sphinx.ext.autodoc in Markdown files&lt;/a>，它等价于 &lt;code>.rst&lt;/code> 文件的如下写法：&lt;/p>
+&lt;pre>&lt;code>.. automodule:: main
+:members:
+&lt;/code>&lt;/pre>&lt;/li>
+&lt;/ul>
+&lt;p>&lt;code>references/api_reference.md&lt;/code> 生成的页面效果如下：&lt;/p>
+&lt;p>![%E4%BD%BF%E7%94%A8%20sphinx%20%E4%B8%BA%E9%A1%B9%E7%9B%AE%E7%94%9F%E6%88%90%20API%20%E6%96%87%E6%A1%A3%205a681cef56c64ff7aef54869dbfc5aca/Untitled%203.png](C:/Users/amped/Desktop/使用 sphinx 为项目生成 API 文档 5a681cef56c64ff7aef54869dbfc5aca/Untitled 3.png)&lt;/p>
+&lt;p>通过页面右侧的 &lt;code>[source]&lt;/code> 链接还能够直接从文档页面跳转到相应的源代码：&lt;/p>
+&lt;p>![%E4%BD%BF%E7%94%A8%20sphinx%20%E4%B8%BA%E9%A1%B9%E7%9B%AE%E7%94%9F%E6%88%90%20API%20%E6%96%87%E6%A1%A3%205a681cef56c64ff7aef54869dbfc5aca/Untitled%204.png](C:/Users/amped/Desktop/使用 sphinx 为项目生成 API 文档 5a681cef56c64ff7aef54869dbfc5aca/Untitled 4.png)&lt;/p>
+&lt;h2 id="其他途径">其他途径&lt;/h2>
+&lt;p>除了 Sphinx ，使用 &lt;a href="https://www.mkdocs.org/">MkDocs&lt;/a> 配合 &lt;a href="https://github.com/mkdocstrings/mkdocstrings">&lt;code>mkdocstrings&lt;/code>&lt;/a> 扩展包也能实现自动从源码生成文档。相比之下 MkDocs 配置更加简单，原生支持 markdown 且可以运行预览用的开发服务器，目前在 Python 项目中也非常流行。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;a href="https://www.sphinx-doc.org/en/master/usage/quickstart.html#autodoc">Getting Started - Sphinx documentation&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://myst-parser.readthedocs.io/en/latest/using/howto.html#use-sphinx-ext-autodoc-in-markdown-files">How-To Guides&lt;/a>&lt;/p>
+&lt;/li>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/></entry><entry><title type="text">Python 中 time 和 datetime 模块的区别</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/"/><id>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2021-04-29T17:07:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，即使熟悉 Python 也可能记混它们的用法，本文将力求清晰地阐述它们之间的区别。</summary><content type="html">&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
 &lt;p>下文将分别介绍每个模块的主要目的、核心对象、常用方法以及用途，并在最后做分析对比，如果已经了解这些细节可以直接跳转到结尾的总结对比部分。&lt;/p>
 &lt;p>另外本文将避免涉及字符串格式化、时区、冬夏令时等更复杂深入的话题。&lt;/p>
 &lt;h2 id="time-模块">time 模块&lt;/h2>
@@ -705,7 +1117,7 @@
 &lt;li>其余名称的函数均为类方法&lt;/li>
 &lt;/ul>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">理解 Python 中的描述符</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/python-descriptor-in-detail/"/><id>https://www.waynerv.com/posts/python-descriptor-in-detail/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2021-04-15T21:32:47+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。</summary><content type="html">&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">理解 Python 中的描述符</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/python-descriptor-in-detail/"/><id>https://www.waynerv.com/posts/python-descriptor-in-detail/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2021-04-15T21:32:47+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。</summary><content type="html">&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
 &lt;h2 id="描述符的定义">描述符的定义&lt;/h2>
 &lt;p>描述符的定义很简单，实现了下列&lt;em>任意一个方法&lt;/em>的 Python 对象就是一个描述符（descriptor）：&lt;/p>
 &lt;ul>
@@ -1401,7 +1813,7 @@
 &lt;li>&lt;a href="https://docs.python.org/3/reference/datamodel.html#implementing-descriptors">Python Refenrence - Data model - Implementing Descriptors&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://realpython.com/python-descriptors/">Python Descriptors: An Introduction&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://blog.peterlamut.com/2018/11/04/python-attribute-lookup-explained-in-detail/">Python attribute lookup explained in detail&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">自己编译一个最新版本的 Python3</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/compiling-a-latest-python/"/><id>https://www.waynerv.com/posts/compiling-a-latest-python/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2021-04-06T10:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。 工……</summary><content type="html">&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">自己编译一个最新版本的 Python3</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/compiling-a-latest-python/"/><id>https://www.waynerv.com/posts/compiling-a-latest-python/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2021-04-06T10:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。 工……</summary><content type="html">&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
 &lt;h2 id="工作环境">工作环境&lt;/h2>
 &lt;p>测试机的操作系统是 Ubuntu 20.10，已安装有 &lt;code>gcc&lt;/code> 、&lt;code>git&lt;/code> 等基础的开发工具。经验证以下步骤同样适用于 macOS 11。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -1598,7 +2010,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://devguide.python.org/setup/#getting-started">Python Developer’s Guide: Getting Started&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/" term="编译" label="编译"/></entry><entry><title type="text">[CSAPP] 计算机的浮点数表示</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/csapp-ieee-floating-intro/"/><id>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2021-03-29T22:48:53+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况： 1 2 &amp;gt;&amp;gt;&amp;gt; 0.1 + 0.2 0.30000000000000004 其原因是程序在运行时，所使用的浮点数类型并没有精……</summary><content type="html">&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/" term="编译" label="编译"/></entry><entry><title type="text">[CSAPP] 计算机的浮点数表示</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/csapp-ieee-floating-intro/"/><id>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2021-03-29T22:48:53+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况： 1 2 &amp;gt;&amp;gt;&amp;gt; 0.1 + 0.2 0.30000000000000004 其原因是程序在运行时，所使用的浮点数类型并没有精……</summary><content type="html">&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -1664,7 +2076,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;ol>
 &lt;li>虽然使用了不同的计算方式，但非规范化值可以平滑地过渡到规范化值，如上最大的非规范化值为 $\frac{7}{512}$，而最小的规范化值为 $\frac{8}{512}$。&lt;/li>
 &lt;li>随着浮点数的递增，其比特位表示所解释地无符号整数也随之递增，因此我们可以用相对简单的无符号整数的排序规则来对浮点数进行排序，这并非巧合，而是有意设计的。&lt;/li>
-&lt;/ol></content><category scheme="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/" term="笔记总结" label="笔记总结"/><category scheme="https://www.waynerv.com/tags/csapp/" term="CSAPP" label="CSAPP"/></entry><entry><title type="text">Git cherry-pick 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-cherry-pick-intro/"/><id>https://www.waynerv.com/posts/git-cherry-pick-intro/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2021-01-26T16:49:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 rebase，merge，checkout， reset 等多种操作的使用……</summary><content type="html">&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
+&lt;/ol></content><category scheme="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/" term="笔记总结" label="笔记总结"/><category scheme="https://www.waynerv.com/tags/csapp/" term="CSAPP" label="CSAPP"/></entry><entry><title type="text">Git cherry-pick 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-cherry-pick-intro/"/><id>https://www.waynerv.com/posts/git-cherry-pick-intro/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2021-01-26T16:49:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 rebase，merge，checkout， reset 等多种操作的使用……</summary><content type="html">&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
 &lt;h2 id="基本用法">基本用法&lt;/h2>
 &lt;p>Git 命令文档的描述不一定直观易懂，但绝对准确，文档对 &lt;code>git cherry-pick&lt;/code> 描述是： &lt;code>Apply the changes introduced by some existing commits&lt;/code>，即应用某些已有提交所引入的更改。通常我们会说 &lt;code>cherry-pick&lt;/code> 是将某个（些）提交从一个分支移动到另一个分支，这种说法更加容易理解，但后面我们会解释为何文档的描述才是最准确的。&lt;/p>
 &lt;p>假设我们有如下提交：&lt;/p>
@@ -1858,7 +2270,7 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;li>&lt;a href="https://stackoverflow.com/a/52932137/10224392">what does git cherry-pick {commit-hash} do?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/a/10058070/10224392">In a Git cherry-pick or rebase merge conflict, how are BASE (aka “the ancestor”), LOCAL, and REMOTE determined?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/questions/27417656/should-diff3-be-default-conflictstyle-on-git">Should diff3 be default conflictstyle on git?&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git 撤销操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，也许这次可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水……</summary><content type="html">&lt;p>「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，也许这次可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git 撤销操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，也许这次可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水……</summary><content type="html">&lt;p>「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，也许这次可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
 &lt;p>之所以如此，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
 &lt;ul>
 &lt;li>我在本地修改了一些文件还未提交，但我想放弃某些文件的更改。&lt;/li>
@@ -2674,7 +3086,7 @@ $ git stash pop
 &lt;li>&lt;a href="https://shafiul.github.io//gitbook/7_the_git_index.html">The Git Index&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://mincong.io/2018/04/28/git-index/#:~:text=The%20index%20is%20a%20binary,Git%3A%20they%20are%20used%20interchangeably.">Git: Understanding the Index File&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tom.preston-werner.com/2009/05/19/the-git-parable.html">The Git Parable&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流……</summary><content type="html">&lt;p>在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流……</summary><content type="html">&lt;p>在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
 &lt;h2 id="linter">Linter&lt;/h2>
 &lt;p>Linter 是一类用于标记程序错误、bug、风格错误和可疑结构的静态代码分析工具，比如 Python 中的 &lt;code>Pylint&lt;/code>、 &lt;code>flake8&lt;/code>，JavaScript 中的 &lt;code>EsLint&lt;/code>，这类工具会找到你代码中的错误，并给出如何修复的提示。&lt;/p>
 &lt;h3 id="为何要使用-linter">为何要使用 Linter&lt;/h3>
@@ -3413,7 +3825,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/quickstart">Quickstart for GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/introduction-to-github-actions">Introduction to GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="http://www.ruanyifeng.com/blog/2019/09/getting-started-with-github-actions.html">GitHub Actions 入门教程&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 部署个人博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。 刚学编程的时候，还开源过一个基于 Flask 和 MongoDB 的博客项目……</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 部署个人博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。 刚学编程的时候，还开源过一个基于 Flask 和 MongoDB 的博客项目……</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
 &lt;p>刚学编程的时候，还开源过一个基于 Flask 和 MongoDB 的&lt;a href="https://github.com/waynerv/originblog">博客项目&lt;/a>，但后面就没怎么使用和维护了，除开主观上的懒，还因为：&lt;/p>
 &lt;ul>
 &lt;li>自建博客绕不开主机和域名，这是一笔持续的经济成本。国内的主机往往是第一年割肉第二年宰猪，国外的主机访问延迟很高。&lt;/li>
@@ -3627,7 +4039,7 @@ publish_dir: ./public
 &lt;p>在本地做一些更改，预览效果后提交并推送，然后在项目仓库的 GitHub Actions 页面检查相应的 &lt;code>workflow&lt;/code> 是否运行成功。不出意外的话，很快个人主页仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，访问个人博客页面也会发现页面已经更新。&lt;/p>
 &lt;h2 id="个人体验">个人体验&lt;/h2>
 &lt;p>由于先后选择的 3 个主题均遭遇了上述发布地址不能包含子路径的问题，我在基本按照官方文档操作的前提下，依然花了超过 10 个小时才把&lt;a href="https://waynerv.github.io/">博客&lt;/a>上线，浪费了很多时间在配置主题以及寻找问题的解决方案上。本以为选择了一个简单快捷的省心方案，结果还是免不了过程的一顿踩坑和折腾。&lt;/p>
-&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/></entry><entry><title type="text">Git 合并操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2020-11-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作，都需要进行合并。 但对新手来说， git merge 这一命令……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
+&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/></entry><entry><title type="text">Git 合并操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2020-11-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作，都需要进行合并。 但对新手来说， git merge 这一命令……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
 &lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
 &lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
 &lt;h2 id="认识合并">认识合并&lt;/h2>
@@ -3731,7 +4143,7 @@ $ git merge feature
 &lt;li>
 &lt;p>&lt;a href="https://segmentfault.com/a/1190000021712743">git merge的原理（递归三路合并算法）&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git Rebase 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2020-10-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">以前我对 git rebase -i 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下……</summary><content type="html">&lt;p>以前我对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git Rebase 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2020-10-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">以前我对 git rebase -i 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下……</summary><content type="html">&lt;p>以前我对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
 &lt;h2 id="理解-rebase-命令">理解 Rebase 命令&lt;/h2>
 &lt;p>&lt;code>git rebase&lt;/code> 命令的文档描述是 &lt;code>Reapply commits on top of another base tip&lt;/code>，从字面上理解是「在另一个基端之上重新应用提交」，这个定义听起来有点抽象，换个角度可以理解为「将分支的基础从一个提交改成另一个提交，使其看起来就像是从另一个提交中创建了分支一样」，如下图：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
@@ -4266,7 +4678,7 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>
 &lt;p>&lt;a href="https://medium.com/@fabisiakradoslaw/understand-how-does-git-rebase-work-and-compare-with-git-merge-and-git-interactive-rebase-cce2c9775e43">Understand how does git rebase work and compare with git merge and git interactive rebase&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">写了一份 Web API 设计规范</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/my-web-api-spcification/"/><id>https://www.waynerv.com/posts/my-web-api-spcification/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2020-10-17T11:40:09+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">基于 GitHub REST API v3 和 RFC7807，并结合自己在工作中的一些实践，编写了这份 Web API 规范。</summary><content type="html">&lt;p>基于 &lt;a href="https://developer.github.com/v3">GitHub REST API v3&lt;/a> 和 &lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a> ，并结合自己在工作中的一些实践，编写了这份 Web API 规范。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">写了一份 Web API 设计规范</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/my-web-api-spcification/"/><id>https://www.waynerv.com/posts/my-web-api-spcification/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2020-10-17T11:40:09+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">基于 GitHub REST API v3 和 RFC7807，并结合自己在工作中的一些实践，编写了这份 Web API 规范。</summary><content type="html">&lt;p>基于 &lt;a href="https://developer.github.com/v3">GitHub REST API v3&lt;/a> 和 &lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a> ，并结合自己在工作中的一些实践，编写了这份 Web API 规范。&lt;/p>
 &lt;p>本规范虽然整体上遵循 RESTful 风格，但并未强制要求使用超媒体表示，严格来说不符合 REST API 的要求，因此基于此规范构建的项目应该定义为 Web API。&lt;/p>
 &lt;h2 id="概览">概览&lt;/h2>
 &lt;p>所有 API 应该使用统一的根域名。&lt;/p>
@@ -4632,7 +5044,7 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>&lt;a href="https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md">Microsoft api guidelines&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">Best Practices for Designing a Pragmatic RESTful API&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/web/" term="Web" label="Web"/><category scheme="https://www.waynerv.com/tags/restful/" term="RESTful" label="RESTful"/></entry><entry><title type="text">记录一次迁移MySQL数据文件到新硬盘的过程</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/"/><id>https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/</id><updated>2021-05-19T09:28:21+00:00</updated><published>2020-09-08T12:14:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">迁移前的环境 MySQL Server 程序编译安装于 qmysql 用户的 /home/qmysql/qmysql/packages 目录下，文件夹结构如下： 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 .……</summary><content type="html">&lt;h2 id="迁移前的环境">迁移前的环境&lt;/h2>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/web/" term="Web" label="Web"/><category scheme="https://www.waynerv.com/tags/restful/" term="RESTful" label="RESTful"/></entry><entry><title type="text">记录一次迁移MySQL数据文件到新硬盘的过程</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/"/><id>https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/</id><updated>2021-06-07T14:14:38+00:00</updated><published>2020-09-08T12:14:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">迁移前的环境 MySQL Server 程序编译安装于 qmysql 用户的 /home/qmysql/qmysql/packages 目录下，文件夹结构如下： 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 .……</summary><content type="html">&lt;h2 id="迁移前的环境">迁移前的环境&lt;/h2>
 &lt;p>MySQL Server 程序编译安装于 &lt;code>qmysql&lt;/code> 用户的 &lt;code>/home/qmysql/qmysql/packages&lt;/code> 目录下，文件夹结构如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">

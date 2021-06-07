@@ -1,4 +1,416 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 19 May 2021 09:28:29 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>Python 中 time 和 datetime 模块的区别</title><link>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</guid><pubDate>Thu, 29 Apr 2021 17:07:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 07 Jun 2021 14:14:44 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>使用 Sphinx 为项目自动生成 API 文档</title><link>https://www.waynerv.com/posts/use-sphinx-to-automatically-generate-api-reference/</link><guid isPermaLink="true">https://www.waynerv.com/posts/use-sphinx-to-automatically-generate-api-reference/</guid><pubDate>Mon, 07 Jun 2021 21:15:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分项目的潜在用户拒之门外。&lt;/p>
+&lt;p>从开源项目中可以总结整理出一些关于文档的最佳实践：&lt;/p>
+&lt;ul>
+&lt;li>文档和代码库在一个仓库中维护以做到同步更新（个别体量超大的项目例外）&lt;/li>
+&lt;li>使用纯文本格式编写文档，如 &lt;code>markdown&lt;/code> 或 &lt;code>reStructText&lt;/code>，然后再用文档生成工具将其转换成易于阅读且样式丰富的静态网页，进一步可通过 CI 将静态网页托管到可公开访问的站点&lt;/li>
+&lt;li>在文档中直接引用实际的代码，并提供 API 文档&lt;/li>
+&lt;/ul>
+&lt;p>API 文档通常位于文档中的 &lt;code>API Reference&lt;/code> 或 &lt;code>References&lt;/code> 章节，它能节省用户查阅源码的时间，帮助用户快速理解项目的内部组成，很多流行的开源项目都会提供组织良好的 API 文档，如 &lt;a href="https://flask.palletsprojects.com/en/2.0.x/#api-reference">Flask&lt;/a>、&lt;a href="https://click.palletsprojects.com/en/8.0.x/api/#module-click">Click&lt;/a> 等，本文就将介绍如何使用 &lt;a href="https://www.sphinx-doc.org/en/master/index.html">Sphinx&lt;/a> 为项目生成 API 文档。&lt;/p>
+&lt;h2 id="为什么是-sphinx">为什么是 sphinx&lt;/h2>
+&lt;p>有许多开源工具可以用来将纯文本转换为静态网页，选择 Sphinx 的理由有以下几点：&lt;/p>
+&lt;ul>
+&lt;li>经典老牌，使用相当广泛，Python 的官方文档也是用它生成的&lt;/li>
+&lt;li>功能全面，支持各种主题和插件，和 Python 具有语言上的亲和性&lt;/li>
+&lt;li>能够很方便地根据代码的文档字符串自动生成 API 文档&lt;/li>
+&lt;/ul>
+&lt;p>Sphinx 的默认文本格式是 &lt;a href="https://docutils.sourceforge.io/rst.html">reStructuredText&lt;/a>（简称 rst），它是一种极其强大的标记语言，配合 Sphinx 可以实现很多 markdown 所不具备的解析、引用特性，缺点是规则和指令较为复杂。这原本并不算缺点，但随着 markdown 的流行，人们似乎无法再接受任何比 markdown 更复杂一点的标记语言了。&lt;/p>
+&lt;p>不过这并不是问题，我们也可以借助 &lt;code>[MyST](https://myst-parser.readthedocs.io/en/latest/)&lt;/code> 解析器实现 Sphinx 和 markdown 的完全兼容，接下来的示例中我们将混合使用 &lt;code>md&lt;/code> 和 &lt;code>rst&lt;/code> 两种格式，当然你也可以只使用任意一种格式。&lt;/p>
+&lt;h2 id="新建一个文档项目">新建一个文档项目&lt;/h2>
+&lt;h3 id="安装-sphinx">安装 Sphinx&lt;/h3>
+&lt;p>示例将是一个 Python 语言项目，因此最直接的方式当然是通过 pip 安装：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pip install sphinx
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>对于其他语言及平台， Sphinx 也提供了丰富的安装途径，详见 &lt;a href="https://www.sphinx-doc.org/en/master/usage/installation.html#installing-sphinx">Installing Sphinx&lt;/a>。&lt;/p>
+&lt;h3 id="设置文档源目录">设置文档源目录&lt;/h3>
+&lt;p>我们将在同一个项目中维护代码和文档，因此首先需要在项目根目录新建一个 &lt;code>docs&lt;/code> 文件夹存放所有和文档有关的文件（也可以使用其他名称），我们将使用该文件夹作为 Sphinx 工作的源目录（&lt;a href="https://www.sphinx-doc.org/en/master/glossary.html#term-source-directory">source directory&lt;/a>）。&lt;/p>
+&lt;h3 id="初始化项目">初始化项目&lt;/h3>
+&lt;p>切换到 &lt;code>docs&lt;/code> 目录，执行以下命令在该目录初始化一个新的 Sphinx 文档项目：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">sphinx-quickstart
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>接下来根据命令行提示完成初始化项目的各项配置，如填写项目名称和作者，对于不理解的选项回车使用默认选项即可。&lt;/p>
+&lt;p>初始化后的 &lt;code>docs&lt;/code> 目录内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">docs
+├── Makefile
+├── _build
+├── _static
+├── _templates
+├── conf.py
+├── index.rst
+└── make.bat
+&lt;span class="m">3&lt;/span> directories, &lt;span class="m">4&lt;/span> files
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>其中最重要的是 &lt;code>[conf.py](http://conf.py)&lt;/code> 文件，它是一个 Sphinx 将会运行的 Python 模块，保存着刚刚通过命令行输入的配置，还可以编辑文件来修改配置或添加插件，并通过该文件运行需要的 Python 代码。&lt;/p>
+&lt;p>&lt;code>Makefile&lt;/code> 和 &lt;code>make.bat&lt;/code> 提供了一些快捷命令，在 &lt;code>docs&lt;/code> 目录执行 &lt;code>make html&lt;/code> 即可通过源文件生成静态网页。&lt;/p>
+&lt;p>&lt;code>index.rst&lt;/code> 是文档源文件的首页，文档里有一些默认的样板内容，我们也可以将其替换为 &lt;code>index.md&lt;/code>。&lt;/p>
+&lt;p>此时已经可以运行 &lt;code>make html&lt;/code> 生成静态网页看看效果了，生成的 HTML 页面保存在 &lt;code>_build/html&lt;/code> 目录。打开后效果如下：&lt;/p>
+&lt;p>![%E4%BD%BF%E7%94%A8%20sphinx%20%E4%B8%BA%E9%A1%B9%E7%9B%AE%E7%94%9F%E6%88%90%20API%20%E6%96%87%E6%A1%A3%205a681cef56c64ff7aef54869dbfc5aca/Untitled.png](C:/Users/amped/Desktop/使用 sphinx 为项目生成 API 文档 5a681cef56c64ff7aef54869dbfc5aca/Untitled.png)&lt;/p>
+&lt;h3 id="初始-restructuredtext">初始 reStructuredText&lt;/h3>
+&lt;p>接下来我们借助 &lt;code>index.rst&lt;/code> 简单认识一下 reStructuredText 格式。&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>标题&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Welcome&lt;/span> &lt;span class="n">to&lt;/span> &lt;span class="n">sphinx&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">demo&lt;/span>&lt;span class="s1">&amp;#39;s documentation!&lt;/span>
+&lt;span class="o">=======================================&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在文本的下一行连续输入同一标点符号，即可将文本标记为标题，另外还有很违反直觉的两点要求：&lt;/p>
+&lt;ul>
+&lt;li>符号的长度需要超出文本&lt;/li>
+&lt;li>无法显式地指定标题级别，如果解析到另一种符号标记的标题，将根据出现顺序指定为新的标题级别，如&lt;/li>
+&lt;/ul>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Secondary&lt;/span> &lt;span class="n">Title&lt;/span>
+&lt;span class="o">----------------&lt;/span>
+&lt;span class="n">Third&lt;/span> &lt;span class="n">Title&lt;/span>
+&lt;span class="o">~~~~~~~~~~~~&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>相比 markdown 直接使用符号的个数指示标题级别，这种规则并不算直观。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>目录树&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">..&lt;/span> &lt;span class="n">toctree&lt;/span>&lt;span class="p">::&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">maxdepth&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">2&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">caption&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">Contents&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="n">install&lt;/span>
+&lt;span class="n">reference&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>形如 &lt;code>.. {directive}::&lt;/code> 这样的文本在 &lt;code>rst&lt;/code> 中被称为指令，可以实现各种特殊效果，比如 &lt;code>.. toctree::&lt;/code> 将在当前位置插入一颗目录树。在指令的下一行可以通过 &lt;code>:{option}: value&lt;/code> 指定选项，如上示例中指定了该目录树的最大深度和标题。&lt;/p>
+&lt;p>再往下就是目录树的条目了，Sphinx 将根据条目名称如 &lt;code>install&lt;/code> 作为相对路径在源目录即 &lt;code>docs&lt;/code> 中寻找名为 &lt;code>install.rst&lt;/code> 或 &lt;code>[install.md](http://install.md)&lt;/code> 的文件，并生成指向该文件的链接。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>引用&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Indices&lt;/span> &lt;span class="ow">and&lt;/span> &lt;span class="n">tables&lt;/span>
+&lt;span class="o">==================&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`genindex`&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`modindex`&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`search`&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这部分内容包含了 3 种格式：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>首先是我们上面介绍过的标题。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>然后是和 markdown 类似地通过 &lt;code>*&lt;/code> 渲染列表项。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>最后是 &lt;code>:ref:&lt;/code>label_name`` ，生成一条指向 &lt;code>label_name&lt;/code> 标签的交叉引用，这时需要通过 &lt;code>.. _label_name:&lt;/code> 指令提前创建一个全局唯一的标签，如为一个标题创建标签：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">..&lt;/span> &lt;span class="n">_label_name&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="n">Section&lt;/span> &lt;span class="n">to&lt;/span> &lt;span class="n">cross&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">reference&lt;/span>
+&lt;span class="o">--------------------------&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ol>
+&lt;p>我们仅简单介绍几种在 &lt;code>index.rst&lt;/code> 中出现过的格式，实际上 reStructuredText 能实现的功能远不限于此。&lt;/p>
+&lt;h3 id="添加-markdown-支持">添加 markdown 支持&lt;/h3>
+&lt;p>为 Sphinx 添加 markdown 支持非常简单。&lt;/p>
+&lt;p>首先安装 &lt;code>MyST&lt;/code> 插件：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pip install myst-parser
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>接着修改 &lt;code>[conf.py](http://conf.py)&lt;/code> 文件，找到 &lt;code>extensions = []&lt;/code> 所在的一行，向该列表中添加 &lt;code>&amp;quot;myst_parser&amp;quot;&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">extensions&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;myst_parser&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>之后源目录中所有的 &lt;code>.md&lt;/code> 文件就会像 &lt;code>.rst&lt;/code> 一样被 Sphinx 正常解析。&lt;/p>
+&lt;h3 id="添加新的文档内容">添加新的文档内容&lt;/h3>
+&lt;ol>
+&lt;li>
+&lt;p>向首页添加新的文本段落&lt;/p>
+&lt;p>在已有的标题和指令之外直接插入文本即可，如：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Welcome&lt;/span> &lt;span class="n">to&lt;/span> &lt;span class="n">sphinx&lt;/span>&lt;span class="o">-&lt;/span>&lt;span class="n">demo&lt;/span>&lt;span class="s1">&amp;#39;s documentation!&lt;/span>
+&lt;span class="o">=======================================&lt;/span>
+&lt;span class="o">..&lt;/span> &lt;span class="n">toctree&lt;/span>&lt;span class="p">::&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">maxdepth&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">2&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">caption&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">Contents&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="n">Indices&lt;/span> &lt;span class="ow">and&lt;/span> &lt;span class="n">tables&lt;/span>
+&lt;span class="o">==================&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`genindex`&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`modindex`&lt;/span>
+&lt;span class="o">*&lt;/span> &lt;span class="p">:&lt;/span>&lt;span class="n">ref&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`search`&lt;/span>
+&lt;span class="err">新内容&lt;/span>
+&lt;span class="o">======&lt;/span>
+&lt;span class="err">这是一个新的段落&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>生成 HTML 页面如下：&lt;/p>
+&lt;p>![%E4%BD%BF%E7%94%A8%20sphinx%20%E4%B8%BA%E9%A1%B9%E7%9B%AE%E7%94%9F%E6%88%90%20API%20%E6%96%87%E6%A1%A3%205a681cef56c64ff7aef54869dbfc5aca/Untitled%201.png](C:/Users/amped/Desktop/使用 sphinx 为项目生成 API 文档 5a681cef56c64ff7aef54869dbfc5aca/Untitled 1.png)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>添加新的 &lt;code>.rst&lt;/code> 文件&lt;/p>
+&lt;p>在 &lt;code>docs&lt;/code> 目录中创建一个新的 &lt;code>install.rst&lt;/code> ，在文件中写入标题，然后在首页文件中添加相应的目录条目或者引用，本例中我们添加到目录树：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="o">..&lt;/span> &lt;span class="n">toctree&lt;/span>&lt;span class="p">::&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">maxdepth&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">2&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">caption&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="n">Contents&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="n">install&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>添加新文件时需要注意两点：&lt;/p>
+&lt;ul>
+&lt;li>新文件中需要至少有一个标题，否则不会生成相应的链接，且链接默认会使用该标题作为展示文本。&lt;/li>
+&lt;li>在引用中添加子目录前缀即可在源目录中通过子目录管理文件。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>添加新的 &lt;code>.md&lt;/code> 文件&lt;/p>
+&lt;p>我们尝试在 &lt;code>docs&lt;/code> 中创建一个子目录 &lt;code>references&lt;/code> ，然后在该目录中添加 &lt;code>api_reference.md&lt;/code> 文件，接着在 &lt;code>index.rst&lt;/code> 文件中添加以下内容引用新添加的文件：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="n">Appendix&lt;/span>
+&lt;span class="o">=========&lt;/span>
+&lt;span class="p">:&lt;/span>&lt;span class="n">doc&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="sb">`references/api_reference`&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>实质上与添加 &lt;code>.rst&lt;/code> 文件完全相同，因此新的文档中也需要包含标题才能生成链接。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;p>最终通过 &lt;code>make html&lt;/code> 生成的 HTML 页面效果如下：&lt;/p>
+&lt;p>![%E4%BD%BF%E7%94%A8%20sphinx%20%E4%B8%BA%E9%A1%B9%E7%9B%AE%E7%94%9F%E6%88%90%20API%20%E6%96%87%E6%A1%A3%205a681cef56c64ff7aef54869dbfc5aca/Untitled%202.png](C:/Users/amped/Desktop/使用 sphinx 为项目生成 API 文档 5a681cef56c64ff7aef54869dbfc5aca/Untitled 2.png)&lt;/p>
+&lt;h2 id="生成-api-文档">生成 API 文档&lt;/h2>
+&lt;p>以上介绍的内容，已经足够为项目编写一般的文本内容文档，最后来看如何通过代码自动生成 API 文档。&lt;/p>
+&lt;p>以单文件模块作为示例，结果同样适用于多文件的包和模块，假设我们的代码位于根目录下的 &lt;code>[main.py](http://main.py)&lt;/code> 文件（即 &lt;code>main&lt;/code> 模块）中，内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="k">class&lt;/span> &lt;span class="nc">Human&lt;/span>&lt;span class="p">:&lt;/span>
+&lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;Foo class&amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="fm">__init__&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">gender&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">name&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;Make a virtual human.
+&lt;/span>&lt;span class="s2">
+&lt;/span>&lt;span class="s2"> :param sex: gender of human.
+&lt;/span>&lt;span class="s2"> :param name: name of human.
+&lt;/span>&lt;span class="s2"> &amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">gender&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">gender&lt;/span>
+&lt;span class="bp">self&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">name&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="nf">speak&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">words&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;speak some words.
+&lt;/span>&lt;span class="s2">
+&lt;/span>&lt;span class="s2"> :param words: words to speak.
+&lt;/span>&lt;span class="s2"> :return: None
+&lt;/span>&lt;span class="s2"> &amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;span class="k">print&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">words&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="k">def&lt;/span> &lt;span class="nf">get_intro&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="bp">self&lt;/span>&lt;span class="p">):&lt;/span>
+&lt;span class="s2">&amp;#34;&amp;#34;&amp;#34;get man&amp;#39;s introduction.
+&lt;/span>&lt;span class="s2">
+&lt;/span>&lt;span class="s2"> :return: self introduction string.
+&lt;/span>&lt;span class="s2"> &amp;#34;&amp;#34;&amp;#34;&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="n">f&lt;/span>&lt;span class="s1">&amp;#39;Name: {self.name};Gender: {self.gender}&amp;#39;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Sphinx 通过 &lt;code>autodoc&lt;/code> 扩展从源代码中导入文档字符串并转换成文档。此外还可通过 &lt;code>viewcode&lt;/code> 扩展直接从文档访问 API 对应的源代码页面。&lt;/p>
+&lt;p>首先编辑 &lt;code>[conf.py](http://conf.py)&lt;/code> 文件以启用扩展，在 extensions 配置项中加入两个扩展项：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="n">extensions&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">sphinx&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ext&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">autodoc&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">sphinx&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ext&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">viewcode&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>为了获取文档字符串，Sphinx 需要能够导入文档所在的代码模块。也就是说，我们的源码模块必须位于 Sphinx 的导入层级结构中，这有许多种实现途径，本例选择在 &lt;code>[conf.py](http://conf.py)&lt;/code> 中将代码模块所在的目录（即 &lt;code>conf.py&lt;/code> 文件所在的上一级目录）加入到 &lt;code>sys.path&lt;/code> 中，在 &lt;code>conf.py&lt;/code> 中加入以下代码：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="kn">import&lt;/span> &lt;span class="nn">osimport&lt;/span> &lt;span class="nn">syssys.path.insert&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">os&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">path&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">abspath&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;..&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>最后，在 &lt;code>references/api_reference.md&lt;/code> 文档中通过 &lt;code>automodule&lt;/code> 指令导入 &lt;code>main&lt;/code> 模块的文档：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-markdown" data-lang="markdown">&lt;span class="gh"># API Reference
+&lt;/span>&lt;span class="gh">&lt;/span>
+​```{eval-rst}
+.. automodule:: main
+:members:
+​```
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>注意：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>除了 &lt;code>automodule&lt;/code> ，还可使用 &lt;code>autoclass&lt;/code> 、 &lt;code>autofunction&lt;/code> 等指令为其他类型的 Python 对象自动生成文档。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>为了在 markdown 格式中使用 &lt;code>autodoc&lt;/code> ，我们使用 &lt;code>eval-rst&lt;/code> 指令对导入文档的指令做了一层封装，详见 &lt;a href="https://myst-parser.readthedocs.io/en/latest/using/howto.html#use-sphinx-ext-autodoc-in-markdown-files">Use sphinx.ext.autodoc in Markdown files&lt;/a>，它等价于 &lt;code>.rst&lt;/code> 文件的如下写法：&lt;/p>
+&lt;pre>&lt;code>.. automodule:: main
+:members:
+&lt;/code>&lt;/pre>&lt;/li>
+&lt;/ul>
+&lt;p>&lt;code>references/api_reference.md&lt;/code> 生成的页面效果如下：&lt;/p>
+&lt;p>![%E4%BD%BF%E7%94%A8%20sphinx%20%E4%B8%BA%E9%A1%B9%E7%9B%AE%E7%94%9F%E6%88%90%20API%20%E6%96%87%E6%A1%A3%205a681cef56c64ff7aef54869dbfc5aca/Untitled%203.png](C:/Users/amped/Desktop/使用 sphinx 为项目生成 API 文档 5a681cef56c64ff7aef54869dbfc5aca/Untitled 3.png)&lt;/p>
+&lt;p>通过页面右侧的 &lt;code>[source]&lt;/code> 链接还能够直接从文档页面跳转到相应的源代码：&lt;/p>
+&lt;p>![%E4%BD%BF%E7%94%A8%20sphinx%20%E4%B8%BA%E9%A1%B9%E7%9B%AE%E7%94%9F%E6%88%90%20API%20%E6%96%87%E6%A1%A3%205a681cef56c64ff7aef54869dbfc5aca/Untitled%204.png](C:/Users/amped/Desktop/使用 sphinx 为项目生成 API 文档 5a681cef56c64ff7aef54869dbfc5aca/Untitled 4.png)&lt;/p>
+&lt;h2 id="其他途径">其他途径&lt;/h2>
+&lt;p>除了 Sphinx ，使用 &lt;a href="https://www.mkdocs.org/">MkDocs&lt;/a> 配合 &lt;a href="https://github.com/mkdocstrings/mkdocstrings">&lt;code>mkdocstrings&lt;/code>&lt;/a> 扩展包也能实现自动从源码生成文档。相比之下 MkDocs 配置更加简单，原生支持 markdown 且可以运行预览用的开发服务器，目前在 Python 项目中也非常流行。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;a href="https://www.sphinx-doc.org/en/master/usage/quickstart.html#autodoc">Getting Started - Sphinx documentation&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://myst-parser.readthedocs.io/en/latest/using/howto.html#use-sphinx-ext-autodoc-in-markdown-files">How-To Guides&lt;/a>&lt;/p>
+&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category></item><item><title>Python 中 time 和 datetime 模块的区别</title><link>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</guid><pubDate>Thu, 29 Apr 2021 17:07:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
 &lt;p>下文将分别介绍每个模块的主要目的、核心对象、常用方法以及用途，并在最后做分析对比，如果已经了解这些细节可以直接跳转到结尾的总结对比部分。&lt;/p>
 &lt;p>另外本文将避免涉及字符串格式化、时区、冬夏令时等更复杂深入的话题。&lt;/p>
 &lt;h2 id="time-模块">time 模块&lt;/h2>
