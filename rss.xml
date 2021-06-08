@@ -1,15 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 07 Jun 2021 15:21:30 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>使用 Sphinx 为项目自动生成 API 文档</title><link>https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</link><guid isPermaLink="true">https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</guid><pubDate>Mon, 07 Jun 2021 21:15:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分项目的潜在用户拒之门外。&lt;/p>
-&lt;p>从开源项目中可以总结整理出一些关于文档的最佳实践：&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 08 Jun 2021 02:17:20 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>使用 Sphinx 为项目自动生成 API 文档</title><link>https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</link><guid isPermaLink="true">https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</guid><pubDate>Mon, 07 Jun 2021 21:15:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。&lt;/p>
+&lt;p>从流行的开源项目中，我们可以总结出一些关于文档的最佳实践：&lt;/p>
 &lt;ul>
 &lt;li>文档和代码库在一个仓库中维护以做到同步更新（个别体量超大的项目例外）&lt;/li>
-&lt;li>使用纯文本格式编写文档，如 &lt;code>markdown&lt;/code> 或 &lt;code>reStructText&lt;/code>，然后再用文档生成工具将其转换成易于阅读且样式丰富的静态网页，进一步可通过 CI 将静态网页托管到可公开访问的站点&lt;/li>
+&lt;li>使用纯文本格式编写文档，如 &lt;code>markdown&lt;/code> 或 &lt;code>reStructText&lt;/code>，然后通过生成工具将其转换成易于阅读且样式丰富的静态网页，进一步可通过 CI 将静态网页托管到可公开访问的站点&lt;/li>
 &lt;li>在文档中直接引用实际的代码，并提供 API 文档&lt;/li>
 &lt;/ul>
-&lt;p>API 文档通常位于文档中的 &lt;code>API Reference&lt;/code> 或 &lt;code>References&lt;/code> 章节，它能节省用户查阅源码的时间，帮助用户快速理解项目的内部组成，很多流行的开源项目都会提供组织良好的 API 文档，如 &lt;a href="https://flask.palletsprojects.com/en/2.0.x/#api-reference">Flask&lt;/a>、&lt;a href="https://click.palletsprojects.com/en/8.0.x/api/#module-click">Click&lt;/a> 等，本文就将介绍如何使用 &lt;a href="https://www.sphinx-doc.org/en/master/index.html">Sphinx&lt;/a> 为项目生成 API 文档。&lt;/p>
-&lt;h2 id="为什么是-sphinx">为什么是 sphinx&lt;/h2>
+&lt;p>API 文档通常位于文档中的 &lt;code>API Reference&lt;/code> 或 &lt;code>References&lt;/code> 章节，它能节省用户查阅源码的时间，帮助用户快速理解项目的内部组成。对于作为库（而非应用）的项目而言，提供组织良好的 API 文档尤为重要，如 &lt;a href="https://flask.palletsprojects.com/en/2.0.x/#api-reference">Flask&lt;/a>、&lt;a href="https://click.palletsprojects.com/en/8.0.x/api/#module-click">Click&lt;/a> 等，本文就将介绍如何使用 &lt;a href="https://www.sphinx-doc.org/en/master/index.html">Sphinx&lt;/a> 为项目自动生成 API 文档。&lt;/p>
+&lt;h2 id="为什么是-sphinx">为什么是 Sphinx&lt;/h2>
 &lt;p>有许多开源工具可以用来将纯文本转换为静态网页，选择 Sphinx 的理由有以下几点：&lt;/p>
 &lt;ul>
-&lt;li>经典老牌，使用相当广泛，Python 的官方文档也是用它生成的&lt;/li>
+&lt;li>经典老牌，使用相当广泛，Python 的官方文档也是用它所生成&lt;/li>
 &lt;li>功能全面，支持各种主题和插件，和 Python 具有语言上的亲和性&lt;/li>
 &lt;li>能够很方便地根据代码的文档字符串自动生成 API 文档&lt;/li>
 &lt;/ul>
@@ -28,7 +28,7 @@
 &lt;/div>
 &lt;/div>&lt;p>对于其他语言及平台， Sphinx 也提供了丰富的安装途径，详见 &lt;a href="https://www.sphinx-doc.org/en/master/usage/installation.html#installing-sphinx">Installing Sphinx&lt;/a>。&lt;/p>
 &lt;h3 id="设置文档源目录">设置文档源目录&lt;/h3>
-&lt;p>我们将在同一个项目中维护代码和文档，因此首先需要在项目根目录新建一个 &lt;code>docs&lt;/code> 文件夹存放所有和文档有关的文件（也可以使用其他名称），我们将使用该文件夹作为 Sphinx 工作的源目录（&lt;a href="https://www.sphinx-doc.org/en/master/glossary.html#term-source-directory">source directory&lt;/a>）。&lt;/p>
+&lt;p>我们将在同一个项目中维护代码和文档，因此首先需要在项目根目录新建一个 &lt;code>docs&lt;/code> 文件夹（也可以使用其他名称），用来存放所有和文档有关的文件，我们将使用该文件夹作为 Sphinx 工作的源目录（&lt;a href="https://www.sphinx-doc.org/en/master/glossary.html#term-source-directory">source directory&lt;/a>）。&lt;/p>
 &lt;h3 id="初始化项目">初始化项目&lt;/h3>
 &lt;p>切换到 &lt;code>docs&lt;/code> 目录，执行以下命令在该目录初始化一个新的 Sphinx 文档项目：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -68,10 +68,11 @@
 &lt;/div>
 &lt;/div>&lt;p>其中最重要的是 &lt;code>conf.py&lt;/code> 文件，它是一个 Sphinx 将会运行的 Python 模块，保存着刚刚通过命令行输入的配置，还可以编辑文件来修改配置或添加插件，并通过该文件运行需要的 Python 代码。&lt;/p>
 &lt;p>&lt;code>Makefile&lt;/code> 和 &lt;code>make.bat&lt;/code> 提供了一些快捷命令，在 &lt;code>docs&lt;/code> 目录执行 &lt;code>make html&lt;/code> 即可通过源文件生成静态网页。&lt;/p>
-&lt;p>&lt;code>index.rst&lt;/code> 是文档源文件的首页，文档里有一些默认的样板内容，我们也可以将其替换为 &lt;code>index.md&lt;/code>。&lt;/p>
-&lt;p>此时已经可以运行 &lt;code>make html&lt;/code> 生成静态网页看看效果了，生成的 HTML 页面保存在 &lt;code>_build/html&lt;/code> 目录。打开后效果如下：&lt;/p>
+&lt;p>&lt;code>index.rst&lt;/code> 是文档源文件的首页，文档里有一些默认的样板内容，通常我们将其作为访问其他页面的入口目录。&lt;/p>
+&lt;p>此时已经可以运行 &lt;code>make html&lt;/code> 生成静态网页用于预览，生成的 HTML 页面保存在 &lt;code>_build/html&lt;/code> 目录。使用浏览器打开后效果如下：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-06-07-sphinx-index.png" alt="">&lt;/p>
-&lt;h2 id="基本用法">基本用法&lt;/h2>
+&lt;p>如果对默认的样式不满意，还可以在 &lt;a href="https://sphinx-themes.org/">Sphinx Themes Gallery&lt;/a> 找到大量可以轻松替换的文档主题。&lt;/p>
+&lt;h2 id="基本使用">基本使用&lt;/h2>
 &lt;h3 id="初始-restructuredtext">初始 reStructuredText&lt;/h3>
 &lt;p>接下来我们借助 &lt;code>index.rst&lt;/code> 简单认识一下 reStructuredText 格式。&lt;/p>
 &lt;ol>
@@ -159,7 +160,7 @@
 &lt;p>然后是和 markdown 类似地通过 &lt;code>*&lt;/code> 渲染列表项。&lt;/p>
 &lt;/li>
 &lt;li>
-&lt;p>最后是 &lt;code>:ref:&lt;/code>label_name`` ，生成一条指向 &lt;code>label_name&lt;/code> 标签的交叉引用，这时需要通过 &lt;code>.. _label_name:&lt;/code> 指令提前创建一个全局唯一的标签，如为一个标题创建标签：&lt;/p>
+&lt;p>最后是 &lt;code>:ref:`label_name` &lt;/code>，生成一条指向 &lt;code>label_name&lt;/code> 标签的交叉引用，这时需要通过 &lt;code>.. _label_name:&lt;/code> 指令提前创建一个全局唯一的标签，如为一个标题创建标签：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -349,7 +350,7 @@
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;h3 id="启用扩展">启用扩展&lt;/h3>
-&lt;p>Sphinx 通过 &lt;code>autodoc&lt;/code> 扩展从源代码中导入文档字符串并转换成文档。此外还可通过 &lt;code>viewcode&lt;/code> 扩展直接从文档访问 API 对应的源代码页面。&lt;/p>
+&lt;p>Sphinx 通过 &lt;code>autodoc&lt;/code> 扩展导入源代码并解析其文档字符串转换成文档。此外还可通过 &lt;code>viewcode&lt;/code> 扩展直接从文档访问 API 对应的源代码页面。&lt;/p>
 &lt;p>首先编辑 &lt;code>conf.py&lt;/code> 文件以启用扩展，在 extensions 配置项中加入两个扩展项：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -359,7 +360,7 @@
 &lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="n">extensions&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">sphinx&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ext&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">autodoc&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="err">&amp;#39;&lt;/span>&lt;span class="n">sphinx&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">ext&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">viewcode&lt;/span>&lt;span class="err">&amp;#39;&lt;/span>&lt;span class="p">]&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>为了获取文档字符串，Sphinx 需要能够导入文档所在的代码模块。也就是说，我们的源码模块必须位于 Sphinx 的导入层级结构中，这有许多种实现途径，本例选择在 &lt;code>conf.py 中将代码模块所在的目录（即 &lt;/code>conf.py&lt;code>文件所在的上一级目录）加入到&lt;/code>sys.path&lt;code>中，在&lt;/code>conf.py` 中加入以下代码：&lt;/p>
+&lt;/div>&lt;p>为了获取文档字符串，Sphinx 需要能够导入文档所在的代码模块。也就是说，我们的源码模块必须位于 Sphinx 的导入层级结构中，这有许多种实现途径，本例选择在 &lt;code>conf.py&lt;/code> 中将代码模块所在的目录（即 &lt;code>conf.py&lt;/code> 文件所在的上一级目录）加入到 &lt;code>sys.path&lt;/code> 中，在 &lt;code>conf.py&lt;/code> 中加入以下代码：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -373,7 +374,8 @@
 &lt;span class="n">sys&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">path&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">insert&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">os&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">path&lt;/span>&lt;span class="o">.&lt;/span>&lt;span class="n">abspath&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;..&amp;#39;&lt;/span>&lt;span class="p">)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;h3 id="导入文档">导入文档&lt;/h3>
+&lt;/div>&lt;p>需要注意被 Sphinx 导入时模块中的代码会被执行一次，因此我们应该隔离模块中的执行逻辑以避免产生副作用，如将其包裹在 &lt;code>if __name__ == '__main__'&lt;/code> 代码块中。&lt;/p>
+&lt;h3 id="导入文档">导入文档&lt;/h3>
 &lt;p>最后，在 &lt;code>references/api_reference.md&lt;/code> 文档中通过 &lt;code>automodule&lt;/code> 指令导入 &lt;code>main&lt;/code> 模块的文档：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -399,7 +401,7 @@
 &lt;p>除了 &lt;code>automodule&lt;/code> ，还可使用 &lt;code>autoclass&lt;/code> 、 &lt;code>autofunction&lt;/code> 等指令为其他类型的 Python 对象自动生成文档。&lt;/p>
 &lt;/li>
 &lt;li>
-&lt;p>为了在 markdown 格式中使用 &lt;code>autodoc&lt;/code> ，我们使用 &lt;code>eval-rst&lt;/code> 指令对导入文档的指令做了一层封装，详见 &lt;a href="https://myst-parser.readthedocs.io/en/latest/using/howto.html#use-sphinx-ext-autodoc-in-markdown-files">Use sphinx.ext.autodoc in Markdown files&lt;/a>，它等价于 &lt;code>.rst&lt;/code> 文件的如下写法：&lt;/p>
+&lt;p>为了在 markdown 格式中使用 &lt;code>autodoc&lt;/code> ，需要使用 &lt;code>eval-rst&lt;/code> 指令对导入文档的指令做一层封装，详见 &lt;a href="https://myst-parser.readthedocs.io/en/latest/using/howto.html#use-sphinx-ext-autodoc-in-markdown-files">Use sphinx.ext.autodoc in Markdown files&lt;/a>，它等价于 &lt;code>.rst&lt;/code> 文件的如下写法：&lt;/p>
 &lt;pre>&lt;code>.. automodule:: main
 :members:
 &lt;/code>&lt;/pre>&lt;/li>
@@ -408,7 +410,23 @@
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-06-07-sphinx-autodoc.png" alt="">&lt;/p>
 &lt;p>通过页面右侧的 &lt;code>[source]&lt;/code> 链接还能够直接从文档页面跳转到相应的源代码：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-06-07-sphinx-viewcode.png" alt="">&lt;/p>
-&lt;p>如果对默认的样式不满意，还可以在 &lt;a href="https://sphinx-themes.org/">Sphinx Themes Gallery&lt;/a> 找到大量可以轻松替换的文档主题。&lt;/p>
+&lt;h3 id="文档字符串风格">文档字符串风格&lt;/h3>
+&lt;p>上面的示例代码中，我们使用 reStructuredText 风格编写文档字符串，如果你更喜欢 &lt;a href="https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard">NumPy&lt;/a> 或 &lt;a href="https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings">Google &lt;/a>风格的文档字符串，可以启用 &lt;code>napoleon&lt;/code> 扩展与之兼容。&lt;code>napoleon&lt;/code> 是一个预处理器，在 &lt;code>autodoc&lt;/code> 处理文档字符串之前将其转换为正确的 reStructuredText 文本。&lt;/p>
+&lt;p>启用方法同样是修改 &lt;code>conf.py&lt;/code> 文件的 extensions 配置项：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-python" data-lang="python">&lt;span class="c1"># conf.py&lt;/span>
+&lt;span class="c1"># Add napoleon to the extensions list&lt;/span>
+&lt;span class="n">extensions&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s1">&amp;#39;sphinx.ext.napoleon&amp;#39;&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>启用后 &lt;code>autodoc&lt;/code> 将能够同时支持 reStructuredText、NumPy 及 Google 三种不同风格的文档字符串。&lt;/p>
 &lt;h2 id="其他途径">其他途径&lt;/h2>
 &lt;p>除了 Sphinx ，使用 &lt;a href="https://www.mkdocs.org/">MkDocs&lt;/a> 配合 &lt;a href="https://github.com/mkdocstrings/mkdocstrings">&lt;code>mkdocstrings&lt;/code>&lt;/a> 扩展包也能实现自动从源码生成文档。相比之下 MkDocs 配置更加简单，原生支持 markdown 且可以运行预览用的开发服务器，目前在 Python 项目中也非常流行。&lt;/p>
 &lt;h2 id="参考链接">参考链接&lt;/h2>
