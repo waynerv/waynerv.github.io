@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 16 Jun 2021 08:35:43 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>使用 Sphinx 为项目自动生成 API 文档</title><link>https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</link><guid isPermaLink="true">https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</guid><pubDate>Mon, 07 Jun 2021 21:15:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 17 Jun 2021 02:12:12 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>使用 Sphinx 为项目自动生成 API 文档</title><link>https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</link><guid isPermaLink="true">https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</guid><pubDate>Mon, 07 Jun 2021 21:15:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。&lt;/p>
 &lt;p>从流行的开源项目中，我们可以总结出一些关于文档的最佳实践：&lt;/p>
 &lt;ul>
 &lt;li>文档和代码库在一个仓库中维护以做到同步更新（个别体量超大的项目例外）&lt;/li>
@@ -3684,7 +3684,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>还能够执行打包、运行测试、安全检查等更多更复杂的任务。&lt;/li>
 &lt;/ul>
 &lt;p>接下来我们将通过 GitHub Actions 为例，展示如何运行一个简单的 CD pipeline。&lt;/p>
-&lt;h3 id="github-cd-示例">Github CD 示例&lt;/h3>
+&lt;h3 id="github-cd-示例">GitHub CD 示例&lt;/h3>
 &lt;h4 id="和-gitlab-cicd-的区别">和 GitLab CI/CD 的区别&lt;/h4>
 &lt;p>GitHub Actions 是 GitHub 在 2018年10月推出的持续集成服务，它和上文介绍的 GitLab CI 原理和使用方法基本相同，但存在以下区别：&lt;/p>
 &lt;ul>
@@ -3839,6 +3839,11 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>顺便介绍了一个通过 GitHub Actions 实现持续部署的示例，演示了 GitHub 持续集成服务的基本用法。&lt;/li>
 &lt;/ol>
 &lt;p>经过简单几步的一次性配置，你就可以拥有一套高度自动化的代码质量工具工作流程。但工具只是保障代码质量众多环节中最容易发力，见效快，但作用也很有限的一环。真正实现保证代码质量这一目标任重而道远，还需要我们在个人和团队这两个方面认识到代码质量的重要性，并不断践行各种代码质量设计与活动。&lt;/p>
+&lt;p>&lt;em>&lt;strong>更新&lt;/strong>&lt;/em>：&lt;/p>
+&lt;ul>
+&lt;li>如果你觉得手动集成以上工具过于繁琐，可以尝试我制作的 Python 项目模板 &lt;a href="https://github.com/waynerv/cookiecutter-pypackage">Cookiecutter PyPackage&lt;/a>，使用方式很简单，使用了 GitHub Actions 自动执行测试、预览和发布。&lt;/li>
+&lt;li>如果你想学习/提高自己的 Python 技能，我推荐一个学习网站 &lt;a href="https://jobtensor.com/Tutorial/Python/en/Introduction">https://jobtensor.com/Tutorial/Python/en/Introduction&lt;/a>，它们的内容很棒而且完全免费。&lt;/li>
+&lt;/ul>
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://en.wikipedia.org/wiki/Lint_(software)">Linter-Wikipedia&lt;/a>&lt;/li>
