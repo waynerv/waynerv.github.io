@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 25 Jun 2021 10:18:58 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>究极的 Python 开源项目模板</title><link>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</link><guid isPermaLink="true">https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</guid><pubDate>Fri, 25 Jun 2021 18:08:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 29 Jun 2021 14:44:39 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>究极的 Python 开源项目模板</title><link>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</link><guid isPermaLink="true">https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</guid><pubDate>Fri, 25 Jun 2021 18:08:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
 &lt;p>制作一个项目启动模板，也是开始一个新开源项目的好 idea。两年前我曾经接触过 cookiecutter （一个项目生成工具）；在发布了几个项目后，对于 Python 打包发布到 PyPI 的流程也比较熟悉了；何况在 GitHub 上还看过许多类似的项目模板，可以 fork 后在其基础上进行自定义。一切都水到渠成，这应该不是个很难的事。&lt;/p>
 &lt;p>不过我还是经过一段时间的测试和反复打磨，才终于完成一份 Python 开源项目模板：&lt;a href="https://github.com/waynerv/cookiecutter-pypackage">Cookiecutter PyPackage&lt;/a>，标题中的「究极」有夸大之嫌，但内容的确是相当全面。模板的使用方法在项目文档中有详细介绍，这篇文章主要分享我在模板中所选择的工具以及选择它们的理由。&lt;/p>
 &lt;h2 id="包管理工具">包管理工具&lt;/h2>
@@ -2437,7 +2437,7 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;li>暂存区（Staging Index）&lt;/li>
 &lt;li>提交历史（Commit History）&lt;/li>
 &lt;/ul>
-&lt;p>虽然我们用树来形容它们，但需要先明确的一点是，树并不代表它们真实的数据结构。「树」在这里的实际意思是「文件的集合」，而不是指特定的数据结构。在文中我们不会去深入探究它们的底层，而是重点了解它们的作用及相互关系。&lt;/p>
+&lt;p>虽然我们用树来形容它们，但需要先明确的一点是，树并不代表它们真实的数据结构。「树」在这里的实际意思是「文件的集合」，而不是指特定的数据结构。在文中我们不会去深入探究它们的底层实现，而是重点了解它们的原理及相互关系。&lt;/p>
 &lt;h3 id="工作区">工作区&lt;/h3>
 &lt;p>工作区即存放当前操作文件的本地文件系统目录。&lt;/p>
 &lt;p>我们可以把它当成一个沙盒，在其中随意地添加或编辑文件，然后再将修改后的文件添加到暂存区并记录到提交历史中。&lt;/p>
@@ -2704,7 +2704,7 @@ b15cc74
 &lt;p>若工作区与暂存区存在未提交的本地更改，&lt;code>checkout&lt;/code> 还会尝试将文件快照与本地更改做简单的合并，若合并失败，将会中止操作并恢复到 &lt;code>checkout&lt;/code> 之前的状态。因此&lt;code>checkout&lt;/code> 对工作区是安全的，它不会丢弃工作区所做的更改。&lt;/p>
 &lt;/li>
 &lt;/ol>
-&lt;p>&lt;code>git commit [branch]&lt;/code> 的执行过程与上面类似，但是 HEAD 会指向 &lt;code>[branch]&lt;/code> 这个分支引用。&lt;/p>
+&lt;p>&lt;code>git checkout [branch]&lt;/code> 的执行过程与上面类似，但是 HEAD 会指向 &lt;code>[branch]&lt;/code> 这个分支引用。&lt;/p>
 &lt;h4 id="带路径">带路径&lt;/h4>
 &lt;p>当 &lt;code>git checkout&lt;/code> 像下面这样在命令参数中带文件路径时：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
