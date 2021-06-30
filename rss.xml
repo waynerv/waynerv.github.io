@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 29 Jun 2021 14:44:39 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>究极的 Python 开源项目模板</title><link>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</link><guid isPermaLink="true">https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</guid><pubDate>Fri, 25 Jun 2021 18:08:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 30 Jun 2021 01:58:27 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>究极的 Python 开源项目模板</title><link>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</link><guid isPermaLink="true">https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</guid><pubDate>Fri, 25 Jun 2021 18:08:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
 &lt;p>制作一个项目启动模板，也是开始一个新开源项目的好 idea。两年前我曾经接触过 cookiecutter （一个项目生成工具）；在发布了几个项目后，对于 Python 打包发布到 PyPI 的流程也比较熟悉了；何况在 GitHub 上还看过许多类似的项目模板，可以 fork 后在其基础上进行自定义。一切都水到渠成，这应该不是个很难的事。&lt;/p>
 &lt;p>不过我还是经过一段时间的测试和反复打磨，才终于完成一份 Python 开源项目模板：&lt;a href="https://github.com/waynerv/cookiecutter-pypackage">Cookiecutter PyPackage&lt;/a>，标题中的「究极」有夸大之嫌，但内容的确是相当全面。模板的使用方法在项目文档中有详细介绍，这篇文章主要分享我在模板中所选择的工具以及选择它们的理由。&lt;/p>
 &lt;h2 id="包管理工具">包管理工具&lt;/h2>
@@ -2417,18 +2417,19 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;li>&lt;a href="https://stackoverflow.com/a/52932137/10224392">what does git cherry-pick {commit-hash} do?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/a/10058070/10224392">In a Git cherry-pick or rebase merge conflict, how are BASE (aka “the ancestor”), LOCAL, and REMOTE determined?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/questions/27417656/should-diff3-be-default-conflictstyle-on-git">Should diff3 be default conflictstyle on git?&lt;/a>&lt;/li>
-&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/git/">Git</category></item><item><title>Git 撤销操作浅析</title><link>https://www.waynerv.com/posts/git-undo-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-undo-intro/</guid><pubDate>Sat, 09 Jan 2021 12:53:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，也许这次可以用搜索结果中的命令暂时过关，但却可能在再次遇到类似问题时一头雾水：为什么这次搜到的答案不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
-&lt;p>之所以如此，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/git/">Git</category></item><item><title>Git 撤销操作浅析</title><link>https://www.waynerv.com/posts/git-undo-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-undo-intro/</guid><pubDate>Sat, 09 Jan 2021 12:53:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什么这次搜到的命令不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
+&lt;p>之所以这样，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
 &lt;ul>
 &lt;li>我在本地修改了一些文件还未提交，但我想放弃某些文件的更改。&lt;/li>
-&lt;li>我不小心 &lt;code>git add&lt;/code> 了错误的文件，现在想把它取消暂存。&lt;/li>
-&lt;li>我刚刚执行的提交添加了不该提交的文件，我想取消这次提交，但保留（或不保留）对文件所作的修改。&lt;/li>
+&lt;li>我不小心 &lt;code>git add&lt;/code> 了错误的文件，现在我不想把它和其他文件一起提交了。&lt;/li>
+&lt;li>我刚刚执行的提交添加了不该提交的文件，我想取消这次提交，但保留（或不保留）对本地文件所作的修改。&lt;/li>
+&lt;li>我不小心在一个提交中引入了 Bug 并且还推送到了远程分支，现在想回滚到原来的状态。&lt;/li>
 &lt;/ul>
 &lt;p>对于各种复杂的情形，Git 都提供了对应的方案来解决，但由于命令很多且同一命令还有很多选项，想要记住它们不是一件容易的事情。以 &lt;code>reset&lt;/code> 、 &lt;code>checkout&lt;/code> 为例，在添加不同选项并对不同参数执行后，就能实现 6 种不同但又很常用的效果。&lt;/p>
-&lt;p>带着这些疑惑，我们来看看执行这些操作时究竟发生了什么，希望你在阅读本文后，能够对 Git 的撤销操作运用自如，解决大部分与撤销相关的实际问题。&lt;/p>
+&lt;p>对于复杂的问题，我们应该尝试去了解其背后的本质。带着这种想法，我们来看看执行这些操作时究竟发生了什么，希望你在阅读本文后，能够对 Git 的撤销操作运用自如，解决大部分与撤销相关的实际问题（实际上本文还非系统地介绍了 Git 的内部对象和工作原理）。&lt;/p>
 &lt;h2 id="git-中的撤销">Git 中的撤销&lt;/h2>
-&lt;p>首先需要明确的是，Git 中并没有真正意义上传统文本处理软件都会提供的 &lt;code>undo&lt;/code> （撤销）功能，Git 本身也不是一个文本处理软件，它是一个内容寻址文件系统，你所提交的更改都会被保存。它就像时光机一样，可以轻易地使保存的文件回到过去的某个状态。&lt;/p>
-&lt;p>但是，Git 同时管理着三颗不同的「树」的状态，当我们讨论「撤销」这个操作时，除了选择需要恢复到的时间点，还需要明确想更改哪几颗树。&lt;/p>
+&lt;p>首先需要明确的是，Git 中并没有真正意义上传统文本处理软件都会提供的 &lt;code>undo&lt;/code> （撤销）功能，Git 本身也不是一个文本处理软件，它是一个内容寻址文件系统，你所提交的更改都会被保存到系统中。虽然不能 &lt;code>undo&lt;/code> ，但它就像时光机一样，可以将保存的文件恢复到过去的某个状态。&lt;/p>
+&lt;p>然而，Git 同时管理着三颗不同的「树」的状态，当我们讨论「撤销」这个操作时，除了选择需要恢复到的时间点，还需要明确想更改哪几颗树。&lt;/p>
 &lt;p>取决于你想操作的树，你需要用到 &lt;code>checkout&lt;/code> 、&lt;code>reset&lt;/code>、&lt;code>revert&lt;/code> 等不同的命令。因此在了解具体的命令之前，我们先来认识一下这三棵树。&lt;/p>
 &lt;h2 id="git-的三棵树">Git 的三棵树&lt;/h2>
 &lt;p>这三棵树分别是：&lt;/p>
@@ -2437,11 +2438,11 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;li>暂存区（Staging Index）&lt;/li>
 &lt;li>提交历史（Commit History）&lt;/li>
 &lt;/ul>
-&lt;p>虽然我们用树来形容它们，但需要先明确的一点是，树并不代表它们真实的数据结构。「树」在这里的实际意思是「文件的集合」，而不是指特定的数据结构。在文中我们不会去深入探究它们的底层实现，而是重点了解它们的原理及相互关系。&lt;/p>
+&lt;p>虽然我们用树来形容它们，但需要先明确的一点是，树并不代表它们真实的数据结构。「树」在这里的实际意思是「文件的集合」，而不是指特定的数据结构。在文中我们不会去深入探究它们的底层实现，而是重点了解它们的概念及相互关系。&lt;/p>
 &lt;h3 id="工作区">工作区&lt;/h3>
 &lt;p>工作区即存放当前操作文件的本地文件系统目录。&lt;/p>
 &lt;p>我们可以把它当成一个沙盒，在其中随意地添加或编辑文件，然后再将修改后的文件添加到暂存区并记录到提交历史中。&lt;/p>
-&lt;p>Git 可以把工作区中的文件处理、压缩成一个提交对象，也能将取得的提交对象解包成文件同步到工作区中。&lt;/p>
+&lt;p>Git 可以把工作区中的文件处理、压缩成一个提交对象（稍后会解释这一概念），也能将取得的提交对象解包成文件同步到工作区中。&lt;/p>
 &lt;h3 id="暂存区">暂存区&lt;/h3>
 &lt;p>暂存区保存着下一次执行 &lt;code>git commit&lt;/code> 时将加入到提交历史中的内容。&lt;/p>
 &lt;p>Git 把它作为工作区与提交历史之间的中间区域，方便我们对提交内容进行组织：我们可能会在工作区同时更改多个完全不相干的文件，这时可以将它们分别放入暂存区，并在不同的提交中加入提交历史。此外暂存区还用于合并冲突时存放文件的不同版本。&lt;/p>
@@ -2461,7 +2462,7 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;span class="m">100644&lt;/span> 9c1cab9a57432098de869e202ed73161af33d182 &lt;span class="m">0&lt;/span> main.py
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>index&lt;/code> 中记录了暂存区文件的路径名称和 SHA-1 ID，文件内容已经作为 &lt;code>blob&lt;/code> 对象保存到了 &lt;code>.git/objects&lt;/code> 目录中，我们可以通过 ID 取得对应的 &lt;code>blob&lt;/code> 对象：&lt;/p>
+&lt;/div>&lt;p>&lt;code>index&lt;/code> 中记录了暂存区文件的路径名称和 SHA-1 ID，文件内容已经作为 &lt;code>blob&lt;/code> 对象保存到了 &lt;code>.git/objects&lt;/code> 目录中：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -2487,7 +2488,7 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;span class="m">4&lt;/span> directories, &lt;span class="m">2&lt;/span> files
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>blob&lt;/code> 对象是 Git 用来保存文件数据的二进制对象，我们可以用 &lt;code>git cat-file&lt;/code> 命令打印其内容：&lt;/p>
+&lt;/div>&lt;p>&lt;code>blob&lt;/code> 对象是 Git 用来保存文件数据的二进制对象，我们可以通过 ID 取得对应的 &lt;code>blob&lt;/code> 对象，用 &lt;code>git cat-file&lt;/code> 命令打印其内容：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -2499,7 +2500,7 @@ This is a README file.
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>当我们将一个修改过的文件加入暂存区后，如果又在工作区对文件进行了新的修改，需要重新将其加入暂存区，因为暂存区以 &lt;code>blob&lt;/code> 对象保存的只是文件加入时的内容。&lt;/p>
-&lt;p>在 &lt;code>index&lt;/code> 文件中，还记录了每一个文件的创建时间和最后修改时间等元信息，它通过引用数据对象包含了一份完整的文件快照，因此可以通过对比 SHA-1 校验和实现与工作区文件之间的快速比较。&lt;/p>
+&lt;p>在 &lt;code>index&lt;/code> 文件中，还记录了每一个文件的创建时间和最后修改时间等元信息，它通过引用实际的数据对象包含了一份完整的文件快照，因此可以通过对比 SHA-1 校验和实现与工作区文件之间的快速比较。&lt;/p>
 &lt;h3 id="提交历史">提交历史&lt;/h3>
 &lt;p>提交历史是工作区文件在不同时间的文件快照（快照即文件或文件夹在特定时间点的状态，包括内容和元信息）。&lt;/p>
 &lt;p>我们可以通过 &lt;code>git log&lt;/code> 命令查看当前分支的提交历史：&lt;/p>
@@ -3118,7 +3119,7 @@ fatal: 还原失败
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">git resetore main.py
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">git restore main.py
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;/li>
