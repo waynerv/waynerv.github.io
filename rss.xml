@@ -1,14 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 20 Jul 2021 07:08:13 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：认识容器镜像</title><link>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="oci-规范">OCI 规范&lt;/h2>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 20 Jul 2021 09:08:38 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：认识容器镜像</title><link>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="oci-规范">OCI 规范&lt;/h2>
 &lt;p>OCI （Open Container Initiative）规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，包括 Docker 和 Kubernetes。它的出现是一段关于开源商业化的有趣历史：它由 Dokcer 公司作为领头者在 2015 年推出，但如今 Docker 公司在容器行业中已经成了打工仔。&lt;/p>
 &lt;p>从 OCI 规范开始了解容器镜像，可以让我们对容器技术建立更全面清晰的认知，而不是囿于实现细节。OCI 规范分为 &lt;code>Image spec&lt;/code> 和 &lt;code>Runtime spec&lt;/code> 两部分，它们分别覆盖了容器生命周期的不同阶段：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-oci-spec.png" alt="">&lt;/p>
 &lt;h2 id="镜像规范">镜像规范&lt;/h2>
 &lt;p>镜像规范定义了如何创建一个符合 OCI 规范的镜像，它规定了镜像的构建系统需要输出的内容和格式，输出的容器镜像可以被解包成一个 &lt;code>runtime bundle&lt;/code> ，&lt;code>runtime bundle&lt;/code> 是由特定文件和目录结构组成的一个文件夹，从中可以根据运行时标准运行容器。&lt;/p>
+&lt;h3 id="镜像内容">镜像内容&lt;/h3>
 &lt;p>规范要求镜像内容必须包括以下 3 部分：&lt;/p>
 &lt;ul>
-&lt;li>Image Manifest：提供了镜像的配置和文件系统层定位信息，可以看作是镜像的目录，文件格式为 &lt;code>json&lt;/code> 。&lt;/li>
-&lt;li>Image Layer Filesystem Changeset：序列化之后的文件系统和文件系统变更，它们可按顺序一层层应用为一个容器的 rootfs，因此通常也被称为一个 &lt;code>layer&lt;/code>，文件格式可以是 &lt;code>tar&lt;/code> ，&lt;code>gzip&lt;/code> 等存档或压缩格式。&lt;/li>
-&lt;li>Image Configuration：包含了镜像在运行时所使用的执行参数以及有序的 rootfs 变更信息，文件类型为 &lt;code>json&lt;/code>。&lt;/li>
+&lt;li>&lt;strong>Image Manifest&lt;/strong>：提供了镜像的配置和文件系统层定位信息，可以看作是镜像的目录，文件格式为 &lt;code>json&lt;/code> 。&lt;/li>
+&lt;li>&lt;strong>Image Layer Filesystem Changeset&lt;/strong>：序列化之后的文件系统和文件系统变更，它们可按顺序一层层应用为一个容器的 rootfs，因此通常也被称为一个 &lt;code>layer&lt;/code>，文件格式可以是 &lt;code>tar&lt;/code> ，&lt;code>gzip&lt;/code> 等存档或压缩格式。&lt;/li>
+&lt;li>&lt;strong>Image Configuration&lt;/strong>：包含了镜像在运行时所使用的执行参数以及有序的 rootfs 变更信息，文件类型为 &lt;code>json&lt;/code>。&lt;/li>
 &lt;/ul>
 &lt;p>&lt;em>rootfs (root file system)即 &lt;code>/&lt;/code> 根挂载点所挂载的文件系统，是一个操作系统所包含的文件、配置和目录，但并不包括操作系统内核，同一台机器上的所有容器都共享宿主机操作系统的内核。&lt;/em>&lt;/p>
 &lt;p>接下来我们以 &lt;code>Docker&lt;/code> 和 &lt;code>nginx&lt;/code> 为例探索一个镜像的实际内容。拉取一个最新版本的 &lt;code>nginx&lt;/code> 镜像将其 &lt;code>save&lt;/code> 为 tar 包后解压：&lt;/p>
@@ -23,7 +24,7 @@
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker pull nginx
 $ docker save nginx -o nginx-img.tar
 $ mkdir nginx-img
-$ tar -xf nginx-img.tar --directory&lt;span class="o">=&lt;/span>nginx
+$ tar -xf nginx-img.tar --directory&lt;span class="o">=&lt;/span>nginx-img
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>得到 &lt;code>nginx-img&lt;/code> 目录中的内容如下：&lt;/p>
@@ -521,15 +522,39 @@ drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">278&lt;/s
 &lt;li>Delete，删除已停止容器所创建的资源&lt;/li>
 &lt;/ul>
 &lt;p>每个操作之前或之后还会触发不同的 hooks。&lt;/p>
-&lt;h3 id="image-container-and-processes">Image, Container, and Processes&lt;/h3>
+&lt;h3 id="image-container-和-processes">Image, Container 和 Processes&lt;/h3>
 &lt;p>容器从镜像中创建，同一个镜像可以创建多个不同的容器，还可以将运行后更改过的容器，重新打包为一个新的镜像（将可读写层添加到新镜像的只读层中即可）。&lt;/p>
-&lt;p>创建容器后，就可以在不依赖宿主机依赖库的情况从容器中运行进程。&lt;/p>
+&lt;p>创建容器后，就可以在不依赖宿主机依赖库的情况下从容器中运行进程。&lt;/p>
 &lt;h2 id="实现和生态">实现和生态&lt;/h2>
 &lt;p>Docker 向 OCI 规范捐献了其容器运行时 &lt;code>runC&lt;/code> 项目，作为该规范的标准实现。目前已有的大部分容器项目都直接将 &lt;code>runC&lt;/code> 作为运行时实现。&lt;/p>
 &lt;p>下图可以概括容器生态内众多组织及项目之间的关系：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-runc.png" alt="">&lt;/p>
 &lt;p>Kubernetes 定义了 CRI（Container Runtime Interface）以实现可替换的容器运行时，目前有 &lt;code>cri-containerd&lt;/code> 、&lt;code>cri-o&lt;/code> 和 &lt;code>docker&lt;/code> 等几种实现，但它们实际上也都基于 &lt;code>runC&lt;/code>：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-k8s-cri.png" alt="">&lt;/p></description><category domain="https://www.waynerv.com/categories/%E5%AE%B9%E5%99%A8/">容器</category><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category><category domain="https://www.waynerv.com/tags/kubernetes/">Kubernetes</category></item><item><title>究极的 Python 开源项目模板</title><link>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</link><guid isPermaLink="true">https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</guid><pubDate>Fri, 25 Jun 2021 18:08:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-k8s-cri.png" alt="">&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;a href="https://pierrchen.blogspot.com/2018/04/oci-open-container-spec-that-rules-all.html">Understand Container: OCI Specification&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://github.com/opencontainers/image-spec/blob/main/spec.md">Open Container Initiative Image Format Specification&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://github.com/opencontainers/runtime-spec/blob/master/spec.md">Open Container Initiative Runtime Specification&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://docs.docker.com/storage/storagedriver/">About storage drivers&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://docs.docker.com/storage/storagedriver/overlayfs-driver/">Use the OverlayFS storage driver&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://www.kawabangga.com/posts/4224">Docker (容器) 的原理&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>深入剖析Kubernetes-张磊&lt;/p>
+&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%AE%B9%E5%99%A8/">容器</category><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category><category domain="https://www.waynerv.com/tags/kubernetes/">Kubernetes</category></item><item><title>究极的 Python 开源项目模板</title><link>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</link><guid isPermaLink="true">https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</guid><pubDate>Fri, 25 Jun 2021 18:08:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
 &lt;p>制作一个项目启动模板，也是开始一个新开源项目的好 idea。两年前我曾经接触过 cookiecutter （一个项目生成工具）；在发布了几个项目后，对于 Python 打包发布到 PyPI 的流程也比较熟悉了；何况在 GitHub 上还看过许多类似的项目模板，可以 fork 后在其基础上进行自定义。一切都水到渠成，这应该不是个很难的事。&lt;/p>
 &lt;p>不过我还是经过一段时间的测试和反复打磨，才终于完成一份 Python 开源项目模板：&lt;a href="https://github.com/waynerv/cookiecutter-pypackage">Cookiecutter PyPackage&lt;/a>，标题中的「究极」有夸大之嫌，但内容的确是相当全面。模板的使用方法在项目文档中有详细介绍，这篇文章主要分享我在模板中所选择的工具以及选择它们的理由。&lt;/p>
 &lt;h2 id="包管理工具">包管理工具&lt;/h2>
