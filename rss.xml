@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 20 Jul 2021 09:08:38 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：认识容器镜像</title><link>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="oci-规范">OCI 规范&lt;/h2>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 20 Jul 2021 09:32:55 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：认识容器镜像</title><link>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="oci-规范">OCI 规范&lt;/h2>
 &lt;p>OCI （Open Container Initiative）规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，包括 Docker 和 Kubernetes。它的出现是一段关于开源商业化的有趣历史：它由 Dokcer 公司作为领头者在 2015 年推出，但如今 Docker 公司在容器行业中已经成了打工仔。&lt;/p>
 &lt;p>从 OCI 规范开始了解容器镜像，可以让我们对容器技术建立更全面清晰的认知，而不是囿于实现细节。OCI 规范分为 &lt;code>Image spec&lt;/code> 和 &lt;code>Runtime spec&lt;/code> 两部分，它们分别覆盖了容器生命周期的不同阶段：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-oci-spec.png" alt="">&lt;/p>
@@ -60,7 +60,7 @@ $ tar -xf nginx-img.tar --directory&lt;span class="o">=&lt;/span>nginx-img
 &lt;/span>&lt;span class="lnt">28
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">.
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">nginx-img
 ├── 013a6edf61f54428da349193e7a2077a714697991d802a1c5298b07dbe0519c9
 │   ├── json
 │   ├── layer.tar
@@ -318,18 +318,19 @@ B
 &lt;/span>&lt;span class="lnt">10
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /var/lib/docker/overlay2/
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 51f6ad92703c995947429abb5c1cf829a70f19328ce2d49e24f5601bcb0cbf9e
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 7277919d3c55b8b021ef6f6239e03932af169a0b067ef0bce26417735d1e21a6
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">55&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 9ab14a4e4820e69dc6532f8fc081cb9e97207de39f7c53b90e54ef1b3012a7ff
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 a98e19b3221eafb2968cd6df03de93dc293e495a95acb1d103eb16ab371c9dee
-brw------- &lt;span class="m">1&lt;/span> root root 253, &lt;span class="m">1&lt;/span> 7月 &lt;span class="m">15&lt;/span> 16:29 backingFsBlockDev
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 efc6879b6560442f4e3960cb99844d2909480c16228a53ce526f294a16cac7ee
-drwx-----x &lt;span class="m">3&lt;/span> root root &lt;span class="m">47&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 fd047008f9fbbe5c15fe854b6fe73c71c19cd432fa580f2e8c7ef83f987abe57
-drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">210&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 l
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">ll /var/lib/docker/overlay2/
+总用量 &lt;span class="m">0&lt;/span>
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 335aaf02cbde069ddf7aa0077fecac172d4b2f0240975ab0ebecc3f94f1420cc
+drwx-----x &lt;span class="m">3&lt;/span> root root &lt;span class="m">47&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:04 560df35d349e6a750f1139db22d4cb52cba2a1f106616dc1c0c68b3cf11e3df6
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 769a9f5d698522d6e55bd9882520647bd84375a751a67a8ccad1f7bb1ca066dd
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 97aaf293fef495f0f06922d422a6187a952ec6ab29c0aa94cd87024c40e1a7e8
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 a91fb6955249dadfb34a3f5f06d083c192f2774fbec5fbb1db42a04e918432c0
+brw------- &lt;span class="m">1&lt;/span> root root 253, &lt;span class="m">1&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:00 backingFsBlockDev
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 fa29ec8cfe5a6c0b2cd1486f27a20a02867126edf654faad7f3520a220f3705f
+drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">278&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:25 l
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>其中 6 个名称特别长的目录中存放了镜像的 6 个 &lt;code>layer&lt;/code> ， &lt;code>l&lt;/code> 目录中包含了指向 &lt;code>layers&lt;/code> 文件夹的软链接，主要目的是在执行 &lt;code>mount&lt;/code> 命令时缩短目录标识符的长度以避免超出页大小限制。&lt;/p>
+&lt;/div>&lt;p>其中 6 个名称特别长的目录中存放了镜像的 6 个 &lt;code>layer&lt;/code> （目录名称和 &lt;code>manifest.json&lt;/code> 中的名称并不对应）， &lt;code>l&lt;/code> 目录中包含了指向 &lt;code>layers&lt;/code> 文件夹的软链接，主要目的是在执行 &lt;code>mount&lt;/code> 命令时缩短目录标识符的长度以避免超出页大小限制。&lt;/p>
 &lt;p>每个 &lt;code>layer&lt;/code> 文件夹包含的内容如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -340,9 +341,11 @@ drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">210&lt;/s
 &lt;/span>&lt;span class="lnt">5
 &lt;/span>&lt;span class="lnt">6
 &lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll 7277919d3c55b8b021ef6f6239e03932af169a0b067ef0bce26417735d1e21a6
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ &lt;span class="nb">cd&lt;/span> /var/lib/docker/overlay2/
+$ ll 335aaf02cbde069ddf7aa0077fecac172d4b2f0240975ab0ebecc3f94f1420cc
 -rw------- &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 committed
 drwxr-xr-x &lt;span class="m">3&lt;/span> root root &lt;span class="m">33&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 diff
 -rw-r--r-- &lt;span class="m">1&lt;/span> root root &lt;span class="m">26&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 link
@@ -362,7 +365,7 @@ drwx------ &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/spa
 &lt;/span>&lt;span class="lnt">7
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll 7277919d3c55b8b021ef6f6239e03932af169a0b067ef0bce26417735d1e21a6/diff/
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll 335aaf02cbde069ddf7aa0077fecac172d4b2f0240975ab0ebecc3f94f1420cc/diff/
 drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 docker-entrypoint.d
 drwxr-xr-x &lt;span class="m">20&lt;/span> root root &lt;span class="m">4096&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 etc
 drwxr-xr-x &lt;span class="m">5&lt;/span> root root &lt;span class="m">56&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 lib
@@ -384,9 +387,12 @@ drwxr-xr-x &lt;span class="m">5&lt;/span> root root &lt;span class="m">41&lt;/sp
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ mount &lt;span class="p">|&lt;/span> grep overlayoverlay on /var/lib/docker/overlay2/ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec/merged &lt;span class="nb">type&lt;/span> overlay &lt;span class="o">(&lt;/span>rw,relatime,lowerdir&lt;span class="o">=&lt;/span>/var/lib/docker/overlay2/l/PIREOHYGVNE5GDM3D7BEKAO2OH:/var/lib/docker/overlay2/l/UHXO744ZPEAMPLJ7K6W6RW4SXR:/var/lib/docker/overlay2/l/QGUGHGWQ7IP2IP7C55CVCDXBE5:/var/lib/docker/overlay2/l/QW4ZYOFSWBAAB56ZRJOPPRKSPW:/var/lib/docker/overlay2/l/FTMDNPXIB6O2QKVRXKGKF5JZN5:/var/lib/docker/overlay2/l/2W4O2Y6KH2PPR2SUIP442IXZ5C:/var/lib/docker/overlay2/l/TAQRD5PFF3DF5HV2YAW3IH6T6S,upperdir&lt;span class="o">=&lt;/span>/var/lib/docker/overlay2/ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec/diff,workdir&lt;span class="o">=&lt;/span>/var/lib/docker/overlay2/ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec/work&lt;span class="o">)&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ mount &lt;span class="p">|&lt;/span> grep overlay
+overlay on /var/lib/docker/overlay2/bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011/merged &lt;span class="nb">type&lt;/span> overlay &lt;span class="o">(&lt;/span>rw,relatime,lowerdir&lt;span class="o">=&lt;/span>/var/lib/docker/overlay2/l/6Y7DPCTGLB6JHUPVBGTOEK2QFN:/var/lib/docker/overlay2/l/QMEEOSTJM2QON4M7PJJBB4KDEF:/var/lib/docker/overlay2/l/XNN2MRN4KWITFTZYLFUSLBP322:/var/lib/docker/overlay2/l/6DC6VDOMBZMLBZBT3QSOWLCR37:/var/lib/docker/overlay2/l/NXYWG253WSMELQKF2E2NH2GWCG:/var/lib/docker/overlay2/l/M4SO5XMO4VXRIJIGUHDMTATWH3:/var/lib/docker/overlay2/l/QI3P6ONJSLQI26DVPFGWIZI2EW,upperdir&lt;span class="o">=&lt;/span>/var/lib/docker/overlay2/bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011/diff,workdir&lt;span class="o">=&lt;/span>/var/lib/docker/overlay2/bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011/work&lt;span class="o">)&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>该挂载点中即包含了所有镜像层 &lt;code>layer&lt;/code> 组合而成的一个 rootfs：&lt;/p>
@@ -417,7 +423,7 @@ drwxr-xr-x &lt;span class="m">5&lt;/span> root root &lt;span class="m">41&lt;/sp
 &lt;/span>&lt;span class="lnt">23
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /var/lib/docker/overlay2/ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec/merged
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /var/lib/docker/overlay2/bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011/merged
 drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">4096&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 bin
 drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">13&lt;/span> 18:30 boot
 drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">43&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 dev
@@ -459,16 +465,16 @@ drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">19&lt;/sp
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /var/lib/docker/overlay2
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 51f6ad92703c995947429abb5c1cf829a70f19328ce2d49e24f5601bcb0cbf9e
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 7277919d3c55b8b021ef6f6239e03932af169a0b067ef0bce26417735d1e21a6
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 9ab14a4e4820e69dc6532f8fc081cb9e97207de39f7c53b90e54ef1b3012a7ff
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 a98e19b3221eafb2968cd6df03de93dc293e495a95acb1d103eb16ab371c9dee
-brw------- &lt;span class="m">1&lt;/span> root root 253, &lt;span class="m">1&lt;/span> 7月 &lt;span class="m">15&lt;/span> 16:29 backingFsBlockDev
-drwx-----x &lt;span class="m">5&lt;/span> root root &lt;span class="m">69&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec-init
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 efc6879b6560442f4e3960cb99844d2909480c16228a53ce526f294a16cac7ee
-drwx-----x &lt;span class="m">3&lt;/span> root root &lt;span class="m">47&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 fd047008f9fbbe5c15fe854b6fe73c71c19cd432fa580f2e8c7ef83f987abe57
-drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">278&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 l
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 335aaf02cbde069ddf7aa0077fecac172d4b2f0240975ab0ebecc3f94f1420cc
+drwx-----x &lt;span class="m">3&lt;/span> root root &lt;span class="m">47&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:04 560df35d349e6a750f1139db22d4cb52cba2a1f106616dc1c0c68b3cf11e3df6
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 769a9f5d698522d6e55bd9882520647bd84375a751a67a8ccad1f7bb1ca066dd
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 97aaf293fef495f0f06922d422a6187a952ec6ab29c0aa94cd87024c40e1a7e8
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 a91fb6955249dadfb34a3f5f06d083c192f2774fbec5fbb1db42a04e918432c0
+drwx-----x &lt;span class="m">5&lt;/span> root root &lt;span class="m">69&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:08 bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:08 bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011-init
+brw------- &lt;span class="m">1&lt;/span> root root 253, &lt;span class="m">1&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:00 backingFsBlockDev
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 fa29ec8cfe5a6c0b2cd1486f27a20a02867126edf654faad7f3520a220f3705f
+drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">278&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:25 l
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>通过 &lt;code>inspect&lt;/code> 命令探查已运行容器的 &lt;code>GraphDriver&lt;/code>，可以更清晰地看到与镜像相比容器的 &lt;code>layers&lt;/code> 所发生的变化 :&lt;/p>
