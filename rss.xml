@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 20 Jul 2021 06:18:05 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：认识容器镜像</title><link>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="oci-规范">OCI 规范&lt;/h2>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 20 Jul 2021 07:08:13 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：认识容器镜像</title><link>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="oci-规范">OCI 规范&lt;/h2>
 &lt;p>OCI （Open Container Initiative）规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，包括 Docker 和 Kubernetes。它的出现是一段关于开源商业化的有趣历史：它由 Dokcer 公司作为领头者在 2015 年推出，但如今 Docker 公司在容器行业中已经成了打工仔。&lt;/p>
 &lt;p>从 OCI 规范开始了解容器镜像，可以让我们对容器技术建立更全面清晰的认知，而不是囿于实现细节。OCI 规范分为 &lt;code>Image spec&lt;/code> 和 &lt;code>Runtime spec&lt;/code> 两部分，它们分别覆盖了容器生命周期的不同阶段：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-oci-spec.png" alt="">&lt;/p>
@@ -301,7 +301,7 @@ B
 &lt;/li>
 &lt;/ol>
 &lt;h3 id="docker-中的-overlayfs-实现">Docker 中的 OverlayFS 实现&lt;/h3>
-&lt;p>Docker 在大部分发行版本中使用的联合文件系统实现是 &lt;code>overlay2&lt;/code> ，相比其他实现它更加的轻量和高效，下面以实例来简单了解其工作方式。&lt;/p>
+&lt;p>Docker 目前在大部分发行版本中使用的联合文件系统实现是 &lt;code>overlay2&lt;/code> ，相比其他实现它更加的轻量和高效，下面以实例来简单了解其工作方式。&lt;/p>
 &lt;p>接着上面 &lt;code>nginx&lt;/code> 镜像的例子，拉取镜像后相应的 &lt;code>layer&lt;/code> 解压在 &lt;code>/var/lib/docker/overlay2&lt;/code> 目录中：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -502,12 +502,12 @@ drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">278&lt;/s
 ....
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>LowerDir&lt;/code> 中记录了原有的镜像层文件系统，另外在最上层还新增了一个 &lt;code>init&lt;/code>，它们在容器运行阶段都是只读的；&lt;code>MergedDir&lt;/code> 中记录了将 &lt;code>LowerDir&lt;/code> 的所有目录进行联合挂载的挂载点；&lt;code>UpperDir&lt;/code> 也是新增的一个 &lt;code>layer&lt;/code> ，此时位于以上所有 &lt;code>layers&lt;/code> 的最上层，与其他镜像层相比它是可读写的。容器阶段的 &lt;code>layers&lt;/code> 示意图如下：&lt;/p>
+&lt;/div>&lt;p>&lt;code>LowerDir&lt;/code> 中记录了原有的镜像层文件系统，另外在最上层还新增了一个 &lt;code>init&lt;/code> 层，它们在容器运行阶段都是只读的；&lt;code>MergedDir&lt;/code> 中记录了将 &lt;code>LowerDir&lt;/code> 的所有目录进行联合挂载的挂载点；&lt;code>UpperDir&lt;/code> 也是新增的一个 &lt;code>layer&lt;/code> ，此时位于以上所有 &lt;code>layers&lt;/code> 的最上层，与其他镜像层相比它是可读写的。容器阶段的 &lt;code>layers&lt;/code> 示意图如下：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-image-layers.png" alt="">&lt;/p>
 &lt;p>创建容器时所新增的可读写 &lt;code>layer&lt;/code> 我们称为 &lt;code>container layer&lt;/code>，容器运行阶段对文件系统的变更都会写入到该 &lt;code>layer&lt;/code> 中，包括对文件的新增、修改和删除，而不会改变更低层的原有镜像内容，这极大提升了镜像的分发效率。另外还会新增一个 &lt;code>init&lt;/code> 层，&lt;code>init&lt;/code> 层记录了容器在启动时写入的一些配置文件，这一过程发生在新增读写层之前，我们不希望把这些数据写入到原始镜像中。这两个新增的层在容器删除后也会被删除。&lt;/p>
 &lt;h4 id="写时复制策略">写时复制策略&lt;/h4>
-&lt;p>为了最小化 I/O 以及缩减镜像体积，容器的联合文件系统在读写文件时会采取写时复制策略（copy-on-write），如果一个文件或目录存在于镜像中的较低层，而另一个层（包括可写层）需要对其进行读取访问时会直接访问较低层的文件。当另一个层第一次需要写入该文件时（在构建镜像或运行容器时），该文件会被复制到该层并被修改。这一举措大大减少了容器的启动时间（启动时新建的可写层只有很少的文件写入），但容器运行后每次第一次修改某个文件都需要先将该文件复制到 &lt;code>container layer&lt;/code> 中。&lt;/p>
-&lt;p>以上原因导致容器运行时的读写效率不如原生文件系统，在 &lt;code>container layer&lt;/code> 中不适合进行大量的文件读写，通常建议将频繁读写的数据库文件、日志文件等单独挂载出去，如使用 Docker 提供的 &lt;code>Volume&lt;/code>，此时目录将通过绑定挂载（Bind Mount）直接挂载在可读写层中，绕过了写时复制带来的性能损耗。&lt;/p>
+&lt;p>为了最小化 I/O 以及缩减镜像体积，容器的联合文件系统在读写文件时会采取写时复制策略（copy-on-write），如果一个文件或目录存在于镜像中的较低层，而另一个层（包括可写层）需要对其进行读取访问时会直接访问较低层的文件。当另一个层第一次需要写入该文件时（在构建镜像或运行容器时），该文件会被复制到该层并被修改。这一举措大大减少了容器的启动时间（启动时新建的可写层只有很少的文件写入），但容器运行后每次第一次修改某个文件都需要先将整个文件复制到 &lt;code>container layer&lt;/code> 中。&lt;/p>
+&lt;p>以上原因导致容器运行时的读写效率不如原生文件系统（尤其是写入效率），在 &lt;code>container layer&lt;/code> 中不适合进行大量的文件读写，通常建议将频繁写入的数据库、日志目录等单独挂载出去，如使用 Docker 提供的 &lt;code>Volume&lt;/code>，此时目录将通过绑定挂载（Bind Mount）直接挂载在可读写层中，绕过了写时复制带来的性能损耗。&lt;/p>
 &lt;h2 id="运行时规范">运行时规范&lt;/h2>
 &lt;p>运行时规范描述了容器的配置、执行环境和生命周期。它详细描述了不同容器运行时架构的 &lt;code>config.json&lt;/code> 的配置字段，如何在执行环境中应用、注入这些配置，以确保容器内运行的程序在不同运行时之间环境一致，并通过容器的生命周期定义了一套统一的操作行为。&lt;/p>
 &lt;p>规范所定义的容器的生命周期如下：&lt;/p>
