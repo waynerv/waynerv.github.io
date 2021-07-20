@@ -1,4 +1,535 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">谈谈天，写写码</subtitle><updated>2021-06-30T01:58:27+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">究极的 Python 开源项目模板</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/ultimate-python-open-source-project-template/"/><id>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2021-06-25T18:08:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个……</summary><content type="html">&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">谈谈天，写写码</subtitle><updated>2021-07-20T06:18:05+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">容器技术原理：认识容器镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/"/><id>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2021-07-20T13:24:03+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">OCI 规范 OCI （Open Container Initiative）规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，包括 Docker 和 Kuber……</summary><content type="html">&lt;h2 id="oci-规范">OCI 规范&lt;/h2>
+&lt;p>OCI （Open Container Initiative）规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，包括 Docker 和 Kubernetes。它的出现是一段关于开源商业化的有趣历史：它由 Dokcer 公司作为领头者在 2015 年推出，但如今 Docker 公司在容器行业中已经成了打工仔。&lt;/p>
+&lt;p>从 OCI 规范开始了解容器镜像，可以让我们对容器技术建立更全面清晰的认知，而不是囿于实现细节。OCI 规范分为 &lt;code>Image spec&lt;/code> 和 &lt;code>Runtime spec&lt;/code> 两部分，它们分别覆盖了容器生命周期的不同阶段：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-oci-spec.png" alt="">&lt;/p>
+&lt;h2 id="镜像规范">镜像规范&lt;/h2>
+&lt;p>镜像规范定义了如何创建一个符合 OCI 规范的镜像，它规定了镜像的构建系统需要输出的内容和格式，输出的容器镜像可以被解包成一个 &lt;code>runtime bundle&lt;/code> ，&lt;code>runtime bundle&lt;/code> 是由特定文件和目录结构组成的一个文件夹，从中可以根据运行时标准运行容器。&lt;/p>
+&lt;p>规范要求镜像内容必须包括以下 3 部分：&lt;/p>
+&lt;ul>
+&lt;li>Image Manifest：提供了镜像的配置和文件系统层定位信息，可以看作是镜像的目录，文件格式为 &lt;code>json&lt;/code> 。&lt;/li>
+&lt;li>Image Layer Filesystem Changeset：序列化之后的文件系统和文件系统变更，它们可按顺序一层层应用为一个容器的 rootfs，因此通常也被称为一个 &lt;code>layer&lt;/code>，文件格式可以是 &lt;code>tar&lt;/code> ，&lt;code>gzip&lt;/code> 等存档或压缩格式。&lt;/li>
+&lt;li>Image Configuration：包含了镜像在运行时所使用的执行参数以及有序的 rootfs 变更信息，文件类型为 &lt;code>json&lt;/code>。&lt;/li>
+&lt;/ul>
+&lt;p>&lt;em>rootfs (root file system)即 &lt;code>/&lt;/code> 根挂载点所挂载的文件系统，是一个操作系统所包含的文件、配置和目录，但并不包括操作系统内核，同一台机器上的所有容器都共享宿主机操作系统的内核。&lt;/em>&lt;/p>
+&lt;p>接下来我们以 &lt;code>Docker&lt;/code> 和 &lt;code>nginx&lt;/code> 为例探索一个镜像的实际内容。拉取一个最新版本的 &lt;code>nginx&lt;/code> 镜像将其 &lt;code>save&lt;/code> 为 tar 包后解压：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker pull nginx
+$ docker save nginx -o nginx-img.tar
+$ mkdir nginx-img
+$ tar -xf nginx-img.tar --directory&lt;span class="o">=&lt;/span>nginx
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>得到 &lt;code>nginx-img&lt;/code> 目录中的内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">.
+├── 013a6edf61f54428da349193e7a2077a714697991d802a1c5298b07dbe0519c9
+│   ├── json
+│   ├── layer.tar
+│   └── VERSION
+├── 2bf70c858e6c8243c4713064cf43dea840866afefe52089a3b339f06576b930e
+│   ├── json
+│   ├── layer.tar
+│   └── VERSION
+├── 490a3e67a61048564048a15d501b8e075d951d0dbba8098d5788bb8453f2371f
+│   ├── json
+│   ├── layer.tar
+│   └── VERSION
+├── 4cdc5dd7eaadff5080649e8d0014f2f8d36d4ddf2eff2fdf577dd13da85c5d2f.json
+├── 761c908ee54e7ccd769e815f38e3040f7b3ff51f1c04f55aac12b9ea3d544cfe
+│   ├── json
+│   ├── layer.tar
+│   └── VERSION
+├── 96bfd5bf4ab4c2513fb43534d51e816c4876620767858377d14dcc5a7de5f1fd
+│   ├── json
+│   ├── layer.tar
+│   └── VERSION
+├── d18832ef411b346c36b7ba42a6c2e3f77097026fb80651c2d870f19c6fd9ccef
+│   ├── json
+│   ├── layer.tar
+│   └── VERSION
+├── manifest.json
+└── repositories
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>首先查看 &lt;code>manifest.json&lt;/code> 文件的内容，即该镜像的 Image Manifest：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ python -m json.tool manifest.json
+&lt;span class="o">[&lt;/span>
+&lt;span class="o">{&lt;/span>
+&lt;span class="s2">&amp;#34;Config&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;4cdc5dd7eaadff5080649e8d0014f2f8d36d4ddf2eff2fdf577dd13da85c5d2f.json&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;Layers&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;span class="s2">&amp;#34;490a3e67a61048564048a15d501b8e075d951d0dbba8098d5788bb8453f2371f/layer.tar&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;2bf70c858e6c8243c4713064cf43dea840866afefe52089a3b339f06576b930e/layer.tar&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;013a6edf61f54428da349193e7a2077a714697991d802a1c5298b07dbe0519c9/layer.tar&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;761c908ee54e7ccd769e815f38e3040f7b3ff51f1c04f55aac12b9ea3d544cfe/layer.tar&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;d18832ef411b346c36b7ba42a6c2e3f77097026fb80651c2d870f19c6fd9ccef/layer.tar&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;96bfd5bf4ab4c2513fb43534d51e816c4876620767858377d14dcc5a7de5f1fd/layer.tar&amp;#34;&lt;/span>
+&lt;span class="o">]&lt;/span>,
+&lt;span class="s2">&amp;#34;RepoTags&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;span class="s2">&amp;#34;nginx:latest&amp;#34;&lt;/span>
+&lt;span class="o">]&lt;/span>
+&lt;span class="o">}&lt;/span>
+&lt;span class="o">]&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>其中记载了 &lt;code>Config&lt;/code> 和 &lt;code>Layers&lt;/code> 的文件定位信息，也就是标准中所规定的 Image Layer Filesystem Changeset 和 Image Configuration。&lt;/p>
+&lt;p>&lt;code>Config&lt;/code> 存放在另一个 json 文件中，内容较多我们不做展示，具体包含了以下信息：&lt;/p>
+&lt;ul>
+&lt;li>镜像的配置，在镜像解压成 &lt;code>runtime bundle&lt;/code> 后将写入运行时配置文件。&lt;/li>
+&lt;li>镜像的 &lt;code>layers&lt;/code> 之间的 Diff ID。&lt;/li>
+&lt;li>镜像的构建历史等元信息。&lt;/li>
+&lt;/ul>
+&lt;p>&lt;code>Layers&lt;/code> 列表中的 tar 包共同组成了生成容器的 rootfs，容器的镜像是分层构建的， &lt;code>Layers&lt;/code> 中的元素顺序还代表了镜像层叠加的顺序，所有 &lt;code>layer&lt;/code> 组成一个由下往上叠加的栈式的结构。首先看一下基础层即第一条记录中的内容：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ mkdir base
+$ tar -xf 490a3e67a61048564048a15d501b8e075d951d0dbba8098d5788bb8453f2371f/layer.tar --directory&lt;span class="o">=&lt;/span>base
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>base&lt;/code> 目录中解压得到的文件内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">4096&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 bin
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">13&lt;/span> 18:30 boot
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 dev
+drwxr-xr-x &lt;span class="m">28&lt;/span> root root &lt;span class="m">4096&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 etc
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">13&lt;/span> 18:30 home
+drwxr-xr-x &lt;span class="m">7&lt;/span> root root &lt;span class="m">85&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 lib
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">34&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 lib64
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 media
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 mnt
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 opt
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">13&lt;/span> 18:30 proc
+drwx------ &lt;span class="m">2&lt;/span> root root &lt;span class="m">37&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 root
+drwxr-xr-x &lt;span class="m">3&lt;/span> root root &lt;span class="m">30&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 run
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">4096&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 sbin
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 srv
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">13&lt;/span> 18:30 sys
+drwxrwxrwt &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 tmp
+drwxr-xr-x &lt;span class="m">10&lt;/span> root root &lt;span class="m">105&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 usr
+drwxr-xr-x &lt;span class="m">11&lt;/span> root root &lt;span class="m">139&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 var
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这已经是一个完整的 rootfs，再观察最上面一层 &lt;code>layer&lt;/code> 所得到的文件内容：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">96bfd5bf4ab4c2513fb43534d51e816c4876620767858377d14dcc5a7de5f1fd/
+└── docker-entrypoint.d
+└── 30-tune-worker-processes.sh
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>其中只有一个 shell 脚本文件，这说明镜像的构建过程是增量的，每一层都只包含了和更低一层相比所变更的文件内容，这也是容器镜像得以保持较小体积的原因。&lt;/p>
+&lt;h3 id="如何在变更集中体现文件的删除">如何在变更集中体现文件的删除&lt;/h3>
+&lt;p>&lt;code>Layers&lt;/code> 中的每一层都是文件系统的变更集（ChangeSet），变更集包含新增、修改和删除三种变更，新增或修改（替换）文件的情况较好处理，但如何在应用变更集时删除一个文件呢，答案是用 Whiteouts 表示要删除的文件或文件夹。&lt;/p>
+&lt;p>Whiteouts 文件是一个具有特殊文件名的空文件，文件名中通过在要删除的路径基本名称添加前缀 &lt;code>.wh.&lt;/code> 标志一个（更低一层中的）路径应该被删除。假如在某个 &lt;code>layer&lt;/code> 有以下文件：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">./etc/my-app.d/
+./etc/my-app.d/default.cfg
+./bin/my-app-tools
+./etc/my-app-config
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>如果在应用的更高层 &lt;code>layer&lt;/code> 中含有 &lt;code>./etc/.wh.my-app-config&lt;/code> ，应用该层变更时原有的 &lt;code>./etc/my-app-config&lt;/code> 路径将被删除。&lt;/p>
+&lt;h3 id="如何将变更集应用成一个文件系统">如何将变更集应用成一个文件系统&lt;/h3>
+&lt;p>标准中对于如何将变更集应用成一个文件系统只有原理性的描述，假如我们要在 &lt;code>layer A&lt;/code> 的基础上应用 &lt;code>Layer B&lt;/code> ：&lt;/p>
+&lt;ul>
+&lt;li>首先将 &lt;code>Layer A&lt;/code> 中的文件系统目录以保留文件属性的方式复制到另一个快照目录 &lt;code>A.snapshot&lt;/code>&lt;/li>
+&lt;li>然后在快照目录中执行 &lt;code>Layer B&lt;/code> 所包含的文件变更，所有的更改不会影响原有的变更集。&lt;/li>
+&lt;/ul>
+&lt;h4 id="联合文件系统">联合文件系统&lt;/h4>
+&lt;p>在实践中会采用联合文件系统等更为高效的实现。联合文件系统（Union File System）也叫 UnionFS，主要的功能是将多个不同位置的目录联合挂载（union mount）到同一个目录下。&lt;/p>
+&lt;p>下面以 Ubuntu 发行版以及 &lt;code>unionfs-fuse&lt;/code> 实现为例演示联合挂载的效果：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>首先使用包管理器安装 &lt;code>unionfs-fuse&lt;/code>，这是 UnionFS 的一个实现：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">apt install unionfs-fuse
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>然后创建如下目录结构：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">A
+├── a
+└── x
+B
+├── b
+└── x
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>创建目录 C 并将 A、B 目录联合挂载到 C 下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">unionfs ./B:./A ./C
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>挂载后 C 目录内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">C
+├── a
+├── b
+└── x
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>如果我们分别编辑 A、B 目录中的 x 文件，会发现访问目录 C 中 x 文件得到的是 B/x 的内容（因为 B 在挂载时位于更上层）。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h3 id="docker-中的-overlayfs-实现">Docker 中的 OverlayFS 实现&lt;/h3>
+&lt;p>Docker 在大部分发行版本中使用的联合文件系统实现是 &lt;code>overlay2&lt;/code> ，相比其他实现它更加的轻量和高效，下面以实例来简单了解其工作方式。&lt;/p>
+&lt;p>接着上面 &lt;code>nginx&lt;/code> 镜像的例子，拉取镜像后相应的 &lt;code>layer&lt;/code> 解压在 &lt;code>/var/lib/docker/overlay2&lt;/code> 目录中：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /var/lib/docker/overlay2/
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 51f6ad92703c995947429abb5c1cf829a70f19328ce2d49e24f5601bcb0cbf9e
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 7277919d3c55b8b021ef6f6239e03932af169a0b067ef0bce26417735d1e21a6
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">55&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 9ab14a4e4820e69dc6532f8fc081cb9e97207de39f7c53b90e54ef1b3012a7ff
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 a98e19b3221eafb2968cd6df03de93dc293e495a95acb1d103eb16ab371c9dee
+brw------- &lt;span class="m">1&lt;/span> root root 253, &lt;span class="m">1&lt;/span> 7月 &lt;span class="m">15&lt;/span> 16:29 backingFsBlockDev
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 efc6879b6560442f4e3960cb99844d2909480c16228a53ce526f294a16cac7ee
+drwx-----x &lt;span class="m">3&lt;/span> root root &lt;span class="m">47&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 fd047008f9fbbe5c15fe854b6fe73c71c19cd432fa580f2e8c7ef83f987abe57
+drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">210&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 l
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>其中 6 个名称特别长的目录中存放了镜像的 6 个 &lt;code>layer&lt;/code> ， &lt;code>l&lt;/code> 目录中包含了指向 &lt;code>layers&lt;/code> 文件夹的软链接，主要目的是在执行 &lt;code>mount&lt;/code> 命令时缩短目录标识符的长度以避免超出页大小限制。&lt;/p>
+&lt;p>每个 &lt;code>layer&lt;/code> 文件夹包含的内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll 7277919d3c55b8b021ef6f6239e03932af169a0b067ef0bce26417735d1e21a6
+-rw------- &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 committed
+drwxr-xr-x &lt;span class="m">3&lt;/span> root root &lt;span class="m">33&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 diff
+-rw-r--r-- &lt;span class="m">1&lt;/span> root root &lt;span class="m">26&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 link
+-rw-r--r-- &lt;span class="m">1&lt;/span> root root &lt;span class="m">86&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 lower
+drwx------ &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 work
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>link&lt;/code> 记录了 &lt;code>l&lt;/code> 目录中的短链接， &lt;code>lower&lt;/code> 中记录该 &lt;code>layer&lt;/code> 的更低一层（如果没有该文件说明当前 &lt;code>layer&lt;/code> 已经是最底下一层即基础层）， &lt;code>work&lt;/code> 目录被 &lt;code>overlay2&lt;/code> 内部所使用， &lt;code>diff&lt;/code> 目录中存放了该 &lt;code>layer&lt;/code> 所包含的文件系统内容：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll 7277919d3c55b8b021ef6f6239e03932af169a0b067ef0bce26417735d1e21a6/diff/
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 docker-entrypoint.d
+drwxr-xr-x &lt;span class="m">20&lt;/span> root root &lt;span class="m">4096&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 etc
+drwxr-xr-x &lt;span class="m">5&lt;/span> root root &lt;span class="m">56&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 lib
+drwxrwxrwt &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 tmp
+drwxr-xr-x &lt;span class="m">7&lt;/span> root root &lt;span class="m">66&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 usr
+drwxr-xr-x &lt;span class="m">5&lt;/span> root root &lt;span class="m">41&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 var
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>现在我们尝试基于该镜像运行一个容器，看看在容器阶段的联合挂载效果：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker run -d --name nginx_container nginx
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>执行 &lt;code>mount&lt;/code> 命令可确认新增了一个可读写的 &lt;code>overlay&lt;/code> 挂载点：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ mount &lt;span class="p">|&lt;/span> grep overlayoverlay on /var/lib/docker/overlay2/ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec/merged &lt;span class="nb">type&lt;/span> overlay &lt;span class="o">(&lt;/span>rw,relatime,lowerdir&lt;span class="o">=&lt;/span>/var/lib/docker/overlay2/l/PIREOHYGVNE5GDM3D7BEKAO2OH:/var/lib/docker/overlay2/l/UHXO744ZPEAMPLJ7K6W6RW4SXR:/var/lib/docker/overlay2/l/QGUGHGWQ7IP2IP7C55CVCDXBE5:/var/lib/docker/overlay2/l/QW4ZYOFSWBAAB56ZRJOPPRKSPW:/var/lib/docker/overlay2/l/FTMDNPXIB6O2QKVRXKGKF5JZN5:/var/lib/docker/overlay2/l/2W4O2Y6KH2PPR2SUIP442IXZ5C:/var/lib/docker/overlay2/l/TAQRD5PFF3DF5HV2YAW3IH6T6S,upperdir&lt;span class="o">=&lt;/span>/var/lib/docker/overlay2/ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec/diff,workdir&lt;span class="o">=&lt;/span>/var/lib/docker/overlay2/ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec/work&lt;span class="o">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>该挂载点中即包含了所有镜像层 &lt;code>layer&lt;/code> 组合而成的一个 rootfs：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /var/lib/docker/overlay2/ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec/merged
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">4096&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 bin
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">13&lt;/span> 18:30 boot
+drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">43&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 dev
+drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">41&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 docker-entrypoint.d
+-rwxrwxr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">1202&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 docker-entrypoint.sh
+drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">19&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 etc
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">13&lt;/span> 18:30 home
+drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">56&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 lib
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">34&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 lib64
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 media
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 mnt
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 opt
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">13&lt;/span> 18:30 proc
+drwx------ &lt;span class="m">2&lt;/span> root root &lt;span class="m">37&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 root
+drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">23&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 run
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">4096&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 sbin
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 srv
+drwxr-xr-x &lt;span class="m">2&lt;/span> root root &lt;span class="m">6&lt;/span> 6月 &lt;span class="m">13&lt;/span> 18:30 sys
+drwxrwxrwt &lt;span class="m">1&lt;/span> root root &lt;span class="m">6&lt;/span> 7月 &lt;span class="m">7&lt;/span> 03:39 tmp
+drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">66&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 usr
+drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">19&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 var
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>除了将原来的镜像层联合挂载到如上所示的 &lt;code>merged&lt;/code> 目录，容器运行成功后 &lt;code>/var/lib/docker/overlay2&lt;/code> 还会新增两个 &lt;code>layer&lt;/code> 目录，&lt;code>merged&lt;/code> 也位于其中一个目录下:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /var/lib/docker/overlay2
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 51f6ad92703c995947429abb5c1cf829a70f19328ce2d49e24f5601bcb0cbf9e
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 7277919d3c55b8b021ef6f6239e03932af169a0b067ef0bce26417735d1e21a6
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 9ab14a4e4820e69dc6532f8fc081cb9e97207de39f7c53b90e54ef1b3012a7ff
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 a98e19b3221eafb2968cd6df03de93dc293e495a95acb1d103eb16ab371c9dee
+brw------- &lt;span class="m">1&lt;/span> root root 253, &lt;span class="m">1&lt;/span> 7月 &lt;span class="m">15&lt;/span> 16:29 backingFsBlockDev
+drwx-----x &lt;span class="m">5&lt;/span> root root &lt;span class="m">69&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 ef9b3783509704ae1316b6c4f7e47f892c9837cdcc7efe7722bf2115eaf853ec-init
+drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:01 efc6879b6560442f4e3960cb99844d2909480c16228a53ce526f294a16cac7ee
+drwx-----x &lt;span class="m">3&lt;/span> root root &lt;span class="m">47&lt;/span> 7月 &lt;span class="m">15&lt;/span> 17:00 fd047008f9fbbe5c15fe854b6fe73c71c19cd432fa580f2e8c7ef83f987abe57
+drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">278&lt;/span> 7月 &lt;span class="m">16&lt;/span> 16:52 l
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>通过 &lt;code>inspect&lt;/code> 命令探查已运行容器的 &lt;code>GraphDriver&lt;/code>，可以更清晰地看到与镜像相比容器的 &lt;code>layers&lt;/code> 所发生的变化 :&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker inspect nginx_container
+....
+&lt;span class="s2">&amp;#34;GraphDriver&amp;#34;&lt;/span>: &lt;span class="o">{&lt;/span>
+&lt;span class="s2">&amp;#34;Data&amp;#34;&lt;/span>: &lt;span class="o">{&lt;/span>
+&lt;span class="s2">&amp;#34;LowerDir&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;/var/lib/docker/overlay2/bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011-init/diff:/var/lib/docker/overlay2/97aaf293fef495f0f06922d422a6187a952ec6ab29c0aa94cd87024c40e1a7e8/diff:/var/lib/docker/overlay2/fa29ec8cfe5a6c0b2cd1486f27a20a02867126edf654faad7f3520a220f3705f/diff:/var/lib/docker/overlay2/769a9f5d698522d6e55bd9882520647bd84375a751a67a8ccad1f7bb1ca066dd/diff:/var/lib/docker/overlay2/a91fb6955249dadfb34a3f5f06d083c192f2774fbec5fbb1db42a04e918432c0/diff:/var/lib/docker/overlay2/335aaf02cbde069ddf7aa0077fecac172d4b2f0240975ab0ebecc3f94f1420cc/diff:/var/lib/docker/overlay2/560df35d349e6a750f1139db22d4cb52cba2a1f106616dc1c0c68b3cf11e3df6/diff&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;MergedDir&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;/var/lib/docker/overlay2/bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011/merged&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;UpperDir&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;/var/lib/docker/overlay2/bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011/diff&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;WorkDir&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;/var/lib/docker/overlay2/bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011/work&amp;#34;&lt;/span>
+&lt;span class="o">}&lt;/span>,
+&lt;span class="s2">&amp;#34;Name&amp;#34;&lt;/span>: &lt;span class="s2">&amp;#34;overlay2&amp;#34;&lt;/span>
+&lt;span class="o">}&lt;/span>
+....
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>LowerDir&lt;/code> 中记录了原有的镜像层文件系统，另外在最上层还新增了一个 &lt;code>init&lt;/code>，它们在容器运行阶段都是只读的；&lt;code>MergedDir&lt;/code> 中记录了将 &lt;code>LowerDir&lt;/code> 的所有目录进行联合挂载的挂载点；&lt;code>UpperDir&lt;/code> 也是新增的一个 &lt;code>layer&lt;/code> ，此时位于以上所有 &lt;code>layers&lt;/code> 的最上层，与其他镜像层相比它是可读写的。容器阶段的 &lt;code>layers&lt;/code> 示意图如下：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-image-layers.png" alt="">&lt;/p>
+&lt;p>创建容器时所新增的可读写 &lt;code>layer&lt;/code> 我们称为 &lt;code>container layer&lt;/code>，容器运行阶段对文件系统的变更都会写入到该 &lt;code>layer&lt;/code> 中，包括对文件的新增、修改和删除，而不会改变更低层的原有镜像内容，这极大提升了镜像的分发效率。另外还会新增一个 &lt;code>init&lt;/code> 层，&lt;code>init&lt;/code> 层记录了容器在启动时写入的一些配置文件，这一过程发生在新增读写层之前，我们不希望把这些数据写入到原始镜像中。这两个新增的层在容器删除后也会被删除。&lt;/p>
+&lt;h4 id="写时复制策略">写时复制策略&lt;/h4>
+&lt;p>为了最小化 I/O 以及缩减镜像体积，容器的联合文件系统在读写文件时会采取写时复制策略（copy-on-write），如果一个文件或目录存在于镜像中的较低层，而另一个层（包括可写层）需要对其进行读取访问时会直接访问较低层的文件。当另一个层第一次需要写入该文件时（在构建镜像或运行容器时），该文件会被复制到该层并被修改。这一举措大大减少了容器的启动时间（启动时新建的可写层只有很少的文件写入），但容器运行后每次第一次修改某个文件都需要先将该文件复制到 &lt;code>container layer&lt;/code> 中。&lt;/p>
+&lt;p>以上原因导致容器运行时的读写效率不如原生文件系统，在 &lt;code>container layer&lt;/code> 中不适合进行大量的文件读写，通常建议将频繁读写的数据库文件、日志文件等单独挂载出去，如使用 Docker 提供的 &lt;code>Volume&lt;/code>，此时目录将通过绑定挂载（Bind Mount）直接挂载在可读写层中，绕过了写时复制带来的性能损耗。&lt;/p>
+&lt;h2 id="运行时规范">运行时规范&lt;/h2>
+&lt;p>运行时规范描述了容器的配置、执行环境和生命周期。它详细描述了不同容器运行时架构的 &lt;code>config.json&lt;/code> 的配置字段，如何在执行环境中应用、注入这些配置，以确保容器内运行的程序在不同运行时之间环境一致，并通过容器的生命周期定义了一套统一的操作行为。&lt;/p>
+&lt;p>规范所定义的容器的生命周期如下：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-runtime-lifecycle.png" alt="">&lt;/p>
+&lt;p>规范中只定义了4种容器状态，运行时实现可以在规范的基础上添加其他状态，同时标准还规定了运行时必须支持的操作：&lt;/p>
+&lt;ul>
+&lt;li>Query State，查询容器的当前状态&lt;/li>
+&lt;li>Create，根据镜像及配置创建一个新的容器，但是不运行用户自定义的程序&lt;/li>
+&lt;li>Start，在一个已创建的容器中运行用户自定义的程序&lt;/li>
+&lt;li>Kill，发送特定信号终止容器内的进程&lt;/li>
+&lt;li>Delete，删除已停止容器所创建的资源&lt;/li>
+&lt;/ul>
+&lt;p>每个操作之前或之后还会触发不同的 hooks。&lt;/p>
+&lt;h3 id="image-container-and-processes">Image, Container, and Processes&lt;/h3>
+&lt;p>容器从镜像中创建，同一个镜像可以创建多个不同的容器，还可以将运行后更改过的容器，重新打包为一个新的镜像（将可读写层添加到新镜像的只读层中即可）。&lt;/p>
+&lt;p>创建容器后，就可以在不依赖宿主机依赖库的情况从容器中运行进程。&lt;/p>
+&lt;h2 id="实现和生态">实现和生态&lt;/h2>
+&lt;p>Docker 向 OCI 规范捐献了其容器运行时 &lt;code>runC&lt;/code> 项目，作为该规范的标准实现。目前已有的大部分容器项目都直接将 &lt;code>runC&lt;/code> 作为运行时实现。&lt;/p>
+&lt;p>下图可以概括容器生态内众多组织及项目之间的关系：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-runc.png" alt="">&lt;/p>
+&lt;p>Kubernetes 定义了 CRI（Container Runtime Interface）以实现可替换的容器运行时，目前有 &lt;code>cri-containerd&lt;/code> 、&lt;code>cri-o&lt;/code> 和 &lt;code>docker&lt;/code> 等几种实现，但它们实际上也都基于 &lt;code>runC&lt;/code>：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-k8s-cri.png" alt="">&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/" term="云原生" label="云原生"/><category scheme="https://www.waynerv.com/tags/kubernetes/" term="Kubernetes" label="Kubernetes"/></entry><entry><title type="text">究极的 Python 开源项目模板</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/ultimate-python-open-source-project-template/"/><id>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2021-06-25T18:08:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个……</summary><content type="html">&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
 &lt;p>制作一个项目启动模板，也是开始一个新开源项目的好 idea。两年前我曾经接触过 cookiecutter （一个项目生成工具）；在发布了几个项目后，对于 Python 打包发布到 PyPI 的流程也比较熟悉了；何况在 GitHub 上还看过许多类似的项目模板，可以 fork 后在其基础上进行自定义。一切都水到渠成，这应该不是个很难的事。&lt;/p>
 &lt;p>不过我还是经过一段时间的测试和反复打磨，才终于完成一份 Python 开源项目模板：&lt;a href="https://github.com/waynerv/cookiecutter-pypackage">Cookiecutter PyPackage&lt;/a>，标题中的「究极」有夸大之嫌，但内容的确是相当全面。模板的使用方法在项目文档中有详细介绍，这篇文章主要分享我在模板中所选择的工具以及选择它们的理由。&lt;/p>
 &lt;h2 id="包管理工具">包管理工具&lt;/h2>
@@ -117,7 +648,7 @@ additional_dependencies:
 &lt;li>通过 &lt;code>changelog-reader-action&lt;/code> 这一 action 从 &lt;code>CHANGELOG.md&lt;/code> 文件中按规则解析出最新版本的版本信息。&lt;/li>
 &lt;li>执行项目的构建得到最新版本的包。&lt;/li>
 &lt;li>通过 &lt;code>action-gh-release&lt;/code> 这一 action 根据上面解析得到的版本历史信息自动创建新的 Realease，并以构建好的包作为附件。&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/><category scheme="https://www.waynerv.com/tags/%E5%BC%80%E6%BA%90/" term="开源" label="开源"/></entry><entry><title type="text">使用 Sphinx 为项目自动生成 API 文档</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/"/><id>https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2021-06-07T21:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。 从流行的开源项目中，我们可以总结出一些……</summary><content type="html">&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/><category scheme="https://www.waynerv.com/tags/%E5%BC%80%E6%BA%90/" term="开源" label="开源"/></entry><entry><title type="text">使用 Sphinx 为项目自动生成 API 文档</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/"/><id>https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2021-06-07T21:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。 从流行的开源项目中，我们可以总结出一些……</summary><content type="html">&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。&lt;/p>
 &lt;p>从流行的开源项目中，我们可以总结出一些关于文档的最佳实践：&lt;/p>
 &lt;ul>
 &lt;li>文档和代码库在一个仓库中维护以做到同步更新（个别体量超大的项目例外）&lt;/li>
@@ -557,7 +1088,7 @@ additional_dependencies:
 &lt;li>
 &lt;p>&lt;a href="https://myst-parser.readthedocs.io/en/latest/using/howto.html#use-sphinx-ext-autodoc-in-markdown-files">How-To Guides&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/></entry><entry><title type="text">Python 中 time 和 datetime 模块的区别</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/"/><id>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2021-04-29T17:07:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，即使熟悉 Python 也可能记混它们的用法，本文将力求清晰地阐述它们之间的区别。</summary><content type="html">&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/></entry><entry><title type="text">Python 中 time 和 datetime 模块的区别</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/"/><id>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2021-04-29T17:07:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，即使熟悉 Python 也可能记混它们的用法，本文将力求清晰地阐述它们之间的区别。</summary><content type="html">&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
 &lt;p>下文将分别介绍每个模块的主要目的、核心对象、常用方法以及用途，并在最后做分析对比，如果已经了解这些细节可以直接跳转到结尾的总结对比部分。&lt;/p>
 &lt;p>另外本文将避免涉及字符串格式化、时区、冬夏令时等更复杂深入的话题。&lt;/p>
 &lt;h2 id="time-模块">time 模块&lt;/h2>
@@ -1264,7 +1795,7 @@ additional_dependencies:
 &lt;li>其余名称的函数均为类方法&lt;/li>
 &lt;/ul>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">理解 Python 中的描述符</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/python-descriptor-in-detail/"/><id>https://www.waynerv.com/posts/python-descriptor-in-detail/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2021-04-15T21:32:47+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。</summary><content type="html">&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">理解 Python 中的描述符</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/python-descriptor-in-detail/"/><id>https://www.waynerv.com/posts/python-descriptor-in-detail/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2021-04-15T21:32:47+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。</summary><content type="html">&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
 &lt;h2 id="描述符的定义">描述符的定义&lt;/h2>
 &lt;p>描述符的定义很简单，实现了下列&lt;em>任意一个方法&lt;/em>的 Python 对象就是一个描述符（descriptor）：&lt;/p>
 &lt;ul>
@@ -1960,7 +2491,7 @@ additional_dependencies:
 &lt;li>&lt;a href="https://docs.python.org/3/reference/datamodel.html#implementing-descriptors">Python Refenrence - Data model - Implementing Descriptors&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://realpython.com/python-descriptors/">Python Descriptors: An Introduction&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://blog.peterlamut.com/2018/11/04/python-attribute-lookup-explained-in-detail/">Python attribute lookup explained in detail&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">自己编译一个最新版本的 Python3</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/compiling-a-latest-python/"/><id>https://www.waynerv.com/posts/compiling-a-latest-python/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2021-04-06T10:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。 工……</summary><content type="html">&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">自己编译一个最新版本的 Python3</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/compiling-a-latest-python/"/><id>https://www.waynerv.com/posts/compiling-a-latest-python/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2021-04-06T10:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。 工……</summary><content type="html">&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
 &lt;h2 id="工作环境">工作环境&lt;/h2>
 &lt;p>测试机的操作系统是 Ubuntu 20.10，已安装有 &lt;code>gcc&lt;/code> 、&lt;code>git&lt;/code> 等基础的开发工具。经验证以下步骤同样适用于 macOS 11。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -2157,7 +2688,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://devguide.python.org/setup/#getting-started">Python Developer’s Guide: Getting Started&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/" term="编译" label="编译"/></entry><entry><title type="text">[CSAPP] 计算机的浮点数表示</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/csapp-ieee-floating-intro/"/><id>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2021-03-29T22:48:53+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况： 1 2 &amp;gt;&amp;gt;&amp;gt; 0.1 + 0.2 0.30000000000000004 其原因是程序在运行时，所使用的浮点数类型并没有精……</summary><content type="html">&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/" term="编译" label="编译"/></entry><entry><title type="text">[CSAPP] 计算机的浮点数表示</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/csapp-ieee-floating-intro/"/><id>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2021-03-29T22:48:53+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况： 1 2 &amp;gt;&amp;gt;&amp;gt; 0.1 + 0.2 0.30000000000000004 其原因是程序在运行时，所使用的浮点数类型并没有精……</summary><content type="html">&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -2223,7 +2754,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;ol>
 &lt;li>虽然使用了不同的计算方式，但非规范化值可以平滑地过渡到规范化值，如上最大的非规范化值为 $\frac{7}{512}$，而最小的规范化值为 $\frac{8}{512}$。&lt;/li>
 &lt;li>随着浮点数的递增，其比特位表示所解释地无符号整数也随之递增，因此我们可以用相对简单的无符号整数的排序规则来对浮点数进行排序，这并非巧合，而是有意设计的。&lt;/li>
-&lt;/ol></content><category scheme="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/" term="笔记总结" label="笔记总结"/><category scheme="https://www.waynerv.com/tags/csapp/" term="CSAPP" label="CSAPP"/></entry><entry><title type="text">Git cherry-pick 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-cherry-pick-intro/"/><id>https://www.waynerv.com/posts/git-cherry-pick-intro/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2021-01-26T16:49:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 rebase，merge，checkout， reset 等多种操作的使用……</summary><content type="html">&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
+&lt;/ol></content><category scheme="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/" term="笔记总结" label="笔记总结"/><category scheme="https://www.waynerv.com/tags/csapp/" term="CSAPP" label="CSAPP"/></entry><entry><title type="text">Git cherry-pick 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-cherry-pick-intro/"/><id>https://www.waynerv.com/posts/git-cherry-pick-intro/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2021-01-26T16:49:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 rebase，merge，checkout， reset 等多种操作的使用……</summary><content type="html">&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
 &lt;h2 id="基本用法">基本用法&lt;/h2>
 &lt;p>Git 命令文档的描述不一定直观易懂，但绝对准确，文档对 &lt;code>git cherry-pick&lt;/code> 描述是： &lt;code>Apply the changes introduced by some existing commits&lt;/code>，即应用某些已有提交所引入的更改。通常我们会说 &lt;code>cherry-pick&lt;/code> 是将某个（些）提交从一个分支移动到另一个分支，这种说法更加容易理解，但后面我们会解释为何文档的描述才是最准确的。&lt;/p>
 &lt;p>假设我们有如下提交：&lt;/p>
@@ -2417,7 +2948,7 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;li>&lt;a href="https://stackoverflow.com/a/52932137/10224392">what does git cherry-pick {commit-hash} do?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/a/10058070/10224392">In a Git cherry-pick or rebase merge conflict, how are BASE (aka “the ancestor”), LOCAL, and REMOTE determined?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/questions/27417656/should-diff3-be-default-conflictstyle-on-git">Should diff3 be default conflictstyle on git?&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git 撤销操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什……</summary><content type="html">&lt;p>「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什么这次搜到的命令不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git 撤销操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什……</summary><content type="html">&lt;p>「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什么这次搜到的命令不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
 &lt;p>之所以这样，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
 &lt;ul>
 &lt;li>我在本地修改了一些文件还未提交，但我想放弃某些文件的更改。&lt;/li>
@@ -3234,7 +3765,7 @@ $ git stash pop
 &lt;li>&lt;a href="https://shafiul.github.io//gitbook/7_the_git_index.html">The Git Index&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://mincong.io/2018/04/28/git-index/#:~:text=The%20index%20is%20a%20binary,Git%3A%20they%20are%20used%20interchangeably.">Git: Understanding the Index File&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tom.preston-werner.com/2009/05/19/the-git-parable.html">The Git Parable&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流……</summary><content type="html">&lt;p>在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流……</summary><content type="html">&lt;p>在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
 &lt;h2 id="linter">Linter&lt;/h2>
 &lt;p>Linter 是一类用于标记程序错误、bug、风格错误和可疑结构的静态代码分析工具，比如 Python 中的 &lt;code>Pylint&lt;/code>、 &lt;code>flake8&lt;/code>，JavaScript 中的 &lt;code>EsLint&lt;/code>，这类工具会找到你代码中的错误，并给出如何修复的提示。&lt;/p>
 &lt;h3 id="为何要使用-linter">为何要使用 Linter&lt;/h3>
@@ -3978,7 +4509,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/quickstart">Quickstart for GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/introduction-to-github-actions">Introduction to GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="http://www.ruanyifeng.com/blog/2019/09/getting-started-with-github-actions.html">GitHub Actions 入门教程&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 部署个人博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。 刚学编程的时候，还开源过一个基于 Flask 和 MongoDB 的博客项目……</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 部署个人博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。 刚学编程的时候，还开源过一个基于 Flask 和 MongoDB 的博客项目……</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
 &lt;p>刚学编程的时候，还开源过一个基于 Flask 和 MongoDB 的&lt;a href="https://github.com/waynerv/originblog">博客项目&lt;/a>，但后面就没怎么使用和维护了，除开主观上的懒，还因为：&lt;/p>
 &lt;ul>
 &lt;li>自建博客绕不开主机和域名，这是一笔持续的经济成本。国内的主机往往是第一年割肉第二年宰猪，国外的主机访问延迟很高。&lt;/li>
@@ -4192,7 +4723,7 @@ publish_dir: ./public
 &lt;p>在本地做一些更改，预览效果后提交并推送，然后在项目仓库的 GitHub Actions 页面检查相应的 &lt;code>workflow&lt;/code> 是否运行成功。不出意外的话，很快个人主页仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，访问个人博客页面也会发现页面已经更新。&lt;/p>
 &lt;h2 id="个人体验">个人体验&lt;/h2>
 &lt;p>由于先后选择的 3 个主题均遭遇了上述发布地址不能包含子路径的问题，我在基本按照官方文档操作的前提下，依然花了超过 10 个小时才把&lt;a href="https://waynerv.github.io/">博客&lt;/a>上线，浪费了很多时间在配置主题以及寻找问题的解决方案上。本以为选择了一个简单快捷的省心方案，结果还是免不了过程的一顿踩坑和折腾。&lt;/p>
-&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/></entry><entry><title type="text">Git 合并操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2020-11-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作，都需要进行合并。 但对新手来说， git merge 这一命令……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
+&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/></entry><entry><title type="text">Git 合并操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2020-11-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作，都需要进行合并。 但对新手来说， git merge 这一命令……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
 &lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
 &lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
 &lt;h2 id="认识合并">认识合并&lt;/h2>
@@ -4296,7 +4827,7 @@ $ git merge feature
 &lt;li>
 &lt;p>&lt;a href="https://segmentfault.com/a/1190000021712743">git merge的原理（递归三路合并算法）&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git Rebase 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2020-10-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">以前我对 git rebase -i 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下……</summary><content type="html">&lt;p>以前我对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">Git Rebase 操作浅析</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2020-10-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">以前我对 git rebase -i 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下……</summary><content type="html">&lt;p>以前我对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
 &lt;h2 id="理解-rebase-命令">理解 Rebase 命令&lt;/h2>
 &lt;p>&lt;code>git rebase&lt;/code> 命令的文档描述是 &lt;code>Reapply commits on top of another base tip&lt;/code>，从字面上理解是「在另一个基端之上重新应用提交」，这个定义听起来有点抽象，换个角度可以理解为「将分支的基础从一个提交改成另一个提交，使其看起来就像是从另一个提交中创建了分支一样」，如下图：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
@@ -4831,7 +5362,7 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>
 &lt;p>&lt;a href="https://medium.com/@fabisiakradoslaw/understand-how-does-git-rebase-work-and-compare-with-git-merge-and-git-interactive-rebase-cce2c9775e43">Understand how does git rebase work and compare with git merge and git interactive rebase&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">写了一份 Web API 设计规范</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/my-web-api-spcification/"/><id>https://www.waynerv.com/posts/my-web-api-spcification/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2020-10-17T11:40:09+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">基于 GitHub REST API v3 和 RFC7807，并结合自己在工作中的一些实践，编写了这份 Web API 规范。</summary><content type="html">&lt;p>基于 &lt;a href="https://developer.github.com/v3">GitHub REST API v3&lt;/a> 和 &lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a> ，并结合自己在工作中的一些实践，编写了这份 Web API 规范。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">写了一份 Web API 设计规范</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/my-web-api-spcification/"/><id>https://www.waynerv.com/posts/my-web-api-spcification/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2020-10-17T11:40:09+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">基于 GitHub REST API v3 和 RFC7807，并结合自己在工作中的一些实践，编写了这份 Web API 规范。</summary><content type="html">&lt;p>基于 &lt;a href="https://developer.github.com/v3">GitHub REST API v3&lt;/a> 和 &lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a> ，并结合自己在工作中的一些实践，编写了这份 Web API 规范。&lt;/p>
 &lt;p>本规范虽然整体上遵循 RESTful 风格，但并未强制要求使用超媒体表示，严格来说不符合 REST API 的要求，因此基于此规范构建的项目应该定义为 Web API。&lt;/p>
 &lt;h2 id="概览">概览&lt;/h2>
 &lt;p>所有 API 应该使用统一的根域名。&lt;/p>
@@ -5197,7 +5728,7 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>&lt;a href="https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md">Microsoft api guidelines&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">Best Practices for Designing a Pragmatic RESTful API&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/web/" term="Web" label="Web"/><category scheme="https://www.waynerv.com/tags/restful/" term="RESTful" label="RESTful"/></entry><entry><title type="text">记录一次迁移MySQL数据文件到新硬盘的过程</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/"/><id>https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/</id><updated>2021-06-30T01:58:21+00:00</updated><published>2020-09-08T12:14:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">迁移前的环境 MySQL Server 程序编译安装于 qmysql 用户的 /home/qmysql/qmysql/packages 目录下，文件夹结构如下： 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 .……</summary><content type="html">&lt;h2 id="迁移前的环境">迁移前的环境&lt;/h2>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/web/" term="Web" label="Web"/><category scheme="https://www.waynerv.com/tags/restful/" term="RESTful" label="RESTful"/></entry><entry><title type="text">记录一次迁移MySQL数据文件到新硬盘的过程</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/"/><id>https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/</id><updated>2021-07-20T06:17:57+00:00</updated><published>2020-09-08T12:14:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">迁移前的环境 MySQL Server 程序编译安装于 qmysql 用户的 /home/qmysql/qmysql/packages 目录下，文件夹结构如下： 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 .……</summary><content type="html">&lt;h2 id="迁移前的环境">迁移前的环境&lt;/h2>
 &lt;p>MySQL Server 程序编译安装于 &lt;code>qmysql&lt;/code> 用户的 &lt;code>/home/qmysql/qmysql/packages&lt;/code> 目录下，文件夹结构如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
