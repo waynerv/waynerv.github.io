@@ -1,4 +1,418 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 20 Jul 2021 13:57:18 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：从根本上认识容器镜像</title><link>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="什么是-oci-规范">什么是 OCI 规范&lt;/h2>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 21 Jul 2021 04:56:45 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：使用 Namespace 实现进程隔离</title><link>https://www.waynerv.com/posts/process-isolation-using-namespace/</link><guid isPermaLink="true">https://www.waynerv.com/posts/process-isolation-using-namespace/</guid><pubDate>Wed, 21 Jul 2021 12:45:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。namespace 是构建容器技术的基石，它使得容器内的进程只能看到容器内的其他进程，并且以为它们是系统中仅有的进程，也不会操作宿主系统或其他容器中的资源。&lt;/p>
+&lt;p>namespace 按操作的系统资源不同有很多种类，比如 cgroup namespace，mount namespace 等等，接下来我们仅以 pid namespace 为例，以 &lt;code>runC&lt;/code> 作为容器运行时实现，来演示当我们执行对容器的操作时，namespace 是如何工作的。&lt;/p>
+&lt;p>在上一篇文章中我们已经介绍过，绝大部分容器系统都使用 &lt;code>runC&lt;/code> 作为底层的运行时实现，如果你是在 Linux 发行版系统中使用 &lt;code>docker&lt;/code> ，甚至不需要专门安装就能使用 &lt;code>runc&lt;/code> 命令。&lt;/p>
+&lt;h2 id="准备工作">准备工作&lt;/h2>
+&lt;h3 id="filesystem-bundle">filesystem bundle&lt;/h3>
+&lt;p>&lt;code>runC&lt;/code> 只能从 &lt;code>filesystem bundle&lt;/code> 中执行容器（&lt;code>filesystem bundle&lt;/code> 顾名思义就是一个满足特定结构的文件夹），但是我们可以使用 &lt;code>docker&lt;/code> 来准备一个可用的 &lt;code>bundle&lt;/code> :&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># 创建 bundle 的顶层目录&lt;/span>
+$ mkdir /mycontainer
+$ &lt;span class="nb">cd&lt;/span> /mycontainer
+&lt;span class="c1"># 创建用于存放 root filesystem 的 rootfs 目录&lt;/span>
+$ mkdir rootfs
+&lt;span class="c1"># 利用 Docker 导出 busybox 容器的 root filesystem &lt;/span>
+$ docker &lt;span class="nb">export&lt;/span> &lt;span class="k">$(&lt;/span>docker create busybox&lt;span class="k">)&lt;/span> &lt;span class="p">|&lt;/span> tar -C rootfs -xvf -
+&lt;span class="c1"># 创建一个 config.json 作为整个 bundle 的 spec&lt;/span>
+$ runc spec
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>此时整个 &lt;code>bundle&lt;/code> 的目录结构如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ tree -L &lt;span class="m">2&lt;/span> /mycontainer
+/mycontainer
+├── config.json
+└── rootfs
+├── bin
+├── dev
+├── etc
+├── home
+├── proc
+├── root
+├── sys
+├── tmp
+├── usr
+└── var
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="系统监测工具">系统监测工具&lt;/h3>
+&lt;p>为了完成演示，我们需要一些第三方的系统检测工具作为辅助：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>监测进程的启动以获得容器中运行进程的 PID，如 ubuntu 中的 &lt;code>forkstat&lt;/code> ，它可以实时地监测 &lt;code>fork()&lt;/code>, &lt;code>exec()&lt;/code> 和 &lt;code>exit()&lt;/code> 等系统调用，安装方式如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ apt install forkstat
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>查看 namespace 信息，如 &lt;code>[cinf](https://github.com/mhausenblas/cinf)&lt;/code> ，它是一个能够方便地列出系统中所有 namespace 或查看某个 namespce 详细信息的命令行工具，安装方式如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ curl -s -L https://github.com/mhausenblas/cinf/releases/latest/download/cinf_linux_amd64.tar.gz &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> -o cinf.tar.gz &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> tar xvzf cinf.tar.gz cinf &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> mv cinf /usr/local/bin &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> rm cinf*
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ol>
+&lt;h2 id="使用-runc-运行容器">使用 runc 运行容器&lt;/h2>
+&lt;p>首先我们需要在一个窗口中运行 &lt;code>forkstat&lt;/code> ：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ forkstat -e &lt;span class="nb">exec&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>接着另外新建一个终端窗口，切换到 &lt;code>/mycontainer&lt;/code> 目录，使用 &lt;code>runC&lt;/code> 运行容器：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ runc run mybox
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>执行后会直接进入到新创建的容器中，运行 &lt;code>ps&lt;/code> 命令：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">PID USER TIME COMMAND
+&lt;span class="m">1&lt;/span> root 0:00 sh
+&lt;span class="m">7&lt;/span> root 0:00 ps
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>forkstat&lt;/code> 窗口将会有以下输出：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">Time Event PID Info Duration Process
+12:35:22 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33040&lt;/span> runc run mybox
+12:35:22 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33047&lt;/span> runc init
+12:35:22 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33049&lt;/span> dumpe2fs -h /dev/sdb3
+12:35:22 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33050&lt;/span> dumpe2fs -h /dev/sdb3
+12:35:22 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33047&lt;/span> runc init
+12:35:22 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33052&lt;/span> sh
+12:35:37 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33062&lt;/span> ps
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>从同步打印的结果可以判断， &lt;code>ps&lt;/code> 和 &lt;code>forkstat&lt;/code> 所分别输出的 &lt;code>sh&lt;/code> 或 &lt;code>ps&lt;/code> 实际上是同一个进程，但由于容器中的进程位于一个单独的 pid namespace 中，它们在容器中拥有另外的 PID，而且它们以为自己是容器中唯一存在的进程，因此 PID 会从 1 开始。&lt;/p>
+&lt;h3 id="找到进程所属的-namespace">找到进程所属的 namespace&lt;/h3>
+&lt;p>现在来找出容器所使用的 pid namespace，为此需要调整一下 &lt;code>ps&lt;/code> 命令的输出格式：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ps -p &lt;span class="m">33052&lt;/span> -o pid,pidns
+PID PIDNS
+&lt;span class="m">33052&lt;/span> &lt;span class="m">4026532395&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>PIDNS 即 pid namespace，以上命令可得到 PID 为 33052 的 &lt;code>sh&lt;/code> 进程属于 4026532395 这个 pid namespace。既然已经有了容器中进程的 PID，实际上我们可以通过宿主机的 &lt;code>/proc&lt;/code> 文件系统获得该进程所属的所有 namespace：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /proc/33052/ns
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">21&lt;/span> 12:37 cgroup -&amp;gt; &lt;span class="s1">&amp;#39;cgroup:[4026531835]&amp;#39;&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">21&lt;/span> 12:36 ipc -&amp;gt; &lt;span class="s1">&amp;#39;ipc:[4026532394]&amp;#39;&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">21&lt;/span> 12:36 mnt -&amp;gt; &lt;span class="s1">&amp;#39;mnt:[4026532383]&amp;#39;&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">21&lt;/span> 12:36 net -&amp;gt; &lt;span class="s1">&amp;#39;net:[4026532397]&amp;#39;&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">21&lt;/span> 12:36 pid -&amp;gt; &lt;span class="s1">&amp;#39;pid:[4026532395]&amp;#39;&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">21&lt;/span> 12:37 pid_for_children -&amp;gt; &lt;span class="s1">&amp;#39;pid:[4026532395]&amp;#39;&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">21&lt;/span> 12:37 &lt;span class="nb">time&lt;/span> -&amp;gt; &lt;span class="s1">&amp;#39;time:[4026531834]&amp;#39;&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">21&lt;/span> 12:37 time_for_children -&amp;gt; &lt;span class="s1">&amp;#39;time:[4026531834]&amp;#39;&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">21&lt;/span> 12:36 user -&amp;gt; &lt;span class="s1">&amp;#39;user:[4026531837]&amp;#39;&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> 7月 &lt;span class="m">21&lt;/span> 12:36 uts -&amp;gt; &lt;span class="s1">&amp;#39;uts:[4026532393]&amp;#39;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>打印结果展示了一个进程所属的 namespace：&lt;/p>
+&lt;ol>
+&lt;li>每个 namespace 都是一个软链接，软链接的名称指示了 namespace 的类型，如 cgroup 表示 cgroup namespace， pid 表示 pid namespace。&lt;/li>
+&lt;li>每个软链接指向该进程所属的真正 namespace 对象，该对象用 &lt;code>inode&lt;/code> 号码表示，每个 &lt;code>inode&lt;/code> 号码在宿主系统中都是唯一的。&lt;/li>
+&lt;li>如果有两个进程的同一类型 namespace 软链接都指向同一个 &lt;code>inode&lt;/code> ，说明他们属于同一个 namespace。&lt;/li>
+&lt;/ol>
+&lt;p>&lt;em>实际上所有的进程都会属于至少一个 namespace，Linux 系统在启动时就会为所有类型创建一个默认的 namespace 供进程使用。&lt;/em>&lt;/p>
+&lt;p>我们也可以尝试在容器内获得 &lt;code>sh&lt;/code> 所属的 namespace，此时需要在容器内使用 1 这个 PID：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ls -l /proc/1/ns
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> Jul &lt;span class="m">21&lt;/span> 04:37 cgroup -&amp;gt; cgroup:&lt;span class="o">[&lt;/span>4026531835&lt;span class="o">]&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> Jul &lt;span class="m">21&lt;/span> 04:37 ipc -&amp;gt; ipc:&lt;span class="o">[&lt;/span>4026532394&lt;span class="o">]&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> Jul &lt;span class="m">21&lt;/span> 04:37 mnt -&amp;gt; mnt:&lt;span class="o">[&lt;/span>4026532383&lt;span class="o">]&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> Jul &lt;span class="m">21&lt;/span> 04:37 net -&amp;gt; net:&lt;span class="o">[&lt;/span>4026532397&lt;span class="o">]&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> Jul &lt;span class="m">21&lt;/span> 04:37 pid -&amp;gt; pid:&lt;span class="o">[&lt;/span>4026532395&lt;span class="o">]&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> Jul &lt;span class="m">21&lt;/span> 04:37 pid_for_children -&amp;gt; pid:&lt;span class="o">[&lt;/span>4026532395&lt;span class="o">]&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> Jul &lt;span class="m">21&lt;/span> 04:37 &lt;span class="nb">time&lt;/span> -&amp;gt; time:&lt;span class="o">[&lt;/span>4026531834&lt;span class="o">]&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> Jul &lt;span class="m">21&lt;/span> 04:37 time_for_children -&amp;gt; time:&lt;span class="o">[&lt;/span>4026531834&lt;span class="o">]&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> Jul &lt;span class="m">21&lt;/span> 04:37 user -&amp;gt; user:&lt;span class="o">[&lt;/span>4026531837&lt;span class="o">]&lt;/span>
+lrwxrwxrwx &lt;span class="m">1&lt;/span> root root &lt;span class="m">0&lt;/span> Jul &lt;span class="m">21&lt;/span> 04:37 uts -&amp;gt; uts:&lt;span class="o">[&lt;/span>4026532393&lt;span class="o">]&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="观察-namespace-中的进程">观察 namespace 中的进程&lt;/h3>
+&lt;p>下面我们将从 namespace 的角度，来观测 pid namespace 中的所有进程。Linux 系统并未提供类似的功能，因此需要借助上文安装的 &lt;code>cinf&lt;/code> 工具来实现。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cinf -namespace &lt;span class="m">4026532395&lt;/span>
+PID PPID NAME CMD NTHREADS CGROUPS STATE
+&lt;span class="m">33052&lt;/span> &lt;span class="m">33052&lt;/span> sh sh &lt;span class="m">1&lt;/span> 12:devices:/user.slice/mybox S &lt;span class="o">(&lt;/span>sleeping&lt;span class="o">)&lt;/span>
+11:blkio:/user.slice/mybox 10:rdma:/
+9:memory:/user.slice/user-0.slice/session-590.scope/mybox
+8:net_cls,net_prio:/mybox 7:freezer:/mybox
+6:pids:/user.slice/user-0.slice/session-590.scope/mybox
+5:cpu,cpuacct:/user.slice/mybox 4:cpuset:/mybox
+3:perf_event:/mybox 2:hugetlb:/mybox
+1:name&lt;span class="o">=&lt;/span>systemd:/user.slice/user-0.slice/session-590.scope/mybox
+0::/user.slice/user-0.slice/session-590.scope
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>目前这个 namespace 中只有一个进程，这个进程也是我们所创建容器的 &lt;code>init&lt;/code> 进程。当一个新的容器被创建时，系统将创建一些新的 namespace，容器的 &lt;code>init&lt;/code> 进程将被加入到这些 namespace。&lt;/p>
+&lt;p>对于 pid namespace 来说，容器中运行的所有进程只能看到位于同一 pid namespace 即 &lt;code>pid:[4026532395]&lt;/code> 中的其他进程。&lt;code>sh&lt;/code> 进程在容器中被认为是系统运行的第一个进程，PID 为 1，但在宿主机中只是一个 PID 为 33052 的普通进程，同一个进程在不同 namespace 中拥有不同的 PID，这就是 pid namespace 的作用。某种程度上，容器就意味着一个单独的 namespace。&lt;/p>
+&lt;h2 id="在容器中创建一个新的进程">在容器中创建一个新的进程&lt;/h2>
+&lt;p>创建一个新的终端窗口，在已运行的容器中运行一个新的进程：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ runc &lt;span class="nb">exec&lt;/span> mybox /bin/top -b
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>从 &lt;code>forkstat&lt;/code> 窗口中，我们可以看到新创建进程的 PID：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">Time Event PID Info Duration Process
+12:40:23 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33132&lt;/span> runc &lt;span class="nb">exec&lt;/span> mybox /bin/top -b
+12:40:23 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33140&lt;/span> runc init
+12:40:23 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33140&lt;/span> runc init
+12:40:23 &lt;span class="nb">exec&lt;/span> &lt;span class="m">33142&lt;/span> /bin/top -b
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>实际上还有更直接的方式从宿主机中查看容器中运行的进程，我们可以使用 &lt;code>runC&lt;/code> 提供的 &lt;code>ps&lt;/code> 子命令：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ runc ps mybox
+UID PID PPID C STIME TTY TIME CMD
+root &lt;span class="m">33052&lt;/span> &lt;span class="m">33040&lt;/span> &lt;span class="m">0&lt;/span> 12:35 pts/0 00:00:00 sh
+root &lt;span class="m">33142&lt;/span> &lt;span class="m">33132&lt;/span> &lt;span class="m">0&lt;/span> 12:40 pts/1 00:00:00 /bin/top -b
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>接下来依然使用 &lt;code>cinf&lt;/code> 来找出新创建进程所属的 namespace：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cinf --pid &lt;span class="m">33142&lt;/span>
+NAMESPACE TYPE
+&lt;span class="m">4026532383&lt;/span> mnt
+&lt;span class="m">4026532393&lt;/span> uts
+&lt;span class="m">4026532394&lt;/span> ipc
+&lt;span class="m">4026532395&lt;/span> pid
+&lt;span class="m">4026532397&lt;/span> net
+&lt;span class="m">4026531837&lt;/span> user
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>从结果来看，并没有新的命名空间被创建，32608 进程的 namespace 和 mybox 容器的 &lt;code>init&lt;/code> 进程- &lt;code>sh&lt;/code> 所属的 namespace 是完全相同的。也就是说，在容器中创建一个新的进程，只是将这个进程加入到了容器 &lt;code>init&lt;/code> 进程所属的 namespace。&lt;/p>
+&lt;p>下面来列出 4026532395 namespace 所拥有的所有进程：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cinf --namespace &lt;span class="m">4026532395&lt;/span>
+PID PPID NAME CMD NTHREADS CGROUPS STATE
+&lt;span class="m">33052&lt;/span> &lt;span class="m">33040&lt;/span> sh sh &lt;span class="m">1&lt;/span> 12:devices:/user.slice/mybox S &lt;span class="o">(&lt;/span>sleeping&lt;span class="o">)&lt;/span>
+11:blkio:/user.slice/mybox 10:rdma:/
+9:memory:/user.slice/user-0.slice/session-590.scope/mybox
+8:net_cls,net_prio:/mybox 7:freezer:/mybox
+6:pids:/user.slice/user-0.slice/session-590.scope/mybox
+5:cpu,cpuacct:/user.slice/mybox 4:cpuset:/mybox
+3:perf_event:/mybox 2:hugetlb:/mybox
+1:name&lt;span class="o">=&lt;/span>systemd:/user.slice/user-0.slice/session-590.scope/mybox
+0::/user.slice/user-0.slice/session-590.scope
+&lt;span class="m">33142&lt;/span> &lt;span class="m">33132&lt;/span> top top -b &lt;span class="m">1&lt;/span> 12:devices:/user.slice/mybox S &lt;span class="o">(&lt;/span>sleeping&lt;span class="o">)&lt;/span>
+11:blkio:/user.slice/mybox 10:rdma:/
+9:memory:/user.slice/user-0.slice/session-590.scope/mybox
+8:net_cls,net_prio:/mybox 7:freezer:/mybox
+6:pids:/user.slice/user-0.slice/session-590.scope/mybox
+5:cpu,cpuacct:/user.slice/mybox 4:cpuset:/mybox
+3:perf_event:/mybox 2:hugetlb:/mybox
+1:name&lt;span class="o">=&lt;/span>systemd:/user.slice/user-0.slice/session-590.scope/mybox
+0::/user.slice/user-0.slice/session-590.scope
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>如果在容器内运行 &lt;code>ps -ef&lt;/code> ，我们也能看到这些进程，由于 pid namespace 的原因它们的 PID 将会有所不同：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">PID USER TIME COMMAND
+&lt;span class="m">1&lt;/span> root 0:00 sh
+&lt;span class="m">19&lt;/span> root 0:00 top -b
+&lt;span class="m">20&lt;/span> root 0:00 ps -ef
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>现在我们知道，&lt;code>docker/runc exec&lt;/code> 实际上就是在已创建容器的 namespace 中运行一个新的进程。&lt;/p>
+&lt;h2 id="总结">总结&lt;/h2>
+&lt;p>运行一个容器时，将创建一些新的 namespace， &lt;code>init&lt;/code> 进程将被加入到这些 namespace；在一个容器中运行一个新进程时，新进程将加入创建容器时所创建的 namespace。&lt;/p>
+&lt;p>实际上创建容器时新建 namespace 这种行为是可以改变的，我们可以指定新建的容器使用已有的 namespace。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://pierrchen.blogspot.com/2018/04/linux-namespaces-in-action-using-runc.html">Understand Container 1: Linux Namespaces&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/opencontainers/runc/blob/master/README.md#creating-an-oci-bundle">Creating an OCI Bundle&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://jarekprzygodzki.dev/post/monitor-new-process-creation/">Monitoring new process creation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://en.wikipedia.org/wiki/Linux_namespaces">Linux namespaces&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%AE%B9%E5%99%A8/">容器</category><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category><category domain="https://www.waynerv.com/tags/linux/">Linux</category></item><item><title>容器技术原理：从根本上认识容器镜像</title><link>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="什么是-oci-规范">什么是 OCI 规范&lt;/h2>
 &lt;p>OCI （Open Container Initiative）规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，包括 Docker 和 Kubernetes。它的出现是一段关于开源商业化的有趣历史：它由 Dokcer 公司作为领头者在 2015 年推出，但如今 Docker 公司在容器行业中已经成了打工仔。&lt;/p>
 &lt;p>从 OCI 规范开始了解容器镜像，可以让我们对容器技术建立更全面清晰的认知，而不是囿于实现细节。OCI 规范分为 &lt;code>Image spec&lt;/code> 和 &lt;code>Runtime spec&lt;/code> 两部分，它们分别覆盖了容器生命周期的不同阶段：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-oci-spec.png" alt="">&lt;/p>
