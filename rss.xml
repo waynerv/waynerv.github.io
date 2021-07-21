@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 21 Jul 2021 10:00:46 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：使用 cgroups 实现资源限制</title><link>https://www.waynerv.com/posts/resource-limitation-using-cgroups/</link><guid isPermaLink="true">https://www.waynerv.com/posts/resource-limitation-using-cgroups/</guid><pubDate>Wed, 21 Jul 2021 17:38:06 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>cgroups（control groups）是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 21 Jul 2021 11:49:31 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：使用 cgroups 实现资源限制</title><link>https://www.waynerv.com/posts/resource-limitation-using-cgroups/</link><guid isPermaLink="true">https://www.waynerv.com/posts/resource-limitation-using-cgroups/</guid><pubDate>Wed, 21 Jul 2021 17:38:06 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>cgroups（control groups）是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。&lt;/p>
 &lt;p>在上一篇文章中我们已了解 Namespace 在容器技术中扮演的角色，如果说 Namespace 控制了容器中的进程能看到什么，那么 cgroups 则控制了容器中的进程能使用多少资源。Namespace 实现了进程的隔离，cgroups 则实现了资源的限制，后者同样是构建容器的基础。&lt;/p>
 &lt;p>本文将沿袭 Namespace 文章的行文思路，实际创建一个容器，观察宿主机中 cgroups 的变化，来实际展示 cgroups 如何工作，然后了解如何自行配置 cgroups。&lt;/p>
 &lt;h2 id="cgroup-在何时创建">cgroup 在何时创建&lt;/h2>
-&lt;p>Linux 内核通过一个叫做 &lt;code>cgroupfs&lt;/code> 的伪文件系统来提供管理 cgroup 的接口，我们可以通过 &lt;code>lscgroup&lt;/code> 来列出系统中已有的 cgroup，该命令实际上遍历了 &lt;code>/sys/fs/cgroup/&lt;/code> 目录中的文件：&lt;/p>
+&lt;p>Linux 内核通过一个叫做 &lt;code>cgroupfs&lt;/code> 的伪文件系统来提供管理 cgroup 的接口，我们可以通过 &lt;code>lscgroup&lt;/code> 命令来列出系统中已有的 cgroup，该命令实际上遍历了 &lt;code>/sys/fs/cgroup/&lt;/code> 目录中的文件：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -11,7 +11,8 @@
 &lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ lscgroup &lt;span class="p">|&lt;/span> tee cgroup.a
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>我们将输出结果保存到 &lt;code>cgroup.a&lt;/code> 文件中。接着在另一窗口中根据 Namespace 文章中的步骤启动一个容器：&lt;/p>
+&lt;/div>&lt;p>&lt;em>如果你使用的 Linux 发行版没有 &lt;code>lscgroup&lt;/code>&lt;/em> 命令，可通过 &lt;a href="https://command-not-found.com/lscgroup">command-not-found.com&lt;/a> 提供的指令下载安装。&lt;/p>
+&lt;p>我们将输出结果保存到 &lt;code>cgroup.a&lt;/code> 文件中。接着在另一窗口中根据 Namespace 文章中的步骤启动一个容器：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -519,7 +520,7 @@ PID PPID NAME CMD NTHREADS CGROUPS STATE
 &lt;/div>
 &lt;/div>&lt;p>目前这个 namespace 中只有一个进程，这个进程也是我们所创建容器的 &lt;code>init&lt;/code> 进程。当一个新的容器被创建时，系统将创建一些新的 namespace，容器的 &lt;code>init&lt;/code> 进程将被加入到这些 namespace。&lt;/p>
 &lt;p>对于 pid namespace 来说，容器中运行的所有进程只能看到位于同一 pid namespace 即 &lt;code>pid:[4026532395]&lt;/code> 中的其他进程。&lt;code>sh&lt;/code> 进程在容器中被认为是系统运行的第一个进程，PID 为 1，但在宿主机中只是一个 PID 为 33052 的普通进程，同一个进程在不同 namespace 中拥有不同的 PID，这就是 pid namespace 的作用。某种程度上，容器就意味着一个单独的 namespace。&lt;/p>
-&lt;h2 id="在容器中创建一个新的进程">在容器中创建一个新的进程&lt;/h2>
+&lt;h2 id="在容器中创建新的进程">在容器中创建新的进程&lt;/h2>
 &lt;p>创建一个新的终端窗口，在已运行的容器中运行一个新的进程：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
