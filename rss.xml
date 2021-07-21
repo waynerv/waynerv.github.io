@@ -1,4 +1,253 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 21 Jul 2021 05:02:48 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：使用 Namespace 实现进程隔离</title><link>https://www.waynerv.com/posts/process-isolation-using-namespace/</link><guid isPermaLink="true">https://www.waynerv.com/posts/process-isolation-using-namespace/</guid><pubDate>Wed, 21 Jul 2021 12:45:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。Namespace 是构建容器技术的基石，它使得容器内的进程只能看到容器内的其他进程，并且以为它们是系统中仅有的进程，也不会操作宿主系统或其他容器中的资源。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 21 Jul 2021 10:00:46 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：使用 cgroups 实现资源限制</title><link>https://www.waynerv.com/posts/resource-limitation-using-cgroups/</link><guid isPermaLink="true">https://www.waynerv.com/posts/resource-limitation-using-cgroups/</guid><pubDate>Wed, 21 Jul 2021 17:38:06 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>cgroups（control groups）是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。&lt;/p>
+&lt;p>在上一篇文章中我们已了解 Namespace 在容器技术中扮演的角色，如果说 Namespace 控制了容器中的进程能看到什么，那么 cgroups 则控制了容器中的进程能使用多少资源。Namespace 实现了进程的隔离，cgroups 则实现了资源的限制，后者同样是构建容器的基础。&lt;/p>
+&lt;p>本文将沿袭 Namespace 文章的行文思路，实际创建一个容器，观察宿主机中 cgroups 的变化，来实际展示 cgroups 如何工作，然后了解如何自行配置 cgroups。&lt;/p>
+&lt;h2 id="cgroup-在何时创建">cgroup 在何时创建&lt;/h2>
+&lt;p>Linux 内核通过一个叫做 &lt;code>cgroupfs&lt;/code> 的伪文件系统来提供管理 cgroup 的接口，我们可以通过 &lt;code>lscgroup&lt;/code> 来列出系统中已有的 cgroup，该命令实际上遍历了 &lt;code>/sys/fs/cgroup/&lt;/code> 目录中的文件：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ lscgroup &lt;span class="p">|&lt;/span> tee cgroup.a
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>我们将输出结果保存到 &lt;code>cgroup.a&lt;/code> 文件中。接着在另一窗口中根据 Namespace 文章中的步骤启动一个容器：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ &lt;span class="nb">cd&lt;/span> /mycontainer
+$ runc run mybox
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>回到原来的窗口再次执行 &lt;code>lsgroup&lt;/code> 命令：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ lscgroup &lt;span class="p">|&lt;/span> tee group.b
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>现在对比两次 &lt;code>lscgroup&lt;/code> 命令的输出结果：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ diff group.a group.b
+&amp;gt; perf_event:/mybox
+&amp;gt; freezer:/mybox
+&amp;gt; net_cls,net_prio:/mybox
+&amp;gt; cpu,cpuacct:/user.slice/mybox
+&amp;gt; blkio:/user.slice/mybox
+&amp;gt; cpuset:/mybox
+&amp;gt; hugetlb:/mybox
+&amp;gt; pids:/user.slice/user-0.slice/session-5.scope/mybox
+&amp;gt; memory:/user.slice/user-0.slice/session-5.scope/mybox
+&amp;gt; devices:/user.slice/mybox
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>从结果中可看到，&lt;code>mybox&lt;/code> 容器创建后，系统专门为其创建了所有类型的新的 cgroup。&lt;/p>
+&lt;h2 id="cgroup-如何控制容器的资源">cgroup 如何控制容器的资源&lt;/h2>
+&lt;p>cgroup 所控制的对象是进程，它控制一个或一组进程所能使用多少内存/CPU/网络等等。一个 cgroup 的 &lt;code>tasks&lt;/code> 列表中记录了其所控制进程的 PID，该 &lt;code>tasks&lt;/code> 实际上也是 &lt;code>cgroupfs&lt;/code> 中的一个文件。&lt;/p>
+&lt;h3 id="init-进程">init 进程&lt;/h3>
+&lt;p>我们首先在宿主机中打印出容器中的进程信息，找到容器的 &lt;code>init&lt;/code> 进程：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ runc ps mybox
+UID PID PPID C STIME TTY TIME CMD
+root &lt;span class="m">2250&lt;/span> &lt;span class="m">2240&lt;/span> &lt;span class="m">0&lt;/span> 15:28 pts/0 00:00:00 sh
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>任意打印一些类型的 cgroup 的 &lt;code>tasks&lt;/code> 列表：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cat /sys/fs/cgroup/memory/user.slice/user-0.slice/session-5.scope/mybox/tasks
+&lt;span class="m">2250&lt;/span>
+$ cat /sys/fs/cgroup/blkio/user.slice/mybox/tasks
+&lt;span class="m">2250&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这一过程简单明了：容器创建之后，容器的 &lt;code>init&lt;/code> 进程会被加入到为该容器所创建的 cgroups 之中，我们可以通过 &lt;code>/proc/$PID/cgroup&lt;/code> 得到更肯定的结果：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cat /proc/2250/cgroup
+12:devices:/user.slice/mybox
+11:memory:/user.slice/user-0.slice/session-5.scope/mybox
+10:pids:/user.slice/user-0.slice/session-5.scope/mybox
+9:hugetlb:/mybox
+8:cpuset:/mybox
+7:rdma:/
+6:blkio:/user.slice/mybox
+5:cpu,cpuacct:/user.slice/mybox
+4:net_cls,net_prio:/mybox
+3:freezer:/mybox
+2:perf_event:/mybox
+1:name&lt;span class="o">=&lt;/span>systemd:/user.slice/user-0.slice/session-5.scope/mybox
+0::/user.slice/user-0.slice/session-5.scope
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="容器中的其他进程">容器中的其他进程&lt;/h3>
+&lt;p>接下来我们在 &lt;code>mybox&lt;/code> 容器中运行一个新的进程：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># 在 mybox 容器中运行&lt;/span>
+$ top -b
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>看看是否会创建新的 cgroup：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ lscgroup &lt;span class="p">|&lt;/span> tee group.c
+$ diff group.b group.c
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>没有输出任何结果，说明没有创建新的 cgroup。既然 cgroup 可以控制一组进程，我们猜测在已运行容器中新建的进程，也都会加入到 &lt;code>init&lt;/code> 进程所属的 cgroups 中。&lt;/p>
+&lt;p>下面开始验证，首先找到新建进程的 PID：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ runc ps mybox
+UID PID PPID C STIME TTY TIME CMD
+root &lt;span class="m">2250&lt;/span> &lt;span class="m">2240&lt;/span> &lt;span class="m">0&lt;/span> 15:28 pts/0 00:00:00 sh
+root &lt;span class="m">2576&lt;/span> &lt;span class="m">2250&lt;/span> &lt;span class="m">0&lt;/span> 15:59 pts/0 00:00:00 top -b
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>新进程的 PID 是 2576，然后打印该进程的 cgroups 信息：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">cat /proc/2576/cgroup
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>输出和 PID 2250 进程的输出完全一致，我们也可以打印其中一个 cgroup 的 &lt;code>tasks&lt;/code> 列表：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">cat /sys/fs/cgroup/blkio/user.slice/mybox/tasks
+&lt;span class="m">2250&lt;/span>
+&lt;span class="m">2576&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>完全符合预期。实际上向 &lt;code>tasks&lt;/code> 文件直接写入进程的 PID 就实现了将进程加入到该 cgroup 中。当一个容器被创建时，将为每种类型的资源创建一个新的 cgroup，在容器中运行的所有进程都将加入到这些 cgroup 中。&lt;/p>
+&lt;p>通过控制容器中运行的所有进程，cgroups 实现了对容器的资源限制。&lt;/p>
+&lt;h2 id="如何配置-cgroup">如何配置 cgroup&lt;/h2>
+&lt;p>下面我们将以内存 cgroup 为例，了解如何配置 cgroup 以实现对 &lt;code>mybox&lt;/code> 容器的内存限制。&lt;/p>
+&lt;p>配置 cgroup 有两种方式，一种是直接修改 &lt;code>cgroupfs&lt;/code> 中的指定文件，另一种是通过 &lt;code>runc&lt;/code> 或 &lt;code>docker&lt;/code> 等高阶工具实现。&lt;/p>
+&lt;h3 id="文件系统方式">文件系统方式&lt;/h3>
+&lt;p>通过 &lt;code>cgroupfs&lt;/code> 的方式，查看/修改该 cgroup 目录下的特定文件即可查看/设置该 cgroup 的限额：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">cat /sys/fs/cgroup/memory/user.slice/user-0.slice/session-5.scope/mybox/memory.limit_in_bytes
+&lt;span class="m">9223372036854771712&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>修改 &lt;code>memory.limit_in_bytes&lt;/code> 文件即可设置最大可用内存，现在我们并未对该容器设置任何限制，因此内存限制的当前值是一个无意义的特别大的值，现在我们向该文件直接写入新的值：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;100000000&amp;#34;&lt;/span> &amp;gt; /sys/fs/cgroup/memory/user.slice/user-0.slice/session-5.scope/mybox/memory.limit_in_bytes
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这样就设置了新的内存限制。写入新的限制值后，容器中的所有进程不能使用总共超过 100M 的内存，超过后将根据 &lt;code>memory.oom_control&lt;/code> 文件中设置的 &lt;code>OOM&lt;/code> 策略 &lt;code>kill&lt;/code> 或 &lt;code>sleep&lt;/code> 容器中的进程。&lt;/p>
+&lt;h3 id="高阶工具方式">高阶工具方式&lt;/h3>
+&lt;p>通过高阶工具提供的途径来配置 cgroup 是一种更友好的方式，虽然这些工具背后的实现也是如上所述更改 &lt;code>cgroupfs&lt;/code>。&lt;/p>
+&lt;p>对于 &lt;code>runc&lt;/code> 来说，需要修改 &lt;code>filesystem bundle&lt;/code> 中的 &lt;code>config.json&lt;/code> 文件来配置 cgroup。设置内存限制需要如下修改 JSON 对象中的 &lt;code>linux.resources&lt;/code> 字段：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="s2">&amp;#34;resources&amp;#34;&lt;/span>&lt;span class="err">:&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="nt">&amp;#34;memory&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="nt">&amp;#34;limit&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">100000&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;reservation&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="mi">200000&lt;/span>
+&lt;span class="p">},&lt;/span>
+&lt;span class="err">...&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>对于 &lt;code>docker&lt;/code> 来说更为简单，它本身就是一个面向用户的封装好的工具，执行 &lt;code>docker run&lt;/code> 命令时通过 &lt;code>--memory&lt;/code> 选项即可指定内存限制。实际上该参数会被写入到 &lt;code>config.json&lt;/code> 由运行时实现 &lt;code>runc&lt;/code> 使用，再由 &lt;code>runc&lt;/code> 去更改 &lt;code>cgroupfs&lt;/code>。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://pierrchen.blogspot.com/2018/04/container-deep-dive-2-linux-cgroups.html">Understand Container 2: Linux cgroups&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://en.wikipedia.org/wiki/Cgroups">cgroups-wikipedia&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://docs.docker.com/config/containers/resource_constraints/#limit-a-containers-access-to-memory">Limit a container’s access to memory&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/opencontainers/runtime-spec/blob/master/config-linux.md#memory">Control groups - Memory&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%AE%B9%E5%99%A8/">容器</category><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category><category domain="https://www.waynerv.com/tags/linux/">Linux</category></item><item><title>容器技术原理：使用 Namespace 实现进程隔离</title><link>https://www.waynerv.com/posts/process-isolation-using-namespace/</link><guid isPermaLink="true">https://www.waynerv.com/posts/process-isolation-using-namespace/</guid><pubDate>Wed, 21 Jul 2021 12:45:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。Namespace 是构建容器技术的基石，它使得容器内的进程只能看到容器内的其他进程，并且以为它们是系统中仅有的进程，也不会操作宿主系统或其他容器中的资源。&lt;/p>
 &lt;p>Namespace 按操作的系统资源不同有很多种类，比如 cgroup namespace，mount namespace 等等，接下来我们仅以 pid namespace 为例，以 &lt;code>runC&lt;/code> 作为容器运行时实现，来演示当我们执行对容器的操作时，namespace 是如何工作的。&lt;/p>
 &lt;p>在上一篇文章中我们已经介绍过，绝大部分容器系统都使用 &lt;code>runC&lt;/code> 作为底层的运行时实现，如果你是在 Linux 发行版系统中使用 &lt;code>docker&lt;/code> ，甚至不需要专门安装就能使用 &lt;code>runc&lt;/code> 命令。&lt;/p>
 &lt;h2 id="准备工作">准备工作&lt;/h2>
@@ -412,7 +661,7 @@ PID PPID NAME CMD NTHREADS CGROUPS STATE
 &lt;li>&lt;a href="https://github.com/opencontainers/runc/blob/master/README.md#creating-an-oci-bundle">Creating an OCI Bundle&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://jarekprzygodzki.dev/post/monitor-new-process-creation/">Monitoring new process creation&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://en.wikipedia.org/wiki/Linux_namespaces">Linux namespaces&lt;/a>&lt;/li>
-&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%AE%B9%E5%99%A8/">容器</category><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category><category domain="https://www.waynerv.com/tags/linux/">Linux</category></item><item><title>容器技术原理：从根本上认识容器镜像</title><link>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="什么是-oci-规范">什么是 OCI 规范&lt;/h2>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%AE%B9%E5%99%A8/">容器</category><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category><category domain="https://www.waynerv.com/tags/linux/">Linux</category></item><item><title>容器技术原理：从根本上认识容器镜像</title><link>https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/learn-image-and-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="从-oci-规范说起">从 OCI 规范说起&lt;/h2>
 &lt;p>OCI（Open Container Initiative）规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，包括 Docker 和 Kubernetes。它的出现是一段关于开源商业化的有趣历史：它由 Dokcer 公司作为领头者在 2015 年推出，但如今 Docker 公司在容器行业中已经成了打工仔。&lt;/p>
 &lt;p>从 OCI 规范开始了解容器镜像，可以让我们对容器技术建立更全面清晰的认知，而不是囿于实现细节。OCI 规范分为 &lt;code>Image spec&lt;/code> 和 &lt;code>Runtime spec&lt;/code> 两部分，它们分别覆盖了容器生命周期的不同阶段：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-oci-spec.png" alt="">&lt;/p>
@@ -659,7 +908,7 @@ drwxr-xr-x &lt;span class="m">11&lt;/span> root root &lt;span class="m">139&lt;/
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">apt install unionfs-fuse
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ apt install unionfs-fuse
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;/li>
@@ -733,8 +982,7 @@ B
 &lt;/span>&lt;span class="lnt">10
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">ll /var/lib/docker/overlay2/
-总用量 &lt;span class="m">0&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /var/lib/docker/overlay2 &lt;span class="p">|&lt;/span> tee layers.a
 drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 335aaf02cbde069ddf7aa0077fecac172d4b2f0240975ab0ebecc3f94f1420cc
 drwx-----x &lt;span class="m">3&lt;/span> root root &lt;span class="m">47&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:04 560df35d349e6a750f1139db22d4cb52cba2a1f106616dc1c0c68b3cf11e3df6
 drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 769a9f5d698522d6e55bd9882520647bd84375a751a67a8ccad1f7bb1ca066dd
@@ -745,7 +993,7 @@ drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/sp
 drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">278&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:25 l
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>其中 6 个名称特别长的目录中存放了镜像的 6 个 &lt;code>layer&lt;/code> （目录名称和 &lt;code>manifest.json&lt;/code> 中的名称并不对应）， &lt;code>l&lt;/code> 目录中包含了指向 &lt;code>layers&lt;/code> 文件夹的软链接，主要目的是在执行 &lt;code>mount&lt;/code> 命令时缩短目录标识符的长度以避免超出页大小限制。&lt;/p>
+&lt;/div>&lt;p>我们将输出结果保存到 &lt;code>layers.a&lt;/code> 文件中供之后对比。其中 6 个名称特别长的目录中存放了镜像的 6 个 &lt;code>layer&lt;/code> （目录名称和 &lt;code>manifest.json&lt;/code> 中的名称并不对应）， &lt;code>l&lt;/code> 目录中包含了指向 &lt;code>layers&lt;/code> 文件夹的软链接，主要目的是在执行 &lt;code>mount&lt;/code> 命令时缩短目录标识符的长度以避免超出页大小限制。&lt;/p>
 &lt;p>每个 &lt;code>layer&lt;/code> 文件夹包含的内容如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -862,34 +1110,26 @@ drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">66&lt;/sp
 drwxr-xr-x &lt;span class="m">1&lt;/span> root root &lt;span class="m">19&lt;/span> 6月 &lt;span class="m">21&lt;/span> 08:00 var
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>除了将原来的镜像层联合挂载到如上所示的 &lt;code>merged&lt;/code> 目录，容器运行成功后 &lt;code>/var/lib/docker/overlay2&lt;/code> 还会新增两个 &lt;code>layer&lt;/code> 目录，&lt;code>merged&lt;/code> 也位于其中一个目录下:&lt;/p>
+&lt;/div>&lt;p>除了将原来的镜像层联合挂载到如上所示的 &lt;code>merged&lt;/code> 目录，通过 &lt;code>diff&lt;/code> 命令可以看到，容器运行成功后 &lt;code>/var/lib/docker/overlay2&lt;/code> 还会新增两个 &lt;code>layer&lt;/code> 目录，&lt;code>merged&lt;/code> 也位于其中一个目录下:&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
-&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
-&lt;/span>&lt;span class="lnt"> 2
-&lt;/span>&lt;span class="lnt"> 3
-&lt;/span>&lt;span class="lnt"> 4
-&lt;/span>&lt;span class="lnt"> 5
-&lt;/span>&lt;span class="lnt"> 6
-&lt;/span>&lt;span class="lnt"> 7
-&lt;/span>&lt;span class="lnt"> 8
-&lt;/span>&lt;span class="lnt"> 9
-&lt;/span>&lt;span class="lnt">10
-&lt;/span>&lt;span class="lnt">11
-&lt;/span>&lt;span class="lnt">12
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /var/lib/docker/overlay2
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 335aaf02cbde069ddf7aa0077fecac172d4b2f0240975ab0ebecc3f94f1420cc
-drwx-----x &lt;span class="m">3&lt;/span> root root &lt;span class="m">47&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:04 560df35d349e6a750f1139db22d4cb52cba2a1f106616dc1c0c68b3cf11e3df6
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 769a9f5d698522d6e55bd9882520647bd84375a751a67a8ccad1f7bb1ca066dd
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 97aaf293fef495f0f06922d422a6187a952ec6ab29c0aa94cd87024c40e1a7e8
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 a91fb6955249dadfb34a3f5f06d083c192f2774fbec5fbb1db42a04e918432c0
-drwx-----x &lt;span class="m">5&lt;/span> root root &lt;span class="m">69&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:08 bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:08 bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011-init
-brw------- &lt;span class="m">1&lt;/span> root root 253, &lt;span class="m">1&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:00 backingFsBlockDev
-drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:20 fa29ec8cfe5a6c0b2cd1486f27a20a02867126edf654faad7f3520a220f3705f
-drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">278&lt;/span> 7月 &lt;span class="m">20&lt;/span> 17:25 l
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ll /var/lib/docker/overlay2 &lt;span class="p">|&lt;/span> tee layers.b
+$ diff layers.a layers.b
+&amp;gt; drwx-----x &lt;span class="m">5&lt;/span> root root &lt;span class="m">69&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:08 bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011
+&amp;gt; drwx-----x &lt;span class="m">4&lt;/span> root root &lt;span class="m">72&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:08 bab121ecb1d54b787b7b1834810baf212b035e28ca8d7875a09b1af837116011-init
+&amp;lt; drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">210&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:08 l
+---
+&amp;gt; drwx-----x &lt;span class="m">2&lt;/span> root root &lt;span class="m">278&lt;/span> 7月 &lt;span class="m">19&lt;/span> 10:08 l
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>通过 &lt;code>inspect&lt;/code> 命令探查已运行容器的 &lt;code>GraphDriver&lt;/code>，可以更清晰地看到与镜像相比容器的 &lt;code>layers&lt;/code> 所发生的变化 :&lt;/p>
