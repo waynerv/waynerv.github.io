@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 22 Jul 2021 08:25:42 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理(四)：使用 Capabilities 实现权限控制</title><link>https://www.waynerv.com/posts/permission-control-using-capabilities/</link><guid isPermaLink="true">https://www.waynerv.com/posts/permission-control-using-capabilities/</guid><pubDate>Thu, 22 Jul 2021 15:45:56 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，可能会得到一些有趣的结果：&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 22 Jul 2021 08:47:45 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理(四)：使用 Capabilities 实现权限控制</title><link>https://www.waynerv.com/posts/permission-control-using-capabilities/</link><guid isPermaLink="true">https://www.waynerv.com/posts/permission-control-using-capabilities/</guid><pubDate>Thu, 22 Jul 2021 15:45:56 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，可能会得到一些有趣的结果：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -32,7 +32,8 @@ hostname: sethostname: Operation not permitted
 &lt;li>从超级用户的权限中移除部分 capability 以削弱其权限，提高系统的安全性。&lt;/li>
 &lt;li>可以根据需求非常精准地向普通用户授予部分特殊权限。&lt;/li>
 &lt;/ul>
-&lt;p>出于安全考虑，默认情况下容器使用白名单的方式在创建容器时加入部分的 capabilities，因此在容器中即使你是超级用户也无权限执行特定的操作。&lt;/p>
+&lt;p>容器通过 namespace 来隔离进程和资源，但并不是所有的资源都可以被 namespace 化，比如容器和宿主机中的时间就是公用的。因此有必要对容器中的操作进行一定的限制，否则会影响到宿主机的稳定性，甚至带来严重的安全风险。&lt;/p>
+&lt;p>出于以上考虑，默认情况下容器运行时使用白名单的方式在创建容器时加入一部分的 capabilities，因此在容器中即使你是超级用户也没有权限执行特定的操作。&lt;/p>
 &lt;p>接下来我们通过实例加深对容器中 capabilities 的认识。&lt;/p>
 &lt;h2 id="准备工作">准备工作&lt;/h2>
 &lt;p>我们将在容器中使用额外的工具库 libcap 实现和 capabilities 的交互，为此需要将其安装到一个 &lt;code>filesystem bundle&lt;/code> 中，这种方式在之前的文章中已有介绍，具体方式如下：&lt;/p>
