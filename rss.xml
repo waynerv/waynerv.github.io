@@ -1,4 +1,279 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 21 Jul 2021 11:49:31 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：使用 cgroups 实现资源限制</title><link>https://www.waynerv.com/posts/resource-limitation-using-cgroups/</link><guid isPermaLink="true">https://www.waynerv.com/posts/resource-limitation-using-cgroups/</guid><pubDate>Wed, 21 Jul 2021 17:38:06 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>cgroups（control groups）是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 22 Jul 2021 07:55:20 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理：使用 Capabilities 实现权限控制</title><link>https://www.waynerv.com/posts/permission-control-using-capabilities/</link><guid isPermaLink="true">https://www.waynerv.com/posts/permission-control-using-capabilities/</guid><pubDate>Thu, 22 Jul 2021 15:45:56 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，可能会得到一些有趣的结果：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ whoami
+root
+$ id -u root
+&lt;span class="m">0&lt;/span>
+$ hostname mybox
+hostname: sethostname: Operation not permitted
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>即使我们使用的是 &lt;code>UID&lt;/code> 为 0 的 &lt;code>root&lt;/code> 用户，也没有权限执行修改 hostname 的操作。&lt;/p>
+&lt;p>实际上 &lt;code>root&lt;/code> 用户拥有最高特权早就成了过去式，Linux 内核在 2.2 版本就引入了一种新的权限检查机制 - capabilities。&lt;/p>
+&lt;h2 id="比超级用户更细粒度的权限控制">比超级用户更细粒度的权限控制&lt;/h2>
+&lt;p>传统的 Linux 权限检查模型较为简单，内核在进行权限检查时只会区分两类进程：&lt;/p>
+&lt;ul>
+&lt;li>特权进程，其有效用户 ID为 0，该用户也就是我们常说的超级用户或 &lt;code>root&lt;/code>。&lt;/li>
+&lt;li>非特权进程，有效用户 ID 不为 0。&lt;/li>
+&lt;/ul>
+&lt;p>特权进程将直接绕过内核的所有检查，非特权进程则需要基于进程的有效用户 ID 和有效用户组 ID 等凭证执行检查。&lt;/p>
+&lt;p>为了适应更复杂的权限需求，从 2.2 版本起 Linux 内核能够进一步将超级用户的权限分解为细颗粒度的单元，这些单元称为 capabilities。例如，capability &lt;code>CAP_CHOWN&lt;/code> 允许用户对文件的 UID 和 GID 进行任意修改，即执行 &lt;code>chown&lt;/code> 命令。几乎所有与超级用户相关的特权都被分解成了单独的 capability。&lt;/p>
+&lt;p>capabilities 的引入有以下好处：&lt;/p>
+&lt;ul>
+&lt;li>从超级用户的权限中移除部分 capability 以削弱其权限，提高系统的安全性。&lt;/li>
+&lt;li>可以根据需求非常精准地向普通用户授予部分特殊权限。&lt;/li>
+&lt;/ul>
+&lt;p>出于安全考虑，默认情况下容器使用白名单的方式在创建容器时加入部分的 capabilities，因此在容器中即使你是超级用户也无权限执行特定的操作。&lt;/p>
+&lt;p>接下来我们通过实例加深对容器中 capabilities 的认识。&lt;/p>
+&lt;h2 id="准备工作">准备工作&lt;/h2>
+&lt;p>我们将在容器中使用额外的工具库 libcap 实现和 capabilities 的交互，为此需要将其安装到一个 &lt;code>filesystem bundle&lt;/code> 中，这种方式在之前的文章中已有介绍，具体方式如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># 创建 bundle 的顶层目录&lt;/span>
+mkdir /mycontainer2
+&lt;span class="nb">cd&lt;/span> /mycontainer2
+&lt;span class="c1"># 创建用于存放 root filesystem 的 rootfs 目录&lt;/span>
+mkdir rootfs
+&lt;span class="c1"># 利用 Docker 导出已安装 libcap 容器的 root filesystem &lt;/span>
+docker &lt;span class="nb">export&lt;/span> &lt;span class="k">$(&lt;/span>docker create cmd.cat/capsh&lt;span class="k">)&lt;/span> &lt;span class="p">|&lt;/span> tar -C rootfs -xvf -
+&lt;span class="c1"># 创建一个 config.json 作为整个 bundle 的 spec&lt;/span>
+runc spec
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>然后就可以使用 &lt;code>runc run&lt;/code> 从 &lt;code>/mycontainer2&lt;/code> 目录运行一个已安装该库的基础容器了。&lt;/p>
+&lt;h2 id="创建容器时添加-capabilities">创建容器时添加 capabilities&lt;/h2>
+&lt;p>在开头的示例中，我们无法在容器中以 &lt;code>root&lt;/code> 用户设置 hostname，是因为缺少了 &lt;code>CAP_SYS_ADMIN&lt;/code> 这一 capability，它并未包含在容器默认添加 capabilities 的白名单中。&lt;/p>
+&lt;p>在之前的一篇文章中，我们介绍过容器运行时会根据 &lt;code>bundle&lt;/code> 中的 &lt;code>config.json&lt;/code> ，为其创建的容器设置运行参数和执行环境，这一过程也包括了设置容器内进程的 capabilities。&lt;/p>
+&lt;p>通过修改 &lt;code>config.json&lt;/code> ，向 JSON 中的 &lt;code>process.capabilities&lt;/code> 对象的 &lt;code>bounding&lt;/code>，&lt;code>permitted&lt;/code> 和 &lt;code>effective&lt;/code> 列表中加入 &lt;code>&amp;quot;CAP_SYS_ADMIN&amp;quot;&lt;/code>，该 capability 将加入到容器 &lt;code>init&lt;/code> 进程的对应 capabilities 集合中。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="s2">&amp;#34;capabilities&amp;#34;&lt;/span>: &lt;span class="o">{&lt;/span>
+&lt;span class="s2">&amp;#34;bounding&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;span class="s2">&amp;#34;CAP_AUDIT_WRITE&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_KILL&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_NET_BIND_SERVICE&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_SYS_ADMIN&amp;#34;&lt;/span>
+&lt;span class="o">]&lt;/span>,
+&lt;span class="s2">&amp;#34;effective&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;span class="s2">&amp;#34;CAP_AUDIT_WRITE&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_KILL&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_NET_BIND_SERVICE&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_SYS_ADMIN&amp;#34;&lt;/span>
+&lt;span class="o">]&lt;/span>,
+&lt;span class="s2">&amp;#34;inheritable&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;span class="s2">&amp;#34;CAP_AUDIT_WRITE&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_KILL&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_NET_BIND_SERVICE&amp;#34;&lt;/span>
+&lt;span class="o">]&lt;/span>,
+&lt;span class="s2">&amp;#34;permitted&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;span class="s2">&amp;#34;CAP_AUDIT_WRITE&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_KILL&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_NET_BIND_SERVICE&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_SYS_ADMIN&amp;#34;&lt;/span>
+&lt;span class="o">]&lt;/span>,
+&lt;span class="s2">&amp;#34;ambient&amp;#34;&lt;/span>: &lt;span class="o">[&lt;/span>
+&lt;span class="s2">&amp;#34;CAP_AUDIT_WRITE&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_KILL&amp;#34;&lt;/span>,
+&lt;span class="s2">&amp;#34;CAP_NET_BIND_SERVICE&amp;#34;&lt;/span>
+&lt;span class="o">]&lt;/span>
+&lt;span class="o">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="capabilities-的技术细节">capabilities 的技术细节&lt;/h3>
+&lt;p>capabilities 可以应用于文件和进程（或线程，Linux 内核不区分进程和线程），文件的 capabilities 存储在文件的扩展属性中，扩展属性在构建镜像时会被清理掉，所以在容器中我们基本不需要考虑文件的 capabilities。&lt;/p>
+&lt;p>进程的 capabilities 通过每个进程单独维护的 5 个 capability 集合来控制，每个集合中都包含 0 个或多个 capabilities：&lt;/p>
+&lt;ul>
+&lt;li>Permitted：进程所能够使用的 capabilities 的超集&lt;/li>
+&lt;li>Inheritable：进程在执行 &lt;code>exec()&lt;/code> 系统调用时，能够被新的派生进程所继承的 capabilities&lt;/li>
+&lt;li>Effective：内核对进程执行权限检查时所使用的集合&lt;/li>
+&lt;li>Bounding：Inheritable 集合的超集，一个capability 必须在 Bounding 集合中才能添加到Inheritable&lt;/li>
+&lt;li>Ambient：非特权程序执行 &lt;code>exec()&lt;/code> 系统调用时将保留的 capabilities&lt;/li>
+&lt;/ul>
+&lt;p>如上所示我们向 &lt;code>init&lt;/code> 进程的 Permitted、Bounding 和 Effective 集合中加入了 &lt;code>CAP_SYS_ADMIN&lt;/code>，因此 &lt;code>init&lt;/code> 进程将通过内核对 &lt;code>CAP_SYS_ADMIN&lt;/code> 的检查。&lt;/p>
+&lt;p>下面我们根据新的 &lt;code>config.json&lt;/code> 运行一个新的容器，现在可以修改 hostname 了：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ runc run mybox3
+$ hostname super
+$ hostname
+super
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>执行以上操作时，我们位于作为容器 &lt;code>init&lt;/code> 进程的 &lt;code>sh&lt;/code> 进程中，如果在容器中继续创建新的进程，是否也会具有新加入的 capability？我们来试一下，在一个新的窗口中执行以下命令：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ runc &lt;span class="nb">exec&lt;/span> -t mybox2 sh
+$ hostname
+super
+$ hostname hello
+$ hostname
+hello
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>修改 hostname 的操作执行成功，因为新创建的进程完全复制了 &lt;code>init&lt;/code> 进程的 capabilities。&lt;/p>
+&lt;h2 id="容器运行时添加-capabilities">容器运行时添加 capabilities&lt;/h2>
+&lt;p>除了修改 &lt;code>config.json&lt;/code> 加入 capabilities，我们还能够在容器运行时阶段添加 capabilities。&lt;/p>
+&lt;p>首先将 &lt;code>config.json&lt;/code> 还原，然后运行一个新的容器 &lt;code>mybox3&lt;/code>，在新的 &lt;code>sh&lt;/code> 进程中确认已经不再具有 &lt;code>CAP_SYS_ADMIN&lt;/code>。&lt;/p>
+&lt;p>然后通过 &lt;code>runc exec&lt;/code> 在该容器中创建一个新的进程，并通过 &lt;code>--cap&lt;/code> 选项为该进程添加 &lt;code>CAP_SYS_ADMIN&lt;/code> :&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">runc &lt;span class="nb">exec&lt;/span> --cap CAP_SYS_ADMIN mybox3 /bin/hostname origin
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>该操作的原理是，既然 &lt;code>runc&lt;/code> 能够根据 &lt;code>config.json&lt;/code> 设置 &lt;code>init&lt;/code> 进程的 capabilities 集合，它同样也能为容器内运行的其他进程设置。&lt;/p>
+&lt;h2 id="查看进程具有的-capabilities">查看进程具有的 capabilities&lt;/h2>
+&lt;h3 id="capsh">capsh&lt;/h3>
+&lt;p>在容器内执行 &lt;code>capsh --print&lt;/code> 能够获取到更多关于 capabilities 的信息：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ capsh --print
+Current: &lt;span class="o">=&lt;/span> cap_kill,cap_net_bind_service,cap_audit_write+eip cap_sys_admin+ep
+Bounding &lt;span class="nb">set&lt;/span> &lt;span class="o">=&lt;/span>cap_kill,cap_net_bind_service,cap_sys_admin,cap_audit_write
+Ambient &lt;span class="nb">set&lt;/span> &lt;span class="o">=&lt;/span>cap_kill,cap_net_bind_service,cap_audit_write
+Securebits: 00/0x0/1&lt;span class="err">&amp;#39;&lt;/span>b0
+secure-noroot: no &lt;span class="o">(&lt;/span>unlocked&lt;span class="o">)&lt;/span>
+secure-no-suid-fixup: no &lt;span class="o">(&lt;/span>unlocked&lt;span class="o">)&lt;/span>
+secure-keep-caps: no &lt;span class="o">(&lt;/span>unlocked&lt;span class="o">)&lt;/span>
+secure-no-ambient-raise: no &lt;span class="o">(&lt;/span>unlocked&lt;span class="o">)&lt;/span>
+&lt;span class="nv">uid&lt;/span>&lt;span class="o">=&lt;/span>0&lt;span class="o">(&lt;/span>root&lt;span class="o">)&lt;/span>
+&lt;span class="nv">gid&lt;/span>&lt;span class="o">=&lt;/span>0&lt;span class="o">(&lt;/span>root&lt;span class="o">)&lt;/span>
+&lt;span class="nv">groups&lt;/span>&lt;span class="o">=&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>该命令打印了当前进程所具有的 capabilities。&lt;/p>
+&lt;p>在 &lt;code>Current&lt;/code> 和 &lt;code>Bounding set&lt;/code> 中包含了我们通过 &lt;code>config.json&lt;/code> 加入的 &lt;code>cap_sys_admin&lt;/code>。capability 末尾的 &lt;code>+eip&lt;/code> 代表了该 capability 同时存在于 Effective，Inheritable 和 Permitted 集合中。&lt;/p>
+&lt;h3 id="pscap">pscap&lt;/h3>
+&lt;p>首先在宿主机获取容器中已运行进程的 PID：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ runc ps mybox2
+UID PID PPID C STIME TTY TIME CMD
+root &lt;span class="m">9592&lt;/span> &lt;span class="m">9580&lt;/span> &lt;span class="m">0&lt;/span> 14:39 pts/0 00:00:00 sh
+root &lt;span class="m">9776&lt;/span> &lt;span class="m">9765&lt;/span> &lt;span class="m">0&lt;/span> 14:46 pts/1 00:00:00 sh
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在宿主机中安装 &lt;code>pscap&lt;/code> 程序：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ apt-get install libcap-ng-utils
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>根据获得的 PID，查看容器中进程所具有的 capabilities：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">pscap &lt;span class="p">|&lt;/span> grep &lt;span class="s2">&amp;#34;9592\|9776&amp;#34;&lt;/span>
+&lt;span class="m">9580&lt;/span> &lt;span class="m">9592&lt;/span> root sh kill, net_bind_service, sys_admin, audit_write
+&lt;span class="m">9765&lt;/span> &lt;span class="m">9776&lt;/span> root sh kill, net_bind_service, sys_admin, audit_write
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://pierrchen.blogspot.com/2018/05/container-deep-dive-3-linux-capabilities.html">Understand Container 3: Linux Capabilities&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://man7.org/linux/man-pages/man7/capabilities.7.html">capabilities(7) — Linux manual page&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://dockerlabs.collabnix.com/advanced/security/capabilities/">dockerlabs-Capabilities&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://fuckcloudnative.io/posts/linux-capabilities-why-they-exist-and-how-they-work/">Linux Capabilities 入门教程：概念篇&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category><category domain="https://www.waynerv.com/tags/linux/">Linux</category></item><item><title>容器技术原理：使用 Cgroups 实现资源限制</title><link>https://www.waynerv.com/posts/resource-limitation-using-cgroups/</link><guid isPermaLink="true">https://www.waynerv.com/posts/resource-limitation-using-cgroups/</guid><pubDate>Wed, 21 Jul 2021 17:38:06 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>cgroups（control groups）是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。&lt;/p>
 &lt;p>在上一篇文章中我们已了解 Namespace 在容器技术中扮演的角色，如果说 Namespace 控制了容器中的进程能看到什么，那么 cgroups 则控制了容器中的进程能使用多少资源。Namespace 实现了进程的隔离，cgroups 则实现了资源的限制，后者同样是构建容器的基础。&lt;/p>
 &lt;p>本文将沿袭 Namespace 文章的行文思路，实际创建一个容器，观察宿主机中 cgroups 的变化，来实际展示 cgroups 如何工作，然后了解如何自行配置 cgroups。&lt;/p>
 &lt;h2 id="cgroup-在何时创建">cgroup 在何时创建&lt;/h2>
