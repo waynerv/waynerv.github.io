@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 23 Jul 2021 02:03:31 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理(四)：使用 Capabilities 实现权限控制</title><link>https://www.waynerv.com/posts/permission-control-using-capabilities/</link><guid isPermaLink="true">https://www.waynerv.com/posts/permission-control-using-capabilities/</guid><pubDate>Thu, 22 Jul 2021 15:45:56 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，会得到有趣的结果：&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 23 Jul 2021 04:34:26 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理(四)：使用 Capabilities 实现权限控制</title><link>https://www.waynerv.com/posts/permission-control-using-capabilities/</link><guid isPermaLink="true">https://www.waynerv.com/posts/permission-control-using-capabilities/</guid><pubDate>Thu, 22 Jul 2021 15:45:56 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，会得到有趣的结果：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -1446,26 +1446,67 @@ $ diff layers.a layers.b
 &lt;/div>&lt;p>&lt;code>LowerDir&lt;/code> 中记录了原有的镜像层文件系统，另外在最上层还新增了一个 &lt;code>init&lt;/code> 层，它们在容器运行阶段都是只读的；&lt;code>MergedDir&lt;/code> 中记录了将 &lt;code>LowerDir&lt;/code> 的所有目录进行联合挂载的挂载点；&lt;code>UpperDir&lt;/code> 也是新增的一个 &lt;code>layer&lt;/code> ，此时位于以上所有 &lt;code>layers&lt;/code> 的最上层，与其他镜像层相比它是可读写的。容器阶段的 &lt;code>layers&lt;/code> 示意图如下：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-image-layers.png" alt="">&lt;/p>
 &lt;p>创建容器时所新增的可写 &lt;code>layer&lt;/code> 我们称为 &lt;code>container layer&lt;/code>，容器运行阶段对文件系统的变更都只会写入到该 &lt;code>layer&lt;/code> 中，包括对文件的新增、修改和删除，而不会改变更低层的原有镜像内容，这极大提升了镜像的分发效率。在镜像层和 &lt;code>container layer&lt;/code> 之间的 &lt;code>init&lt;/code> 层记录了容器在启动时写入的一些配置文件，这一过程发生在新增读写层之前，我们不希望把这些数据写入到原始镜像中。&lt;/p>
-&lt;p>这两个新增的层仅在容器运行阶段存在，容器删除后它们也会被删除。&lt;/p>
+&lt;p>这两个新增的层仅在容器运行阶段存在，容器删除后它们也会被删除。同一个镜像可以创建多个不同的容器，仅需要创建多个不同的可写层；运行时更改过的容器也可以重新打包为一个新的镜像，将可写层添加到新镜像的只读层中即可。&lt;/p>
 &lt;h4 id="为什么容器的读写效率不如原生文件系统">为什么容器的读写效率不如原生文件系统&lt;/h4>
 &lt;p>为了最小化 I/O 以及缩减镜像体积，容器的联合文件系统在读写文件时会采取写时复制策略（copy-on-write），如果一个文件或目录存在于镜像中的较低层，而另一个层（包括可写层）需要对其进行读取访问时，会直接访问较低层的文件。当另一个层第一次需要写入该文件时（在构建镜像或运行容器时），该文件会被复制到该层并被修改。这一举措大大减少了容器的启动时间（启动时新建的可写层只有很少的文件写入），但容器运行后每次第一次修改某个文件都需要先将整个文件复制到 &lt;code>container layer&lt;/code> 中。&lt;/p>
 &lt;p>以上原因导致容器运行时的读写效率不如原生文件系统（尤其是写入效率），在 &lt;code>container layer&lt;/code> 中不适合进行大量的文件读写，通常建议将频繁写入的数据库、日志文件或目录等单独挂载出去，如使用 Docker 提供的 &lt;code>Volume&lt;/code>，此时目录将通过绑定挂载（Bind Mount）直接挂载在可读写层中，绕过了写时复制带来的性能损耗。&lt;/p>
 &lt;h2 id="运行时规范">运行时规范&lt;/h2>
 &lt;p>运行时规范描述了容器的配置、执行环境和生命周期。它详细描述了不同容器运行时架构的配置文件 &lt;code>config.json&lt;/code> 的字段格式，如何在执行环境中应用、注入这些配置，以确保容器内运行的程序在不同运行时之间环境一致，并通过容器的生命周期定义了一套统一的操作行为。&lt;/p>
-&lt;p>规范所定义的容器的生命周期如下：&lt;/p>
+&lt;h3 id="容器的生命周期">容器的生命周期&lt;/h3>
+&lt;p>规范所定义的容器生命周期，描述了容器从创建到退出所发生的事件构成的时间线，该时间线中定义了 13 个不同的事件，下图描述了时间线中容器状态的变化：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-runtime-lifecycle.png" alt="">&lt;/p>
 &lt;p>规范中只定义了4种容器状态，运行时实现可以在规范的基础上添加其他状态，同时标准还规定了运行时必须支持的操作：&lt;/p>
 &lt;ul>
 &lt;li>Query State，查询容器的当前状态&lt;/li>
-&lt;li>Create，根据镜像及配置创建一个新的容器，但是不运行用户自定义的程序&lt;/li>
-&lt;li>Start，在一个已创建的容器中运行用户自定义的程序&lt;/li>
-&lt;li>Kill，发送特定信号终止容器内的进程&lt;/li>
+&lt;li>Create，根据镜像及配置创建一个新的容器，但是不运行用户指定程序&lt;/li>
+&lt;li>Start，在一个已创建的容器中运行用户指定程序&lt;/li>
+&lt;li>Kill，发送特定信号终止容器进程&lt;/li>
 &lt;li>Delete，删除已停止容器所创建的资源&lt;/li>
 &lt;/ul>
-&lt;p>每个操作之前或之后还会触发不同的 hooks。&lt;/p>
-&lt;h3 id="镜像容器和进程之间的关系">镜像、容器和进程之间的关系&lt;/h3>
-&lt;p>容器从镜像中创建，同一个镜像可以创建多个不同的容器，还可以将运行后更改过的容器，重新打包为一个新的镜像（将可读写层添加到新镜像的只读层中即可）。&lt;/p>
-&lt;p>创建容器后，就可以在不依赖宿主机依赖库的情况下从容器中运行进程。&lt;/p>
+&lt;p>每个操作之前或之后还会触发不同的 hooks，符合规范的运行时必须执行这些 hooks。&lt;/p>
+&lt;h3 id="容器的本质是进程">容器的本质是进程&lt;/h3>
+&lt;p>运行时规范中使用了 &lt;code>container process&lt;/code> 这一概念，&lt;code>container process&lt;/code> 等同于上文提到的用户指定程序和容器进程，有些场景也会称该进程为容器的 &lt;code>init&lt;/code> 进程。运行一个容器必须在 &lt;code>config.json&lt;/code> 中定义容器的 &lt;code>container process&lt;/code>，可定义的字段包括命令参数、环境参数和执行路径等等。&lt;/p>
+&lt;p>容器状态的变化，实际上反映的是 &lt;code>container process&lt;/code> 的变化。我们可以将容器的生命周期和状态变化划分为以下几个阶段：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>&lt;code>container process&lt;/code> 执行之前。&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>运行时执行 &lt;code>create&lt;/code> 命令，根据 &lt;code>config.json&lt;/code> 创建指定的资源。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>资源创建成功后，容器进入 &lt;code>created&lt;/code> 状态。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>执行 &lt;code>container process&lt;/code>。&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>运行时执行 &lt;code>start&lt;/code> 命令。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>运行时运行用户指定程序，即 &lt;code>container process&lt;/code>。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>容器进入 &lt;code>running&lt;/code> 状态。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>container process&lt;/code> 进程结束，结束的原因可能是该程序执行结束、出错或崩溃，以及运行时通过 &lt;code>kill&lt;/code> 命令向其发出终止信号。&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>容器进入 &lt;code>stoppped&lt;/code> 状态。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>运行时执行 &lt;code>delete&lt;/code> 命令，所有通过 &lt;code>create&lt;/code> 命令创建的资源被清除。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ol>
+&lt;p>容器运行时的核心就是 &lt;code>container process&lt;/code>：镜像文件系统满足运行进程所需的依赖，运行时所作的准备工作是为了正确的运行该进程，运行时持续的监测该进程的状态，一旦该进程结束即宣告容器（暂时）死亡，运行时进行收尾的清理工作。&lt;/p>
+&lt;p>当然容器中也可以运行其他进程，但这些进程只是共用 &lt;code>container process&lt;/code> 的环境。&lt;/p>
 &lt;h2 id="实现和生态">实现和生态&lt;/h2>
 &lt;p>Docker 向 OCI 规范捐献了其容器运行时 &lt;code>runC&lt;/code> 项目，作为该规范的标准实现。目前已有的大部分容器项目都直接将 &lt;code>runC&lt;/code> 作为运行时实现。&lt;/p>
 &lt;p>下图可以概括容器生态内 Docker 相关的组织及项目之间的关系：&lt;/p>
