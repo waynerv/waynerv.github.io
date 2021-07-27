@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 27 Jul 2021 10:38:06 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理(五)：文件系统的隔离和共享</title><link>https://www.waynerv.com/posts/filesystem-isolation-and-sharing/</link><guid isPermaLink="true">https://www.waynerv.com/posts/filesystem-isolation-and-sharing/</guid><pubDate>Tue, 27 Jul 2021 14:38:20 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="背景知识">背景知识&lt;/h2>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 27 Jul 2021 13:48:52 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理(五)：文件系统的隔离和共享</title><link>https://www.waynerv.com/posts/filesystem-isolation-and-sharing/</link><guid isPermaLink="true">https://www.waynerv.com/posts/filesystem-isolation-and-sharing/</guid><pubDate>Tue, 27 Jul 2021 14:38:20 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="背景知识">背景知识&lt;/h2>
 &lt;p>Unix 系统中所有可访问的文件都被组织在一个巨大的树状文件层次结构中，这颗文件树的根节点就是 &lt;code>/&lt;/code> 目录。这些文件可以分散保存在不同的设备中，前提是我们使用 &lt;code>mount&lt;/code> 系统调用将这些设备上的文件系统挂载到文件树中。&lt;/p>
 &lt;h3 id="目录-vs-文件系统">目录 VS 文件系统&lt;/h3>
 &lt;p>了解文件系统和目录之间的区别是很重要的。文件系统是存储设备如硬盘的一个部分，它被分配来保存文件数据。在目录上挂载文件系统后，可以访问这部分存储的文件。文件系统被挂载后，对终端用户来说访问起来就像普通目录一样。&lt;/p>
@@ -1338,7 +1338,7 @@ PID PPID NAME CMD NTHREADS CGROUPS STATE
 &lt;p>规范要求镜像内容必须包括以下 3 部分：&lt;/p>
 &lt;ul>
 &lt;li>&lt;strong>Image Manifest&lt;/strong>：提供了镜像的配置和文件系统层定位信息，可以看作是镜像的目录，文件格式为 &lt;code>json&lt;/code> 。&lt;/li>
-&lt;li>&lt;strong>Image Layer Filesystem Changeset&lt;/strong>：序列化之后的文件系统和文件系统变更，它们可按顺序一层层应用为一个容器的 rootfs，因此通常也被称为一个 &lt;code>layer&lt;/code>，文件格式可以是 &lt;code>tar&lt;/code> ，&lt;code>gzip&lt;/code> 等存档或压缩格式。&lt;/li>
+&lt;li>&lt;strong>Image Layer Filesystem Changeset&lt;/strong>：序列化之后的文件系统和文件系统变更，它们可按顺序一层层应用为一个容器的 rootfs，因此通常也被称为一个 &lt;code>layer&lt;/code>（与下文提到的镜像层同义），文件格式可以是 &lt;code>tar&lt;/code> ，&lt;code>gzip&lt;/code> 等存档或压缩格式。&lt;/li>
 &lt;li>&lt;strong>Image Configuration&lt;/strong>：包含了镜像在运行时所使用的执行参数以及有序的 rootfs 变更信息，文件类型为 &lt;code>json&lt;/code>。&lt;/li>
 &lt;/ul>
 &lt;p>&lt;em>rootfs (root file system)即 &lt;code>/&lt;/code> 根挂载点所挂载的文件系统，是一个操作系统所包含的文件、配置和目录，但并不包括操作系统内核，同一台机器上的所有容器都共享宿主机操作系统的内核。&lt;/em>&lt;/p>
@@ -1607,7 +1607,7 @@ B
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">unionfs ./B:./A ./C
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ unionfs ./B:./A ./C
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;/li>
