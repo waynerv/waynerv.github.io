@@ -1,4 +1,392 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 23 Jul 2021 04:34:26 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理(四)：使用 Capabilities 实现权限控制</title><link>https://www.waynerv.com/posts/permission-control-using-capabilities/</link><guid isPermaLink="true">https://www.waynerv.com/posts/permission-control-using-capabilities/</guid><pubDate>Thu, 22 Jul 2021 15:45:56 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，会得到有趣的结果：&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 27 Jul 2021 06:48:17 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理(五)：文件系统的隔离和共享</title><link>https://www.waynerv.com/posts/filesystem-isolation-and-sharing/</link><guid isPermaLink="true">https://www.waynerv.com/posts/filesystem-isolation-and-sharing/</guid><pubDate>Tue, 27 Jul 2021 14:38:20 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="背景知识">背景知识&lt;/h2>
+&lt;p>Unix 系统中所有可访问的文件都被组织在一个巨大的树状文件层次结构中，这颗文件树的根节点就是 &lt;code>/&lt;/code> 目录。这些文件可以分散保存在不同的设备中，前提是我们使用 &lt;code>mount&lt;/code> 系统调用将这些设备上的文件系统挂载到文件树中。&lt;/p>
+&lt;h3 id="目录-vs-文件系统">目录 VS 文件系统&lt;/h3>
+&lt;p>了解文件系统和目录之间的区别是很重要的。文件系统是存储设备如硬盘的一个部分，它被分配来保存文件数据。在目录上挂载文件系统后，可以访问这部分存储的文件。文件系统被挂载后，对终端用户来说访问起来就像普通目录一样。&lt;/p>
+&lt;p>我们常常提到 &lt;code>ext&lt;/code> 、&lt;code>xfs&lt;/code> 和 &lt;code>zfs&lt;/code> 是文件系统的类型，不同类型的文件系统存取和管理数据的方式不同，Linux 支持多种类型的文件系统。&lt;/p>
+&lt;h3 id="什么是-rootfs">什么是 &lt;code>rootfs&lt;/code>&lt;/h3>
+&lt;p>&lt;code>rootfs&lt;/code> （root file system）是分层文件树的顶端。它包含对系统运行至关重要的文件和目录，包括设备目录和用于启动系统的程序。&lt;code>rootfs&lt;/code> 还包含了许多挂载点，其他文件系统可以通过这些挂载点连接到 &lt;code>rootfs&lt;/code> 的文件树中。&lt;code>rootfs&lt;/code> 通常由 Linux 发行版提供，一个典型的 &lt;code>rootfs&lt;/code> 内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ ls /
+boot etc home lib64 mnt proc run srv tmp var
+bin dev lib media opt root sbin sys usr
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>系统启动时，初始化进程会将 &lt;code>rootfs&lt;/code> 挂载到 &lt;code>/&lt;/code> 目录，之后再挂载其他的文件系统到其子目录中。这期间所有的 &lt;code>mount&lt;/code> 系统调用都会被记录到初始化进程的 &lt;code>mount table&lt;/code> 中，所有的进程都有一张独立的 &lt;code>mount table&lt;/code>，记录于 &lt;code>/proc/{PID}/mounts&lt;/code> 中。但一般情况下，系统中的所有进程都会直接使用初始化进程的 &lt;code>mount table&lt;/code>。&lt;/p>
+&lt;h2 id="mount-namespace-的本质和工作方式">mount namespace 的本质和工作方式&lt;/h2>
+&lt;p>每个进程可以创建属于自己的 &lt;code>mount table&lt;/code>，但前提是必须先复制父进程的 &lt;code>mount table&lt;/code>，之后再调用 &lt;code>mount&lt;/code> 发生的更改都只会影响当前进程的 &lt;code>mount table&lt;/code>，这就是 mount namespace 的工作原理。如果多个进程在同一 mount namespace 内，其中一个进程对 &lt;code>mount table&lt;/code> 的更改对其他进程来说也是可见的。&lt;/p>
+&lt;p>现在我们来实际查看系统中当前存在的所有 mount namespace，这需要借助之前的文章中介绍过的 &lt;code>cinf&lt;/code> 工具：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cinf &lt;span class="p">|&lt;/span> grep mnt
+NAMESPACE TYPE NPROCS USERS CMD
+&lt;span class="m">4026531840&lt;/span> mnt &lt;span class="m">130&lt;/span> 0,32,70,81,89,998,999 /sbin/init splash
+&lt;span class="m">4026531860&lt;/span> mnt &lt;span class="m">1&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;span class="m">4026532320&lt;/span> mnt &lt;span class="m">1&lt;/span> &lt;span class="m">997&lt;/span> /usr/sbin/chronyd
+&lt;span class="m">4026532389&lt;/span> mnt &lt;span class="m">1&lt;/span> &lt;span class="m">0&lt;/span> sh
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>命令的输出经过一定处理以展示更清晰的信息，从进程数量（NPROCS）可以看到绝大部分进程都位于由初始化进程 &lt;code>/sbin/init&lt;/code> 创建的 &lt;code>4026531840&lt;/code> mount namspace 中，一般情况下新的进程并不会创建新的 mount namespace，如果你打印这些进程的 &lt;code>mount table&lt;/code> 即 &lt;code>/proc/{PID}/mounts&lt;/code> ，会发现输出结果都是相同的。&lt;/p>
+&lt;p>创建一个新的 mount namespace 时，会在新的 mount namspace 中创建一个来自父命名空间的挂载点副本。我们将通过 &lt;code>unshare -m&lt;/code> 创建一个新的 mount namespace 来验证，还将要用到我们在前面的文章中通过 Docker 镜像创建的 &lt;code>filesystem bundle&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="nb">cd&lt;/span> /mycontainer/rootfs
+&lt;span class="nv">PS1&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s1">&amp;#39;\u@new-mnt$ &amp;#39;&lt;/span> unshare -Umr
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>执行该命令后我们进入到了一个新的 mount namespace 中，但依然能看到宿主机中的所有挂载点：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ df -h
+文件系统 容量 已用 可用 已用% 挂载点
+/dev/sdb3 119G 28G 86G 25% /
+tmpfs 7.8G &lt;span class="m">0&lt;/span> 7.8G 0% /dev/shm
+tmpfs 1.6G 1.9M 1.6G 1% /run
+tmpfs 5.0M 4.0K 5.0M 1% /run/lock
+tmpfs 1.6G 84K 1.6G 1% /run/user/121
+tmpfs 1.6G 68K 1.6G 1% /run/user/0
+tmpfs 4.0M &lt;span class="m">0&lt;/span> 4.0M 0% /sys/fs/cgroup
+/dev/sdb2 94G 5.8G 83G 7% /home
+/dev/sda2 96M 30M 67M 31% /boot/efi
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>反过来当我们在新的 mount namespace 执行新的挂载，从宿主机看不到相应的记录：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># in new mount namspace&lt;/span>
+$ mount -t tmpfs tmpfs /mnt
+$ findmnt &lt;span class="p">|&lt;/span> grep mnt
+└─/mnt
+tmpfs tmpfs rw,relatime,inode64
+&lt;span class="c1"># in host&lt;/span>
+$ findmnt &lt;span class="p">|&lt;/span> grep mnt
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这就是 mount namespace 的工作方式。&lt;/p>
+&lt;h3 id="在容器中创建新的-mount-namespace">在容器中创建新的 mount namespace&lt;/h3>
+&lt;p>现在创建一个新的容器来看看 mount namespace 的变化：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ &lt;span class="nb">cd&lt;/span> /mycontainer
+$ runc run mybox
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在一个新的窗口中，我们从宿主机环境使用 &lt;code>cinf&lt;/code> 查询 namespace：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cinf &lt;span class="p">|&lt;/span> grep mnt
+&lt;span class="m">4026531840&lt;/span> mnt &lt;span class="m">134&lt;/span> 0,32,70,81,89,998,999 /usr/lib/systemd/systemd --swi
+&lt;span class="m">4026531860&lt;/span> mnt &lt;span class="m">1&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;span class="m">4026532320&lt;/span> mnt &lt;span class="m">1&lt;/span> &lt;span class="m">997&lt;/span> /usr/sbin/chronyd
+&lt;span class="m">4026532325&lt;/span> mnt &lt;span class="m">1&lt;/span> &lt;span class="m">0&lt;/span> sh
+&lt;span class="m">4026532389&lt;/span> mnt &lt;span class="m">1&lt;/span> &lt;span class="m">0&lt;/span> sh
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>会发现增加了一个新的 mount namespace &lt;code>4026532325&lt;/code>，创建该 mount namespace 的进程正是容器的 &lt;code>init&lt;/code> 进程：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cinf --namespace &lt;span class="m">4026532325&lt;/span>
+PID PPID NAME CMD NTHREADS CGROUPS STATE
+&lt;span class="m">7656&lt;/span> &lt;span class="m">7646&lt;/span> sh sh &lt;span class="m">1&lt;/span> 11:blkio:/mybox 10:devices:/mybox 9:pids:/mybox S &lt;span class="o">(&lt;/span>sleeping&lt;span class="o">)&lt;/span>
+8:cpu,cpuacct:/mybox 7:net_cls,net_prio:/mybox
+6:freezer:/mybox 5:memory:/mybox 4:cpuset:/mybox
+3:hugetlb:/mybox 2:perf_event:/mybox
+1:name&lt;span class="o">=&lt;/span>systemd:/user.slice/user-0.slice/session-1231.scope/mybox
+$ runc ps mybox
+UID PID PPID C STIME TTY TIME CMD
+root &lt;span class="m">7656&lt;/span> &lt;span class="m">7646&lt;/span> &lt;span class="m">0&lt;/span> 14:39 pts/0 00:00:00 sh
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>需要注意的是，创建新的 mount namspace 并不会创建一个全新的 &lt;code>mount table&lt;/code>，而是在父进程的 mount namspace 的副本上进行变更，因此在创建容器时，新的容器容器拥有宿主机的全部挂载点，这显然与我们的预期是不符的，我们希望使用 &lt;code>filesystem bundle&lt;/code> 中的 &lt;code>rootfs&lt;/code> 为容器建立一个隔离的文件系统，这要求我们在新的 mount namespace 中 &lt;code>unmount&lt;/code> 当前 &lt;code>rootfs&lt;/code>，并将 &lt;code>filesystem bundle&lt;/code> 中的 &lt;code>rootfs&lt;/code> &lt;code>mount&lt;/code> 到 &lt;code>/&lt;/code> 目录，我们可以分别在容器和宿主机中使用 &lt;code>ls -id&lt;/code> 打印 &lt;code>/&lt;/code> 目录的 &lt;code>inode&lt;/code> 号码予以验证：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># 在容器中打印 / 目录&lt;/span>
+$ ls -id /
+&lt;span class="m">7077890&lt;/span> /
+&lt;span class="c1"># 在宿主机中打印 filesystem bundle 中 rootfs 所在目录&lt;/span>
+$ ls -id /mycontainer/rootfs
+&lt;span class="m">7077890&lt;/span> /mycontainer/rootfs
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>通过 &lt;code>mount&lt;/code> 无法实现这一点，因为我们无法使所有的进程停止使用当前的 &lt;code>rootfs&lt;/code>，当前的 &lt;code>rootfs&lt;/code> 一定处于使用状态而不能被 &lt;code>unmount&lt;/code>。但可以采取另一种途径：使用 &lt;code>pivot_root&lt;/code> 系统调用，它允许我们将 &lt;code>rootfs&lt;/code> 重新挂载到一个非 &lt;code>/&lt;/code> 的位置，同时在 &lt;code>/&lt;/code> 目录上挂载一个新的目录，并将所有当前进程的根目录切换为新目录。之后我们可以顺利 &lt;code>unmount&lt;/code> 原来的 &lt;code>rootfs&lt;/code>。&lt;/p>
+&lt;h2 id="使用-pivot_root-或-chroot-切换根目录">使用 pivot_root 或 chroot 切换根目录&lt;/h2>
+&lt;p>&lt;code>pivot_root&lt;/code> 是由 Linux 提供的一种系统调用，它能够将一个 mount namespace 中的所有进程的根目录和当前工作目录切换到一个新的目录。&lt;code>pivot_root&lt;/code> 的主要用途是在系统启动时，先挂载一个临时的 &lt;code>rootfs&lt;/code> 完成特定功能，然后再切换到真正的 &lt;code>rootfs&lt;/code>。&lt;/p>
+&lt;p>创建容器的过程中，在创建新的 mount namespace 之后，我们可以通过 &lt;code>pivot_root()&lt;/code> 将容器内进程的根目录切换到 &lt;code>filesystem bundle&lt;/code> 中的 &lt;code>rootfs&lt;/code> 所在目录。&lt;/p>
+&lt;h3 id="chroot-命令的使用示例">chroot 命令的使用示例&lt;/h3>
+&lt;p>除了 &lt;code>pivot_root&lt;/code> ，Linux 还提供了 &lt;code>chroot&lt;/code> 系统调用能够将当前进程的根目录更改为一个新的目录，新的根目录还将被当前进程的所有子进程所继承。&lt;/p>
+&lt;p>上文提到的 &lt;code>pivot_root&lt;/code> 和 &lt;code>chroot&lt;/code> 都是由 Linux 内核提供的系统调用，它们分别都有命令行程序实现了对系统调用的简单封装，接下来我们以 &lt;code>chroot&lt;/code> 命令为例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># 切换到有效的 filesystem bundle 目录&lt;/span>
+$ &lt;span class="nb">cd&lt;/span> /mycontainer
+$ chroot rootfs /bin/sh
+&lt;span class="c1"># 进入到一个新的shell中&lt;/span>
+$ ls /
+bin dev etc home old proc root sys tmp usr var
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在新的 shell 程序中，执行 &lt;code>ls&lt;/code> 返回的是 &lt;code>/mycontainer/rootfs&lt;/code> 目录下的文件内容，而不是宿主机根目录下的内容。通过 &lt;code>chroot&lt;/code> 命令，在不需要 &lt;code>mount namespace&lt;/code> 的情况下我们也实现切换容器内进程根目录的效果。&lt;/p>
+&lt;p>相比 &lt;code>chroot&lt;/code>，&lt;code>pivot_root&lt;/code> 系统调用配合 mount namspace 更加安全，容器运行时会优先使用这种方式，但 &lt;code>chroot&lt;/code> 也是一种可选的方式。在 &lt;code>runC&lt;/code> 的实现中有以下（Golang）代码片段：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-go" data-lang="go">&lt;span class="k">if&lt;/span> &lt;span class="nx">config&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">NoPivotRoot&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="nx">err&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="nf">msMoveRoot&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">config&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Rootfs&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="p">}&lt;/span> &lt;span class="k">else&lt;/span> &lt;span class="k">if&lt;/span> &lt;span class="nx">config&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Namespaces&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nf">Contains&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">configs&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">NEWNS&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="nx">err&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="nf">pivotRoot&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="nx">config&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="nx">Rootfs&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="p">}&lt;/span> &lt;span class="k">else&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="nx">err&lt;/span> &lt;span class="p">=&lt;/span> &lt;span class="nf">chroot&lt;/span>&lt;span class="p">()&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>忽略第一个由用户指定的「不切换根目录」的选择分支，其余分支代表两种切换根目录的方式：&lt;/p>
+&lt;ul>
+&lt;li>如果创建了新的 mount namespace ，将使用 &lt;code>pivot_root&lt;/code> 系统调用。&lt;/li>
+&lt;li>如果没有创建新的 mount namespace，直接使用 &lt;code>chroot&lt;/code> 。&lt;/li>
+&lt;/ul>
+&lt;h2 id="bind-mount-在宿主机和容器间共享文件">bind mount ：在宿主机和容器间共享文件&lt;/h2>
+&lt;p>建立隔离的文件系统之后，我们还需要一种机制从容器访问宿主机的部分文件系统，或者将容器运行过程产生的数据持久化到宿主机中。&lt;/p>
+&lt;p>bind mount （绑定挂载）是由 Linux 提供的一种挂载类型，它能够将一个文件或目录再次挂载到一个新的目标路径，挂载后从新旧两个路径都能访问到原来的数据，从两个路径对数据的修改也都会生效，目标路径的原有内容将会被隐藏。以如下目录结构为例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ tree .
+.
+├── A
+│   ├── a
+│   └── a.conf
+└── B
+   ├── b
+   └── b.conf
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>通过如下命令将 A 绑定挂载到 B 目录：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ mount --bind A B
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>之后从 A 和 B 目录都可以访问原 A 目录的文件内容，而 B 目录的原内容将被隐藏：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ tree .
+.
+├── A
+│   ├── a
+│   └── a.conf
+└── B
+   ├── a
+   └── a.conf
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>我们可以使用 bind mount 在宿主机和容器之间共享文件，将宿主机中的目录甚至是块设备挂载到容器中。&lt;/p>
+&lt;h3 id="在容器中使用-bind-mount">在容器中使用 bind mount&lt;/h3>
+&lt;p>下面我们将在容器建立一个连接到宿主机的 bind mount。容器运行时的实现方式是修改 &lt;code>filesystem bundle&lt;/code> 中的 &lt;code>config.json&lt;/code>，在 JSON 对象的 &lt;code>mounts&lt;/code> 列表中加入以下对象：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-json" data-lang="json">&lt;span class="p">{&lt;/span>
+&lt;span class="nt">&amp;#34;destination&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;/host_dir&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;type&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;bind&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;source&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="s2">&amp;#34;/mycontainer/host&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="nt">&amp;#34;options&amp;#34;&lt;/span>&lt;span class="p">:&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;bind&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这告诉容器运行时，将宿主机中的 &lt;code>/mycontainer/host&lt;/code> 目录（如果使用相对路径则是相对于 &lt;code>filesystem bundle&lt;/code> 的目录即 &lt;code>host&lt;/code>），挂载到容器中 &lt;code>rootfs&lt;/code> 的 &lt;code>/host_dir&lt;/code> 目录。宿主机中的 &lt;code>host&lt;/code> 目录必须提前存在，而容器中的 &lt;code>host_dir&lt;/code> 不存在时将由容器运行时自动创建。现在我们在宿主机中创建 &lt;code>host&lt;/code> 目录并填充一个文件：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ &lt;span class="nb">cd&lt;/span> /mycontainer
+$ mkdir host
+$ touch mkdir/hello
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>然后运行容器，我们将在容器的 &lt;code>/host_dir&lt;/code> 目录中看到宿主机 &lt;code>/mycontainer/host&lt;/code> 目录的内容，在容器内修改该目录内的文件也将在宿主机可见：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># in container&lt;/span>
+$ ls /host_dir
+hello
+$ touch /host_dir/world
+&lt;span class="c1"># in host&lt;/span>
+$ ls /mycontainer/host
+hello world
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>而且，由于绑定挂载的过程发生在容器的 mount namespace 中，宿主机并不知道该挂载点的存在：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="c1"># in container&lt;/span>
+$ cat /proc/self/mounts &lt;span class="p">|&lt;/span> grep host_dir
+/dev/sdb3 /host_dir ext4 rw,relatime,errors&lt;span class="o">=&lt;/span>remount-ro &lt;span class="m">0&lt;/span> &lt;span class="m">0&lt;/span>
+&lt;span class="c1"># in host&lt;/span>
+$ cat /proc/self/mounts &lt;span class="p">|&lt;/span> grep host_dir
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在系列的第一篇文章中，我们提到绑定挂载的挂载点位于容器的可写层中，虽然容器删除后整个可写层将被删除，但容器运行过程中的写入数据依然会保留在宿主机的挂载路径，因此可通过该途径持久化容器中的数据。&lt;/p>
+&lt;h3 id="docker-volumes-是什么">docker volumes 是什么&lt;/h3>
+&lt;p>Dcoekr 提供了 Volumes（该术语并不存在于 OCI 规范中）来将容器中的数据持久化，底层的实现方式也是使用 bind mount，将宿主机中的路径绑定挂载到容器中，相比之下 Docker 提供了更友好的命令行接口，此外还提供了 &lt;code>named volume&lt;/code>，（在 Linux 系统中）本质是不需要在宿主机中指定已存在的目录，而是由 Docker 来管理，在其宿主机的数据目录中建立一个单独的目录。&lt;/p>
+&lt;h2 id="总结">总结&lt;/h2>
+&lt;p>这篇文章我们讨论了和容器文件系统有关的几个方面：&lt;/p>
+&lt;ul>
+&lt;li>使用 mount namespace 在容器中建立单独的文件系统环境，但此时并未与宿主机隔离。&lt;/li>
+&lt;li>使用 &lt;code>pivot_root&lt;/code> 将容器中的根目录切换到镜像提供的 &lt;code>rootfs&lt;/code> 中，使其无法访问宿主机的其他路径而实现隔离。&lt;/li>
+&lt;li>使用 bind mount 在宿主机和容器间共享数据或将容器运行时生成的数据持久化。&lt;/li>
+&lt;/ul>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://pierrchen.blogspot.com/2018/05/understand-container-4.html">Understand Container 4: Mount and Jail&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://man7.org/linux/man-pages/man8/mount.8.html">mount(8) — Linux manual page&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.redhat.com/sysadmin/mount-namespaces">Building a container by hand using namespaces: The mount namespace&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.halolinux.us/kernel-reference/mounting-the-root-filesystem.html">Mounting the Root Filesystem&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.ibm.com/docs/en/aix/7.1?topic=management-file-systems">File systems&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://man7.org/linux/man-pages/man2/pivot_root.2.html">pivot_root(2) — Linux manual page&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://lists.linuxcontainers.org/pipermail/lxc-devel/2011-September/002065.html">DIfference between chroot &amp;amp; pivot_root&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.quora.com/What-is-the-purpose-of-pivot_root-system-call-in-Linux">What is the purpose of pivot_root system call in Linux?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://unix.stackexchange.com/questions/198590/what-is-a-bind-mount">What is a bind mount?&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%AE%B9%E5%99%A8/">容器</category><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category><category domain="https://www.waynerv.com/tags/linux/">Linux</category></item><item><title>容器技术原理(四)：使用 Capabilities 实现权限控制</title><link>https://www.waynerv.com/posts/permission-control-using-capabilities/</link><guid isPermaLink="true">https://www.waynerv.com/posts/permission-control-using-capabilities/</guid><pubDate>Thu, 22 Jul 2021 15:45:56 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，会得到有趣的结果：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
