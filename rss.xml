@@ -1,4 +1,193 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sun, 08 Aug 2021 01:18:30 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>容器技术原理(五)：文件系统的隔离和共享</title><link>https://www.waynerv.com/posts/filesystem-isolation-and-sharing/</link><guid isPermaLink="true">https://www.waynerv.com/posts/filesystem-isolation-and-sharing/</guid><pubDate>Tue, 27 Jul 2021 14:38:20 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="背景知识">背景知识&lt;/h2>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 11 Aug 2021 07:54:00 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>如何纯手工安装 Nginx 二进制文件</title><link>https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</link><guid isPermaLink="true">https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</guid><pubDate>Wed, 11 Aug 2021 15:47:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，这时推荐的做法是从源码自行编译安装，通常来说 &lt;code>configure + make install&lt;/code> 两步即可完成。&lt;/p>
+&lt;p>假如我们只能获取已编译好的程序或者没有编译环境，就只能手动执行安装步骤了。本文将记录如何将一个已编译好的 Nginx 二进制文件安装到 Linux 系统中。&lt;/p>
+&lt;h2 id="prefix-配置">prefix 配置&lt;/h2>
+&lt;p>对安装 nginx 来说，最需要注意的是 &lt;code>prefix&lt;/code> 路径配置，默认值为 &lt;code>/usr/local/nginx&lt;/code>，它是 nginx 运行时的基础路径：&lt;/p>
+&lt;ul>
+&lt;li>nginx 将从该路径寻找配置文件 &lt;code>nginx.conf&lt;/code>。&lt;/li>
+&lt;li>nginx 使用的其他路径的默认值也均基于该路径，如 &lt;code>{prefix}/logs/error.log&lt;/code>。&lt;/li>
+&lt;li>nginx 所读取配置文件中的相对路径均相对于该基础路径。&lt;/li>
+&lt;/ul>
+&lt;p>由于该配置在编译时已写入程序中，此时无法再更改，但仍然可以通过 &lt;code>-c&lt;/code> 选项在运行 nginx 时指定配置文件的路径。在不确定 &lt;code>prefix&lt;/code> 的值时，我们可以执行二进制文件并添加 &lt;code>-V&lt;/code> 选项查看：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">nginx -V
+nginx version: nginx/1.21.1
+built by gcc 8.3.0 &lt;span class="o">(&lt;/span>Debian 8.3.0-6&lt;span class="o">)&lt;/span>
+built with OpenSSL 1.1.1d &lt;span class="m">10&lt;/span> Sep &lt;span class="m">2019&lt;/span>
+configure arguments: --prefix&lt;span class="o">=&lt;/span>/etc/nginx --sbin-path&lt;span class="o">=&lt;/span>/usr/sbin/nginx --modules-path&lt;span class="o">=&lt;/span>/usr/lib/nginx/modules --conf-path&lt;span class="o">=&lt;/span>/etc/nginx/nginx.conf
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="拷贝程序到可执行路径">拷贝程序到可执行路径&lt;/h2>
+&lt;p>我们首先需要将二进制文件移动到宿主机，此时建议将其放在可执行路径如 &lt;code>/usr/sbin/&lt;/code> 下，之后就不需要再指定具体的路径而是直接通过 &lt;code>nginx&lt;/code> 命令即可执行程序。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">chmod &lt;span class="m">0755&lt;/span> nginx
+mv nginx /usr/sbin/nginx
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="添加-systemd-unit-文件">添加 Systemd Unit 文件&lt;/h2>
+&lt;p>对于 nginx 这类长时间运行服务器程序，我们需要对其进行托管，以实现开机启动、自动重启等功能。最推荐的做法是使用 systemd 作为托管程序，它也是目前大部分 Linux 发行版的默认初始化系统。&lt;/p>
+&lt;p>具体来说，我们需要创建一个名称为 &lt;code>nginx.service&lt;/code> 的 Unit 文件，并置于 &lt;code>/usr/lib/systemd/system&lt;/code> 目录下:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">touch /usr/lib/systemd/system/nginx.service
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>nginx.service&lt;/code> 的内容如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="o">[&lt;/span>Unit&lt;span class="o">]&lt;/span>
+&lt;span class="nv">Description&lt;/span>&lt;span class="o">=&lt;/span>The nginx HTTP and reverse proxy server
+&lt;span class="nv">After&lt;/span>&lt;span class="o">=&lt;/span>network.target remote-fs.target nss-lookup.target
+&lt;span class="o">[&lt;/span>Service&lt;span class="o">]&lt;/span>
+&lt;span class="nv">Type&lt;/span>&lt;span class="o">=&lt;/span>forking
+&lt;span class="nv">PIDFile&lt;/span>&lt;span class="o">=&lt;/span>/run/nginx.pid
+&lt;span class="c1"># Nginx will fail to start if /run/nginx.pid already exists but has the wrong&lt;/span>
+&lt;span class="c1"># SELinux context. This might happen when running `nginx -t` from the cmdline.&lt;/span>
+&lt;span class="c1"># https://bugzilla.redhat.com/show_bug.cgi?id=1268621&lt;/span>
+&lt;span class="nv">ExecStartPre&lt;/span>&lt;span class="o">=&lt;/span>/usr/bin/rm -f /run/nginx.pid
+&lt;span class="nv">ExecStartPre&lt;/span>&lt;span class="o">=&lt;/span>/usr/sbin/nginx -t -c /etc/nginx/nginx.conf
+&lt;span class="nv">ExecStart&lt;/span>&lt;span class="o">=&lt;/span>/usr/sbin/nginx -c /etc/nginx/nginx.conf
+&lt;span class="nv">ExecReload&lt;/span>&lt;span class="o">=&lt;/span>/bin/kill -s HUP &lt;span class="nv">$MAINPID&lt;/span>
+&lt;span class="nv">KillSignal&lt;/span>&lt;span class="o">=&lt;/span>SIGQUIT
+&lt;span class="nv">TimeoutStopSec&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">5&lt;/span>
+&lt;span class="nv">KillMode&lt;/span>&lt;span class="o">=&lt;/span>process
+&lt;span class="nv">PrivateTmp&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="nb">true&lt;/span>
+&lt;span class="o">[&lt;/span>Install&lt;span class="o">]&lt;/span>
+&lt;span class="nv">WantedBy&lt;/span>&lt;span class="o">=&lt;/span>multi-user.target
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在 Unit 文件中，我们定义了 nginx 这一 &lt;code>service&lt;/code> 资源，并设置了启动命令和使用的配置文件路径。&lt;/p>
+&lt;h2 id="nginxconf--配置文件">&lt;code>nginx.conf&lt;/code> 配置文件&lt;/h2>
+&lt;p>我们通过 &lt;code>nginx.conf&lt;/code> 配置文件来控制 nginx 的具体行为，在 Unit 文件中我们已将配置文件路径定义为 &lt;code>/etc/nginx/nginx.conf&lt;/code>，因此通过 &lt;code>systemctl&lt;/code> 工具启动 nginx 时都会从该路径读取配置，现在创建该文件：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">mkdir /etc/nginx
+touch /etc/nginx/nginx.conf
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>nginx.conf&lt;/code> 的内容可根据我们的需要自行定义，但需要注意一下几点：&lt;/p>
+&lt;ol>
+&lt;li>&lt;code>pid&lt;/code> 指令的值必须和 Unit 文件保持一致，即 &lt;code>pid /run/nginx.pid;&lt;/code>。&lt;/li>
+&lt;li>所有路径类指令的目录必须提前存在，如 &lt;code>error_log&lt;/code>、 &lt;code>access_log&lt;/code> 和 &lt;code>include&lt;/code>，nginx 会自动创建 log 文件但并不会创建其目录。&lt;/li>
+&lt;/ol>
+&lt;p>推荐将访问日志和异常日志保存于 &lt;code>/var/log/nginx&lt;/code> 目录，将 &lt;code>http&lt;/code> 配置部分的子配置置于 &lt;code>/etc/nginx/&lt;/code> 目录下。&lt;/p>
+&lt;h2 id="创建运行所需目录">创建运行所需目录&lt;/h2>
+&lt;p>在 &lt;code>nginx.conf&lt;/code> 中指定的配置路径，都需要提前将路径目录创建好，否则启动 nginx 时将会报错，假设我们在 &lt;code>nginx.conf&lt;/code> 中指定了如下路径类配置（仅展示部分）：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;span class="lnt">9
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">error_log /var/log/nginx/error.log&lt;span class="p">;&lt;/span>
+pid /run/nginx.pid&lt;span class="p">;&lt;/span>
+http &lt;span class="o">{&lt;/span>
+access_log /var/log/nginx/access.log main&lt;span class="p">;&lt;/span>
+include /etc/nginx/mime.types&lt;span class="p">;&lt;/span>
+include /etc/nginx/conf.d/*.conf&lt;span class="p">;&lt;/span>
+&lt;span class="o">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>则需要提前准备好 &lt;code>/etc/nginx/mime.types&lt;/code> 文件，并创建以下目录：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">mkdir -p /var/log/nginx
+mkdir -p /run
+mkdir -p /etc/nginx/conf.d
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>如果我们在 &lt;code>nginx.conf&lt;/code> 中使用了相对路径，则需要基于 &lt;code>prefix&lt;/code> 路径创建相应的目录。&lt;/p>
+&lt;p>到此我们就完成了所有的准备工作。&lt;/p>
+&lt;h2 id="启动或重启-nginx">启动或重启 nginx&lt;/h2>
+&lt;p>现在可以通过 systemd 来启动 nginx 了：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">systemctl start nginx &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> systemctl &lt;span class="nb">enable&lt;/span> nginx
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>注意在 &lt;code>systemctl status nginx&lt;/code> 的结果中，我们可能会在初始的启动日志中看到如下警告：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="o">[&lt;/span>alert&lt;span class="o">]&lt;/span>: could not open error log file: open&lt;span class="o">()&lt;/span> &lt;span class="s2">&amp;#34;/usr/local/nginx/logs/error.log&amp;#34;&lt;/span> failed &lt;span class="o">(&lt;/span>13: Permission denied&lt;span class="o">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>这是因为 nginx 在读取 &lt;code>nginx.conf&lt;/code> 之前就会先打开错误日志文件，此时将使用编译时指定的 &lt;code>error-log-path&lt;/code> 路径，默认值为 &lt;code>{prefix}/logs/error.log&lt;/code>，在读取了 &lt;code>nginx.conf&lt;/code> 之后就会使用配置文件中通过 &lt;code>error_log&lt;/code> 指定的路径，因此该错误只是一个警告，不会影响 nginx 的启动。&lt;/p>
+&lt;p>在通过 &lt;code>reload&lt;/code> 重启 nginx 时，也需要注意添加 &lt;code>-c&lt;/code> 选项指定配置文件路径：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">nginx -s reload -c /etc/nginx/nginx.conf
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source">Compiling and Installing from Source&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://serverfault.com/questions/308890/nginx-permission-13/338461">Nginx Permission 13&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://serverfault.com/questions/691310/nginx-relative-path-to-include">nginx relative path to include&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/linux/">Linux</category><category domain="https://www.waynerv.com/tags/nginx/">Nginx</category></item><item><title>容器技术原理(五)：文件系统的隔离和共享</title><link>https://www.waynerv.com/posts/filesystem-isolation-and-sharing/</link><guid isPermaLink="true">https://www.waynerv.com/posts/filesystem-isolation-and-sharing/</guid><pubDate>Tue, 27 Jul 2021 14:38:20 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="背景知识">背景知识&lt;/h2>
 &lt;p>Unix 系统中所有可访问的文件都被组织在一个巨大的树状文件层次结构中，这颗文件树的根节点就是 &lt;code>/&lt;/code> 目录。这些文件可以分散保存在不同的设备中，前提是我们使用 &lt;code>mount&lt;/code> 系统调用将这些设备上的文件系统挂载到文件树中。&lt;/p>
 &lt;h3 id="目录-vs-文件系统">目录 VS 文件系统&lt;/h3>
 &lt;p>了解文件系统和目录之间的区别是很重要的。文件系统是存储设备如硬盘的一个部分，它被分配来保存文件数据。在目录上挂载文件系统后，可以访问这部分存储的文件。文件系统被挂载后，对终端用户来说访问起来就像普通目录一样。&lt;/p>
