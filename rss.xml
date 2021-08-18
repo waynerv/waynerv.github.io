@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 12 Aug 2021 06:58:54 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>如何纯手工安装 Nginx 二进制文件</title><link>https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</link><guid isPermaLink="true">https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</guid><pubDate>Wed, 11 Aug 2021 15:47:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，这时推荐的做法是从源码自行编译安装，通常来说 &lt;code>configure + make install&lt;/code> 两步即可完成。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>谈谈天，写写码</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 18 Aug 2021 15:38:28 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>如何手动安装 Nginx 二进制文件</title><link>https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</link><guid isPermaLink="true">https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</guid><pubDate>Wed, 11 Aug 2021 15:47:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，这时推荐的做法是从源码自行编译安装，通常来说 &lt;code>configure + make install&lt;/code> 两步即可完成。&lt;/p>
 &lt;p>假如我们只能获取已编译好的程序或者没有编译环境，就只能手动执行安装步骤了。本文将记录如何将一个已编译好的 Nginx 二进制文件安装到 Linux 系统中。&lt;/p>
 &lt;h2 id="prefix-配置">prefix 配置&lt;/h2>
 &lt;p>对安装 nginx 来说，最需要注意的是 &lt;code>prefix&lt;/code> 路径配置，默认值为 &lt;code>/usr/local/nginx&lt;/code>，它是 nginx 运行时的基础路径：&lt;/p>
@@ -2672,7 +2672,7 @@ additional_dependencies:
 &lt;li>
 &lt;p>&lt;a href="https://myst-parser.readthedocs.io/en/latest/using/howto.html#use-sphinx-ext-autodoc-in-markdown-files">How-To Guides&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category></item><item><title>Python 中 time 和 datetime 模块的区别</title><link>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</guid><pubDate>Thu, 29 Apr 2021 17:07:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/sphinx/">Sphinx</category></item><item><title>Python 时间处理标准库：time 与 datetime 模块</title><link>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</link><guid isPermaLink="true">https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</guid><pubDate>Thu, 29 Apr 2021 17:07:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
 &lt;p>下文将分别介绍每个模块的主要目的、核心对象、常用方法以及用途，并在最后做分析对比，如果已经了解这些细节可以直接跳转到结尾的总结对比部分。&lt;/p>
 &lt;p>另外本文将避免涉及字符串格式化、时区、冬夏令时等更复杂深入的话题。&lt;/p>
 &lt;h2 id="time-模块">time 模块&lt;/h2>
@@ -4272,7 +4272,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://devguide.python.org/setup/#getting-started">Python Developer’s Guide: Getting Started&lt;/a>&lt;/li>
-&lt;/ul></description><category domain="https://www.waynerv.com/categories/python/">Python</category><category domain="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/">编译</category></item><item><title>[CSAPP] 计算机的浮点数表示</title><link>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/csapp-ieee-floating-intro/</guid><pubDate>Mon, 29 Mar 2021 22:48:53 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/python/">Python</category><category domain="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/">编译</category></item><item><title>[CSAPP] 计算机如何表示浮点数</title><link>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/csapp-ieee-floating-intro/</guid><pubDate>Mon, 29 Mar 2021 22:48:53 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -4338,8 +4338,8 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;ol>
 &lt;li>虽然使用了不同的计算方式，但非规范化值可以平滑地过渡到规范化值，如上最大的非规范化值为 $\frac{7}{512}$，而最小的规范化值为 $\frac{8}{512}$。&lt;/li>
 &lt;li>随着浮点数的递增，其比特位表示所解释地无符号整数也随之递增，因此我们可以用相对简单的无符号整数的排序规则来对浮点数进行排序，这并非巧合，而是有意设计的。&lt;/li>
-&lt;/ol></description><category domain="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/">笔记总结</category><category domain="https://www.waynerv.com/tags/csapp/">CSAPP</category></item><item><title>Git cherry-pick 操作浅析</title><link>https://www.waynerv.com/posts/git-cherry-pick-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-cherry-pick-intro/</guid><pubDate>Tue, 26 Jan 2021 16:49:50 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
-&lt;h2 id="基本用法">基本用法&lt;/h2>
+&lt;/ol></description><category domain="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/">笔记总结</category><category domain="https://www.waynerv.com/tags/csapp/">CSAPP</category></item><item><title>深入理解 git cherry-pick 操作</title><link>https://www.waynerv.com/posts/git-cherry-pick-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-cherry-pick-intro/</guid><pubDate>Tue, 26 Jan 2021 16:49:50 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
+&lt;h2 id="如何使用-git-cherry-pick">如何使用 git cherry-pick&lt;/h2>
 &lt;p>Git 命令文档的描述不一定直观易懂，但绝对准确，文档对 &lt;code>git cherry-pick&lt;/code> 描述是： &lt;code>Apply the changes introduced by some existing commits&lt;/code>，即应用某些已有提交所引入的更改。通常我们会说 &lt;code>cherry-pick&lt;/code> 是将某个（些）提交从一个分支移动到另一个分支，这种说法更加容易理解，但后面我们会解释为何文档的描述才是最准确的。&lt;/p>
 &lt;p>假设我们有如下提交：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -4532,7 +4532,7 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;li>&lt;a href="https://stackoverflow.com/a/52932137/10224392">what does git cherry-pick {commit-hash} do?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/a/10058070/10224392">In a Git cherry-pick or rebase merge conflict, how are BASE (aka “the ancestor”), LOCAL, and REMOTE determined?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/questions/27417656/should-diff3-be-default-conflictstyle-on-git">Should diff3 be default conflictstyle on git?&lt;/a>&lt;/li>
-&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/git/">Git</category></item><item><title>Git 撤销操作浅析</title><link>https://www.waynerv.com/posts/git-undo-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-undo-intro/</guid><pubDate>Sat, 09 Jan 2021 12:53:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>「怎样撤销 Git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什么这次搜到的命令不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/git/">Git</category></item><item><title>git 工作原理与撤销操作图解</title><link>https://www.waynerv.com/posts/git-undo-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-undo-intro/</guid><pubDate>Sat, 09 Jan 2021 12:53:49 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>「如何撤销 git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什么这次搜到的命令不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
 &lt;p>之所以这样，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
 &lt;ul>
 &lt;li>我在本地修改了一些文件还未提交，但我想放弃某些文件的更改。&lt;/li>
@@ -5360,7 +5360,7 @@ $ git stash pop
 &lt;li>节省团队成员 review 你代码的时间，提高协作效率&lt;/li>
 &lt;li>配置简单，仅需几步即可上手&lt;/li>
 &lt;/ul>
-&lt;h3 id="flake8-示例">&lt;code>flake8&lt;/code> 示例&lt;/h3>
+&lt;h3 id="flake8-使用示例">&lt;code>flake8&lt;/code> 使用示例&lt;/h3>
 &lt;p>接下来我们以 Python 中的 &lt;code>flake8&lt;/code> 为例，介绍其用法。&lt;/p>
 &lt;p>首先通过 &lt;code>pip&lt;/code> 安装 &lt;code>flake8&lt;/code>:&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -6093,7 +6093,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/quickstart">Quickstart for GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/introduction-to-github-actions">Introduction to GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="http://www.ruanyifeng.com/blog/2019/09/getting-started-with-github-actions.html">GitHub Actions 入门教程&lt;/a>&lt;/li>
-&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/">代码质量</category><category domain="https://www.waynerv.com/tags/ci/">CI</category></item><item><title>使用 Hugo 和 GitHub Pages 部署个人博客</title><link>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</link><guid isPermaLink="true">https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</guid><pubDate>Thu, 24 Dec 2020 21:47:50 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/">代码质量</category><category domain="https://www.waynerv.com/tags/ci/">CI</category></item><item><title>使用 Hugo 和 GitHub Pages 搭建静态博客</title><link>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</link><guid isPermaLink="true">https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</guid><pubDate>Thu, 24 Dec 2020 21:47:50 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
 &lt;p>刚学编程的时候，还开源过一个基于 Flask 和 MongoDB 的&lt;a href="https://github.com/waynerv/originblog">博客项目&lt;/a>，但后面就没怎么使用和维护了，除开主观上的懒，还因为：&lt;/p>
 &lt;ul>
 &lt;li>自建博客绕不开主机和域名，这是一笔持续的经济成本。国内的主机往往是第一年割肉第二年宰猪，国外的主机访问延迟很高。&lt;/li>
@@ -6307,7 +6307,7 @@ publish_dir: ./public
 &lt;p>在本地做一些更改，预览效果后提交并推送，然后在项目仓库的 GitHub Actions 页面检查相应的 &lt;code>workflow&lt;/code> 是否运行成功。不出意外的话，很快个人主页仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，访问个人博客页面也会发现页面已经更新。&lt;/p>
 &lt;h2 id="个人体验">个人体验&lt;/h2>
 &lt;p>由于先后选择的 3 个主题均遭遇了上述发布地址不能包含子路径的问题，我在基本按照官方文档操作的前提下，依然花了超过 10 个小时才把&lt;a href="https://waynerv.github.io/">博客&lt;/a>上线，浪费了很多时间在配置主题以及寻找问题的解决方案上。本以为选择了一个简单快捷的省心方案，结果还是免不了过程的一顿踩坑和折腾。&lt;/p>
-&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></description><category domain="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/">个人</category><category domain="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/">博客</category></item><item><title>Git 合并操作浅析</title><link>https://www.waynerv.com/posts/git-merge-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-merge-intro/</guid><pubDate>Sun, 29 Nov 2020 07:17:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
+&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></description><category domain="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/">个人</category><category domain="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/">博客</category><category domain="https://www.waynerv.com/tags/hugo/">Hugo</category><category domain="https://www.waynerv.com/tags/github/">GitHub</category></item><item><title>深入理解 git 合并操作</title><link>https://www.waynerv.com/posts/git-merge-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-merge-intro/</guid><pubDate>Sun, 29 Nov 2020 07:17:23 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
 &lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
 &lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
 &lt;h2 id="认识合并">认识合并&lt;/h2>
@@ -6411,7 +6411,7 @@ $ git merge feature
 &lt;li>
 &lt;p>&lt;a href="https://segmentfault.com/a/1190000021712743">git merge的原理（递归三路合并算法）&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/git/">Git</category></item><item><title>Git Rebase 操作浅析</title><link>https://www.waynerv.com/posts/git-rebase-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-rebase-intro/</guid><pubDate>Fri, 23 Oct 2020 23:45:24 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>以前我对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/git/">Git</category></item><item><title>git rebase 用法详解与工作原理</title><link>https://www.waynerv.com/posts/git-rebase-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-rebase-intro/</guid><pubDate>Fri, 23 Oct 2020 23:45:24 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>以前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
 &lt;h2 id="理解-rebase-命令">理解 Rebase 命令&lt;/h2>
 &lt;p>&lt;code>git rebase&lt;/code> 命令的文档描述是 &lt;code>Reapply commits on top of another base tip&lt;/code>，从字面上理解是「在另一个基端之上重新应用提交」，这个定义听起来有点抽象，换个角度可以理解为「将分支的基础从一个提交改成另一个提交，使其看起来就像是从另一个提交中创建了分支一样」，如下图：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
@@ -6434,7 +6434,7 @@ $ git merge feature
 &lt;li>远程的 &lt;code>master&lt;/code> 分支在之后又合并了一些新的提交&lt;/li>
 &lt;li>我们想在 &lt;code>feature&lt;/code> 分支集成 &lt;code>master&lt;/code> 的最新更改&lt;/li>
 &lt;/ul>
-&lt;h3 id="和-merge-的区别">和 &lt;code>merge&lt;/code> 的区别&lt;/h3>
+&lt;h3 id="rebase-和-merge-的区别">rebase 和 merge 的区别&lt;/h3>
 &lt;p>以上场景同样可以使用 &lt;code>merge&lt;/code> 来达成目的，但使用 &lt;code>rebase&lt;/code> 可以使我们保持一个线性且更加整洁的提交历史。假设我们有如下分支：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -6531,7 +6531,7 @@ A---B---C master
 &lt;p>这时候我们可以添加新增的修改（或跳过），使用 &lt;code>git commit --amend&lt;/code> 命令执行提交，执行后会进入一个新的编辑器窗口，可以对上一次提交的提交信息进行修改，保存后就会将所做的这些更改应用到上一次提交。&lt;/p>
 &lt;p>如果我们已经将上一次提交推送到了远程的分支，现在再执行推送将会提示出错并被拒绝，在确保该分支不是一个公共分支的前提下，我们可以使用 &lt;code>git push --force&lt;/code> 强制推送。&lt;/p>
 &lt;p>注意与 &lt;code>rebase&lt;/code> 一样，Git 在内部并不会真正地修改并替换上一个提交，而是创建了一个全新的提交并重新指向这个新的提交。&lt;/p>
-&lt;h2 id="使用-rebase-的交互模式重写提交历史">使用 &lt;code>rebase&lt;/code> 的交互模式重写提交历史&lt;/h2>
+&lt;h2 id="使用-rebase-的交互模式重写提交历史">使用 rebase 的交互模式重写提交历史&lt;/h2>
 &lt;p>&lt;code>git rebase&lt;/code> 命令有标准和交互两种模式，之前的示例我们用的都是默认的标准模式，在命令后添加 &lt;code>-i&lt;/code> 或 &lt;code>--interactive&lt;/code> 选项即可使用交互模式。&lt;/p>
 &lt;h3 id="两种模式的区别">两种模式的区别&lt;/h3>
 &lt;p>我们前面提到， &lt;code>rebase&lt;/code> 是「在另一个基端之上重新应用提交」，而在重新应用的过程中，这些提交会被重新创建，自然也可以进行修改。在 &lt;code>rebase&lt;/code> 的标准模式下，当前工作分支的提交会被直接应用到传入分支的顶端；而在交互模式下，则允许我们在重新应用之前通过编辑器以及特定的命令规则对这些提交进行合并、重新排序及删除等重写操作。&lt;/p>
@@ -6760,10 +6760,10 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;/div>
 &lt;/div>&lt;p>完全符合预期，同时也可以看到提交 A之后的所有提交 ID 都已经发生了改变，这也印证了我们之前所说的 Git 重新创建了这些提交。&lt;/p>
 &lt;h2 id="rebase-的进阶用法">Rebase 的进阶用法&lt;/h2>
-&lt;h3 id="合并之前执行-rebase">合并之前执行 &lt;code>rebase&lt;/code>&lt;/h3>
+&lt;h3 id="合并之前执行-rebase">合并之前执行 rebase&lt;/h3>
 &lt;p>另一种使用 &lt;code>rebase&lt;/code> 的常见场景是在推送到远程进行合并之前执行 &lt;code>rebase&lt;/code>，一般这样做的目的是为了确保提交历史的整洁。&lt;/p>
 &lt;p>我们首先在自己的功能分支里进行开发，当开发完成时需要先将当前功能分支 &lt;code>rebase&lt;/code> 到最新的主分支上，提前解决可能出现的冲突，然后再向远程提交修改。 这样的话，远程仓库的主分支维护者就不再需要进行整合且创建一条额外的 &lt;code>merge&lt;/code> 提交，只需要执行快进合并即可。即使是在多个分支并行开发的情况，最终也能得到一条完全线性的提交历史。&lt;/p>
-&lt;h3 id="rebase-到其他分支">&lt;code>rebase&lt;/code> 到其他分支&lt;/h3>
+&lt;h3 id="rebase-到其他分支">rebase 到其他分支&lt;/h3>
 &lt;p>我们可以通过 &lt;code>rebase&lt;/code> 对两个分支进行对比，取出相应的修改，然后应用到另一个分支上。例如：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -6810,7 +6810,7 @@ A---B---C master
 git merge patch
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;h3 id="通过-rebase-执行-git-pull">通过 &lt;code>rebase&lt;/code> 执行 &lt;code>git pull&lt;/code>&lt;/h3>
+&lt;/div>&lt;h3 id="通过-rebase-策略执行-git-pull">通过 rebase 策略执行 &lt;code>git pull&lt;/code>&lt;/h3>
 &lt;p>Git 在最近的某个版本起，直接运行 &lt;code>git pull&lt;/code> 会有如下提示消息：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -6853,12 +6853,12 @@ git config pull.ff only &lt;span class="c1"># 仅快进&lt;/span>
 &lt;h2 id="找回丢失的提交">找回丢失的提交&lt;/h2>
 &lt;p>在交互式模式下进行 &lt;code>rebase&lt;/code> 并对提交执行 &lt;code>squash&lt;/code> 或 &lt;code>drop&lt;/code> 等命令后，会从分支的 &lt;code>git log&lt;/code> 中直接删除提交。如果你不小心操作失误，会以为这些提交已经永久消失了而吓出一身冷汗。&lt;/p>
 &lt;p>但这些提交并没有真正地被删除，如上所说，Git 并不会修改（或删除）原来的提交，而是重新创建了一批新的提交，并将当前分支顶端指向了新提交。因此我们可以使用 &lt;code>git reflog&lt;/code> 找到并且重新指向原来的提交来恢复它们，这会撤销整个 &lt;code>rebase&lt;/code>。感谢 Git ，即使你执行 &lt;code>rebase&lt;/code> 或者 &lt;code>commit --amend&lt;/code> 等重写提交历史的操作，它也不会真正地丢失任何提交。&lt;/p>
-&lt;h3 id="git-reflog">&lt;code>git reflog&lt;/code>&lt;/h3>
-&lt;p>&lt;code>reflogs&lt;/code> 是 Git 用来记录本地仓库分支顶端的更新的一种机制，它会记录所有分支顶端曾经指向过的提交，因此 &lt;code>reflogs&lt;/code> 允许我们找到并切换到一个当前没有被任何分支或标签引用的提交。&lt;/p>
-&lt;p>每当分支顶端由于任何原因被更新（通过切换分支、拉取新的变更、重写历史或者添加新的提交），一条新的记录将被添加到 &lt;code>reflogs&lt;/code> 中。如此一来，我们在本地所创建过的每一次提交都一定会被记录在 &lt;code>reflogs&lt;/code> 中。即使在重写了提交历史之后， &lt;code>reflogs&lt;/code> 也会包含关于分支的旧状态的信息，并允许我们在需要时恢复到该状态。&lt;/p>
-&lt;p>注意 &lt;code>reflogs&lt;/code> 并不会永久保存，它有 90 天的过期时间。&lt;/p>
+&lt;h3 id="git-reflog-命令">&lt;code>git reflog&lt;/code> 命令&lt;/h3>
+&lt;p>reflogs 是 Git 用来记录本地仓库分支顶端的更新的一种机制，它会记录所有分支顶端曾经指向过的提交，因此 reflogs 允许我们找到并切换到一个当前没有被任何分支或标签引用的提交。&lt;/p>
+&lt;p>每当分支顶端由于任何原因被更新（通过切换分支、拉取新的变更、重写历史或者添加新的提交），一条新的记录将被添加到 reflogs 中。如此一来，我们在本地所创建过的每一次提交都一定会被记录在 reflogs 中。即使在重写了提交历史之后， reflogs 也会包含关于分支的旧状态的信息，并允许我们在需要时恢复到该状态。&lt;/p>
+&lt;p>注意 reflogs 并不会永久保存，它有 90 天的过期时间。&lt;/p>
 &lt;h3 id="还原提交历史">还原提交历史&lt;/h3>
-&lt;p>我们从上一个例子继续，假设我们想恢复 &lt;code>feature&lt;/code> 分支在 &lt;code>rebase&lt;/code> 之前的 A→B→C→D→E→F 提交历史，但这时候的 &lt;code>git log&lt;/code> 中已经没有后面 5 个提交，所以需要从 &lt;code>reflogs&lt;/code> 中寻找，运行 &lt;code>git reflog&lt;/code> 结果如下:&lt;/p>
+&lt;p>我们从上一个例子继续，假设我们想恢复 &lt;code>feature&lt;/code> 分支在 &lt;code>rebase&lt;/code> 之前的 A→B→C→D→E→F 提交历史，但这时候的 &lt;code>git log&lt;/code> 中已经没有后面 5 个提交，所以需要从 reflogs 中寻找，运行 &lt;code>git reflog&lt;/code> 结果如下:&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
