@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 02 Sep 2021 15:18:34 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>如何使用 docker buildx 构建跨平台 Go 镜像</title><link>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</link><guid isPermaLink="true">https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</guid><pubDate>Thu, 02 Sep 2021 20:07:08 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>镜像分发大幅提高了应用的交付效率，我们可以一次构建多处部署，但跨平台部署应用依然是个挑战。当需要部署应用到 ARM 架构等其他平台时，利用 docker buildx 构建跨平台的镜像是个值得尝试的解决方案。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 03 Sep 2021 03:01:08 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>如何使用 docker buildx 构建跨平台 Go 镜像</title><link>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</link><guid isPermaLink="true">https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</guid><pubDate>Thu, 02 Sep 2021 20:07:08 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>一次构建多处部署的镜像分发大幅提高了应用的交付效率，但跨平台的部署依然是个挑战。当需要部署应用到 ARM 架构等其他平台时，利用 docker buildx 构建跨平台的镜像是个快捷高效的解决方案。&lt;/p>
 &lt;h2 id="前提">前提&lt;/h2>
 &lt;p>大部分镜像托管平台支持多平台镜像，这意味着镜像仓库中单个标签可以包含不同平台的多个镜像，以 &lt;code>docker hub&lt;/code> 的 &lt;code>python&lt;/code> 镜像仓库为例，&lt;code>3.9.6&lt;/code> 这个标签就包含了 10 个不同系统和架构的镜像（平台 = 系统 + 架构）：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2020-09-02-python-multi-arch-images.png" alt="Untitled">&lt;/p>
@@ -82,7 +82,7 @@ default default running linux/amd64, linux/386
 &lt;/ul>
 &lt;p>&lt;code>docker&lt;/code> 驱动无法使用一小部分 &lt;code>buildx&lt;/code> 的特性（如在一次运行中同时构建多个平台镜像），此外在镜像的默认输出格式上也有所区别：&lt;code>docker&lt;/code> 驱动默认将构建结果以 Docker 镜像格式直接输出到 &lt;code>docker&lt;/code> 的镜像目录（通常是 &lt;code>/var/lib/overlay2&lt;/code>），之后执行 &lt;code>docker images&lt;/code> 命令可以列出所输出的镜像；而 &lt;code>docker container&lt;/code> 则需要通过 &lt;code>--output&lt;/code> 选项指定输出格式为镜像或其他格式。&lt;/p>
 &lt;p>为了一次性构建多个平台的镜像，下文将使用 &lt;code>docker container&lt;/code> 驱动的 builder 实例。&lt;/p>
-&lt;h2 id="buildx-跨平台构建策略">buildx 跨平台构建策略&lt;/h2>
+&lt;h2 id="buildx-的跨平台构建策略">buildx 的跨平台构建策略&lt;/h2>
 &lt;p>根据构建节点和目标程序语言不同，&lt;code>buildx&lt;/code> 支持以下三种跨平台构建策略：&lt;/p>
 &lt;ol>
 &lt;li>通过 QEMU 的用户态模式创建轻量级的虚拟机，在虚拟机系统中构建镜像。&lt;/li>
@@ -99,9 +99,10 @@ default default running linux/amd64, linux/386
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>这种方式不需要对已有的 Dockerfile 做任何修改，实现的成本很低，但显而易见效率并不高。&lt;/p>
-&lt;p>将不同系统架构的原生节点添加到 builder 实例中可以为跨平台编译带来更好的支持，而且效率更高，但需要有足够的硬件支持。&lt;/p>
+&lt;p>将不同系统架构的原生节点添加到 builder 实例中可以为跨平台编译带来更好的支持，而且效率更高，但需要有足够的基础设施支持。&lt;/p>
 &lt;p>如果构建项目所使用的程序语言支持交叉编译（如 C 和 Go），可以利用 Dockerfile 提供的分阶段构建特性：首先在和构建节点相同的架构中编译出目标架构的二进制文件，再将这些二进制文件复制到目标架构的另一镜像中。下文会使用 Go 实现一个具体的示例。这种方式不需要额外的硬件，也能得到较好的性能，但只有特定编程语言能够实现。&lt;/p>
 &lt;h2 id="一次构建多架构-go-镜像实践">一次构建多架构 Go 镜像实践&lt;/h2>
+&lt;h3 id="源代码和-dockerfile">源代码和 Dockerfile&lt;/h3>
 &lt;p>下面将以一个简单的 Go 项目作为示例，假设示例程序文件 &lt;code>main.go&lt;/code> 内容如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -160,22 +161,34 @@ default default running linux/amd64, linux/386
 &lt;/span>&lt;span class="err">&lt;/span>&lt;span class="k">CMD&lt;/span> /root/main&lt;span class="err">
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>在 Dockerfile 中可使用由 buildx 提供的 &lt;code>BUILDPLATFORM&lt;/code>、&lt;code>TARGETPLATFORM&lt;/code>、&lt;code>BUILDARCH&lt;/code> 和 &lt;code>TARGETARCH&lt;/code> 等参数。&lt;/p>
-&lt;p>构建过程分为两个阶段：&lt;/p>
+&lt;/div>&lt;p>构建过程分为两个阶段：&lt;/p>
 &lt;ul>
 &lt;li>在一阶段中，我们将拉取一个和当前构建节点相同平台的 &lt;code>golang&lt;/code> 镜像，并使用 Go 的交叉编译特性将其编译为目标架构的二进制文件。&lt;/li>
 &lt;li>然后拉取目标平台的 &lt;code>alpine&lt;/code> 镜像，并将上一阶段的编译结果拷贝到镜像中。&lt;/li>
 &lt;/ul>
-&lt;p>然后执行如下 &lt;code>docker buildx&lt;/code> 命令：&lt;/p>
+&lt;h3 id="执行跨平台构建">执行跨平台构建&lt;/h3>
+&lt;p>执行构建命令时，除了指定镜像名称，另外两个重要的选项是指定目标平台和输出格式。&lt;/p>
+&lt;p>&lt;code>docker buildx build&lt;/code> 通过 &lt;code>--platform&lt;/code> 选项指定构建的目标平台。Dockerfile 中的 FROM 指令如果没有设置 &lt;code>--platform&lt;/code> 标志，就会以目标平台拉取基础镜像，最终生成的镜像也将属于目标平台。此外 Dockerfile 中可通过 &lt;code>BUILDPLATFORM&lt;/code>、&lt;code>TARGETPLATFORM&lt;/code>、&lt;code>BUILDARCH&lt;/code> 和 &lt;code>TARGETARCH&lt;/code> 等参数使用该选项的值。当使用 &lt;code>docker-container&lt;/code> 驱动时，这个选项可以接受用逗号分隔的多个值作为输入以同时指定多个目标平台，所有平台的构建结果将合并为一个整体的镜像列表作为输出，因此无法直接输出为本地的 &lt;code>docker images&lt;/code> 镜像。&lt;/p>
+&lt;p>&lt;code>docker buildx build&lt;/code> 支持丰富的输出行为，通过&lt;code>--output=[PATH,-,type=TYPE[,KEY=VALUE]&lt;/code> 选项可以指定构建结果的输出类型和路径等，常用的输出类型有以下几种：&lt;/p>
+&lt;ul>
+&lt;li>local：构建结果将以文件系统格式写入 &lt;code>dest&lt;/code> 指定的本地路径， 如 &lt;code>--output type=local,dest=./output&lt;/code>。&lt;/li>
+&lt;li>tar：构建结果将在打包后写入 &lt;code>dest&lt;/code> 指定的本地路径。&lt;/li>
+&lt;li>oci：构建结果以 OCI 标准镜像格式写入 &lt;code>dest&lt;/code> 指定的本地路径。&lt;/li>
+&lt;li>docker：构建结果以 Docker 标准镜像格式写入 &lt;code>dest&lt;/code> 指定的本地路径或加载到 &lt;code>docker&lt;/code> 的镜像库中。同时指定多个目标平台时无法使用该选项。&lt;/li>
+&lt;li>image：以镜像或者镜像列表输出，并支持 &lt;code>push=true&lt;/code> 选项直接推送到远程仓库，同时指定多个目标平台时可使用该选项。&lt;/li>
+&lt;li>registry：&lt;code>type=image,push=true&lt;/code> 的精简表示。&lt;/li>
+&lt;/ul>
+&lt;p>对本示例我们执行如下 &lt;code>docker buildx build&lt;/code> 命令：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker buildx build --platform linux/amd64,linux/arm64 -t registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo -o &lt;span class="nv">type&lt;/span>&lt;span class="o">=&lt;/span>registry .
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker buildx build --platform linux/amd64,linux/arm64,linux/arm -t registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo -o &lt;span class="nv">type&lt;/span>&lt;span class="o">=&lt;/span>registry .
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>该命令将同时编译 &lt;code>linux/amd64&lt;/code> 和 &lt;code>linux/arm64&lt;/code> 两种平台的镜像，并将输出结果推送到阿里云镜像仓库中。&lt;/p>
+&lt;/div>&lt;p>该命令将在当前目录同时构建 &lt;code>linux/amd64&lt;/code>、 &lt;code>linux/arm64&lt;/code> 和 &lt;code>linux/arm&lt;/code> 三种平台的镜像，并将输出结果直接推送到远程的阿里云镜像仓库中。&lt;/p>
+&lt;h3 id="验证构建结果">验证构建结果&lt;/h3>
 &lt;p>运行结束后可以通过 &lt;code>docker buildx imagetools&lt;/code> 探查已推送到远程仓库的镜像：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -192,26 +205,36 @@ default default running linux/amd64, linux/386
 &lt;/span>&lt;span class="lnt">11
 &lt;/span>&lt;span class="lnt">12
 &lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker buildx imagetools inspect registry.cn-hangzhou.aliyuncs.com/waynerv/arm-demo:latest
-Name: registry.cn-hangzhou.aliyuncs.com/waynerv/arm-demo:latest
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker buildx imagetools inspect registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest
+Name: registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest
 MediaType: application/vnd.docker.distribution.manifest.list.v2+json
-Digest: sha256:db33962ac57ac233da88c67f9a7cb8e71673e882cf9f1f69a622ae08bab5d688
+Digest: sha256:e2c3c5b330c19ac9d09f8aaccc40224f8673e12b88ff59cb68971c36b76e95ca
 Manifests:
-Name: registry.cn-hangzhou.aliyuncs.com/waynerv/arm-demo:latest@sha256:414599de2ff1507e23843a4e444dba934b319eb5a3fe2f4c984fe6b23d74e339
+Name: registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:cb6a7614ee3db03c8858e3680b1585f32a6fe3de9b371e37e25cf42a83f6e0ba
 MediaType: application/vnd.docker.distribution.manifest.v2+json
 Platform: linux/amd64
-Name: registry.cn-hangzhou.aliyuncs.com/waynerv/arm-demo:latest@sha256:176923b8a5a66297ce14ab774e5a8e7896060e37c72c46740f609cf01b1503a7
+Name: registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:034aa0077a452a6c2585f8b4969c7c85d5d2bf65f801fcc803a00d0879ce900e
 MediaType: application/vnd.docker.distribution.manifest.v2+json
 Platform: linux/arm64
+Name: registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:db0ee3a876fb789d2e733471385eef0a056f64ee12d9e7ef94e411469d054eb5
+MediaType: application/vnd.docker.distribution.manifest.v2+json
+Platform: linux/arm/v7
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>最后在不同的平台以 &lt;code>latest&lt;/code> 标签拉取并运行镜像，验证构建结果是否正确。如果你使用是 Docker Desktop，其本身集成了虚拟化功能，因此可以运行不同平台的镜像，我们直接以 &lt;code>sha256&lt;/code> 值拉取镜像：&lt;/p>
-&lt;pre>&lt;code>$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arm-demo:latest@sha256:414599de2ff1507e23843a4e444dba934b319eb5a3fe2f4c984fe6b23d74e339 uname -m
-amd64
-&lt;/code>&lt;/pre>&lt;pre>&lt;code>$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arm-demo:latest@sha256:414599de2ff1507e23843a4e444dba934b319eb5a3fe2f4c984fe6b23d74e339 uname -m
-aarch64
+&lt;/div>&lt;p>最后在不同的平台以 &lt;code>latest&lt;/code> 标签拉取并运行镜像，验证构建结果是否正确。
+使用 Docker Desktop 时，其本身集成的虚拟化功能可以运行不同平台的镜像，可以直接以 &lt;code>sha256&lt;/code> 值拉取镜像：&lt;/p>
+&lt;pre>&lt;code>$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:cb6a7614ee3db03c8858e3680b1585f32a6fe3de9b371e37e25cf42a83f6e0ba
+Hello world!
+Running in [amd64] architecture.
+&lt;/code>&lt;/pre>&lt;pre>&lt;code>$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:034aa0077a452a6c2585f8b4969c7c85d5d2bf65f801fcc803a00d0879ce900e
+Hello world!
+Running in [arm64] architecture.
 &lt;/code>&lt;/pre>&lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>
@@ -219,6 +242,9 @@ aarch64
 &lt;/li>
 &lt;li>
 &lt;p>&lt;a href="https://docs.docker.com/buildx/working-with-buildx/#build-with-buildx">Docker Buildx&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;a href="https://docs.docker.com/engine/reference/commandline/buildx_build/#output">docker buildx build&lt;/a>&lt;/p>
 &lt;/li>
 &lt;/ul></description><category domain="https://www.waynerv.com/categories/golang/">Golang</category><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category><category domain="https://www.waynerv.com/tags/docker/">Docker</category></item><item><title>如何手动安装 Nginx 二进制文件</title><link>https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</link><guid isPermaLink="true">https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</guid><pubDate>Wed, 11 Aug 2021 15:47:32 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，这时推荐的做法是从源码自行编译安装，通常来说 &lt;code>configure + make install&lt;/code> 两步即可完成。&lt;/p>
 &lt;p>假如我们只能获取已编译好的程序或者没有编译环境，就只能手动执行安装步骤了。本文将记录如何将一个已编译好的 Nginx 二进制文件安装到 Linux 系统中。&lt;/p>
