@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 03 Sep 2021 03:46:41 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>如何使用 docker buildx 构建跨平台 Go 镜像</title><link>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</link><guid isPermaLink="true">https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</guid><pubDate>Thu, 02 Sep 2021 20:07:08 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在不同操作系统和处理器架构上运行应用是很普遍的场景，因此为不同平台单独构建发布版本是一种常见做法。当我们用来开发应用的平台与部署的目标平台不同时，实现这一目标并不容易。例如在 x86 架构上开发一个应用程序并将其部署到 ARM 平台的机器上，通常需要准备 ARM 平台的基础设施用于开发和编译。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Fri, 03 Sep 2021 09:00:44 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>如何使用 docker buildx 构建跨平台 Go 镜像</title><link>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</link><guid isPermaLink="true">https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</guid><pubDate>Thu, 02 Sep 2021 20:07:08 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在不同操作系统和处理器架构上运行应用是很普遍的场景，因此为不同平台单独构建发布版本是一种常见做法。当我们用来开发应用的平台与部署的目标平台不同时，实现这一目标并不容易。例如在 x86 架构上开发一个应用程序并将其部署到 ARM 平台的机器上，通常需要准备 ARM 平台的基础设施用于开发和编译。&lt;/p>
 &lt;p>一次构建多处部署的镜像分发大幅提高了应用的交付效率，对于需要跨平台部署应用的场景，利用 docker buildx 构建跨平台的镜像也是一种快捷高效的解决方案。&lt;/p>
 &lt;h2 id="前提">前提&lt;/h2>
 &lt;p>大部分镜像托管平台支持多平台镜像，这意味着镜像仓库中单个标签可以包含不同平台的多个镜像，以 &lt;code>docker hub&lt;/code> 的 &lt;code>python&lt;/code> 镜像仓库为例，&lt;code>3.9.6&lt;/code> 这个标签就包含了 10 个不同系统和架构的镜像（平台 = 系统 + 架构）：&lt;/p>
@@ -237,13 +237,31 @@ Platform: linux/arm/v7
 &lt;/div>
 &lt;/div>&lt;p>最后在不同的平台以 &lt;code>latest&lt;/code> 标签拉取并运行镜像，验证构建结果是否正确。
 使用 Docker Desktop 时，其本身集成的虚拟化功能可以运行不同平台的镜像，可以直接以 &lt;code>sha256&lt;/code> 值拉取镜像：&lt;/p>
-&lt;pre>&lt;code>$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:cb6a7614ee3db03c8858e3680b1585f32a6fe3de9b371e37e25cf42a83f6e0ba
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:cb6a7614ee3db03c8858e3680b1585f32a6fe3de9b371e37e25cf42a83f6e0ba
 Hello world!
-Running in [amd64] architecture.
-&lt;/code>&lt;/pre>&lt;pre>&lt;code>$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:034aa0077a452a6c2585f8b4969c7c85d5d2bf65f801fcc803a00d0879ce900e
+Running in &lt;span class="o">[&lt;/span>amd64&lt;span class="o">]&lt;/span> architecture.
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:034aa0077a452a6c2585f8b4969c7c85d5d2bf65f801fcc803a00d0879ce900e
 Hello world!
-Running in [arm64] architecture.
-&lt;/code>&lt;/pre>&lt;h2 id="参考链接">参考链接&lt;/h2>
+Running in &lt;span class="o">[&lt;/span>arm64&lt;span class="o">]&lt;/span> architecture.
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>
 &lt;p>&lt;a href="https://docs.docker.com/desktop/multi-arch/">Leverage multi-CPU architecture support&lt;/a>&lt;/p>
