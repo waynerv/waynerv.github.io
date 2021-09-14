@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 13 Sep 2021 15:07:55 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>如何使用 docker buildx 构建跨平台 Go 镜像</title><link>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</link><guid isPermaLink="true">https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</guid><pubDate>Thu, 02 Sep 2021 20:07:08 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在不同操作系统和处理器架构上运行应用是很普遍的场景，因此为不同平台单独构建发布版本是一种常见做法。当我们用来开发应用的平台与部署的目标平台不同时，实现这一目标并不容易。例如在 x86 架构上开发一个应用程序并将其部署到 ARM 平台的机器上，通常需要准备 ARM 平台的基础设施用于开发和编译。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 14 Sep 2021 05:41:44 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>如何使用 docker buildx 构建跨平台 Go 镜像</title><link>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</link><guid isPermaLink="true">https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</guid><pubDate>Thu, 02 Sep 2021 20:07:08 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在不同操作系统和处理器架构上运行应用是很普遍的场景，因此为不同平台单独构建发布版本是一种常见做法。当我们用来开发应用的平台与部署的目标平台不同时，实现这一目标并不容易。例如在 x86 架构上开发一个应用程序并将其部署到 ARM 平台的机器上，通常需要准备 ARM 平台的基础设施用于开发和编译。&lt;/p>
 &lt;p>一次构建多处部署的镜像分发大幅提高了应用的交付效率，对于需要跨平台部署应用的场景，利用 docker buildx 构建跨平台的镜像也是一种快捷高效的解决方案。&lt;/p>
 &lt;h2 id="前提">前提&lt;/h2>
 &lt;p>大部分镜像托管平台支持多平台镜像，这意味着镜像仓库中单个标签可以包含不同平台的多个镜像，以 &lt;code>docker hub&lt;/code> 的 &lt;code>python&lt;/code> 镜像仓库为例，&lt;code>3.9.6&lt;/code> 这个标签就包含了 10 个不同系统和架构的镜像（平台 = 系统 + 架构）：&lt;/p>
@@ -23,7 +23,7 @@
 &lt;/span>&lt;span class="lnt">4
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ &lt;span class="nb">export&lt;/span> &lt;span class="nv">DOCKER_BUILDKIT&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">1&lt;/span>
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ &lt;span class="nb">export&lt;/span> &lt;span class="nv">DOCKER_BUILDKIT&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">1&lt;/span>
 $ docker build --platform&lt;span class="o">=&lt;/span>&lt;span class="nb">local&lt;/span> -o . git://github.com/docker/buildx
 $ mkdir -p ~/.docker/cli-plugins
 $ mv buildx ~/.docker/cli-plugins/docker-buildx
@@ -35,7 +35,7 @@ $ mv buildx ~/.docker/cli-plugins/docker-buildx
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">docker buildx build .
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">docker buildx build .
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>&lt;code>buildx&lt;/code> 和 &lt;code>docker build&lt;/code> 命令的使用体验基本一致，还支持 &lt;code>build&lt;/code> 常用的选项如 &lt;code>-t&lt;/code>、&lt;code>-f&lt;/code>等。&lt;/p>
@@ -49,7 +49,7 @@ $ mv buildx ~/.docker/cli-plugins/docker-buildx
 &lt;/span>&lt;span class="lnt">3
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ &lt;span class="nb">export&lt;/span> &lt;span class="nv">DOCKER_HOST&lt;/span>&lt;span class="o">=&lt;/span>tcp://10.10.150.66:2375
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ &lt;span class="nb">export&lt;/span> &lt;span class="nv">DOCKER_HOST&lt;/span>&lt;span class="o">=&lt;/span>tcp://10.10.150.66:2375
 $ docker buildx create --driver docker-container --platform linux/amd64,linux/arm64 --name remote-builder
 remote-builder
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
@@ -65,7 +65,7 @@ remote-builder
 &lt;/span>&lt;span class="lnt">6
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker buildx ls
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ docker buildx ls
 NAME/NODE DRIVER/ENDPOINT STATUS PLATFORMS
 remote-builder docker-container
 remote-builder0 tcp://10.10.150.66:2375 inactive linux/amd64*, linux/arm64*
@@ -96,7 +96,7 @@ default default running linux/amd64, linux/386
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker run --privileged --rm tonistiigi/binfmt --install all
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ docker run --privileged --rm tonistiigi/binfmt --install all
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>这种方式不需要对已有的 Dockerfile 做任何修改，实现的成本很低，但显而易见效率并不高。&lt;/p>
@@ -185,7 +185,7 @@ default default running linux/amd64, linux/386
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker buildx build --platform linux/amd64,linux/arm64,linux/arm -t registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo -o &lt;span class="nv">type&lt;/span>&lt;span class="o">=&lt;/span>registry .
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ docker buildx build --platform linux/amd64,linux/arm64,linux/arm -t registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo -o &lt;span class="nv">type&lt;/span>&lt;span class="o">=&lt;/span>registry .
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>该命令将在当前目录同时构建 &lt;code>linux/amd64&lt;/code>、 &lt;code>linux/arm64&lt;/code> 和 &lt;code>linux/arm&lt;/code> 三种平台的镜像，并将输出结果直接推送到远程的阿里云镜像仓库中。&lt;/p>
@@ -219,7 +219,7 @@ default default running linux/amd64, linux/386
 &lt;/span>&lt;span class="lnt">17
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker buildx imagetools inspect registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ docker buildx imagetools inspect registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest
 Name: registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest
 MediaType: application/vnd.docker.distribution.manifest.list.v2+json
 Digest: sha256:e2c3c5b330c19ac9d09f8aaccc40224f8673e12b88ff59cb68971c36b76e95ca
@@ -244,7 +244,7 @@ Platform: linux/arm/v7
 &lt;/span>&lt;span class="lnt">3
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:cb6a7614ee3db03c8858e3680b1585f32a6fe3de9b371e37e25cf42a83f6e0ba
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:cb6a7614ee3db03c8858e3680b1585f32a6fe3de9b371e37e25cf42a83f6e0ba
 Hello world!
 Running in &lt;span class="o">[&lt;/span>amd64&lt;span class="o">]&lt;/span> architecture.
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
@@ -256,14 +256,43 @@ Running in &lt;span class="o">[&lt;/span>amd64&lt;span class="o">]&lt;/span> arc
 &lt;/span>&lt;span class="lnt">3
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
-&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:034aa0077a452a6c2585f8b4969c7c85d5d2bf65f801fcc803a00d0879ce900e
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ docker run --rm registry.cn-hangzhou.aliyuncs.com/waynerv/arch-demo:latest@sha256:034aa0077a452a6c2585f8b4969c7c85d5d2bf65f801fcc803a00d0879ce900e
 Hello world!
 Running in &lt;span class="o">[&lt;/span>arm64&lt;span class="o">]&lt;/span> architecture.
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;h2 id="如何交叉编译-golang-的-cgo-项目">如何交叉编译 Golang 的 CGO 项目&lt;/h2>
-&lt;p>支持交叉编译到常见的操作系统和 CPU 架构是 Golang 的一大优势，但示例中的解决方案只适用于纯 Go 代码的交叉编译，如果项目中通过 &lt;code>cgo&lt;/code> 调用了 C 代码，情况会变得更加复杂。&lt;/p>
-&lt;p>假设有如下使用了 &lt;code>cgo&lt;/code> 的示例代码：&lt;/p>
+&lt;p>支持交叉编译到常见的操作系统和 CPU 架构是 Golang 的一大优势，但以上示例中的解决方案只适用于纯 Go 代码，如果项目中通过 &lt;code>cgo&lt;/code> 调用了 C 代码，情况会变得更加复杂。&lt;/p>
+&lt;h3 id="准备交叉编译环境和依赖">准备交叉编译环境和依赖&lt;/h3>
+&lt;p>为了能够顺利编译 C 代码到目标平台，首先需要在编译环境中安装目标平台的 C 交叉编译器（通常基于 &lt;code>gcc&lt;/code>），常用的 Linux 发行版会提供大部分平台的交叉编译器安装包，可以直接通过包管理器安装。&lt;/p>
+&lt;p>其次还需要安装目标平台的 C 标准库（通常标准库会作为交叉编译器的安装依赖，不需要单独安装），另外取决于你所调用的 C 代码的依赖关系，可能还需要安装一些额外的 C 依赖库（如 &lt;code>libopus-dev&lt;/code> 之类）。&lt;/p>
+&lt;p>我们将使用 &lt;code>amd64&lt;/code> 架构的 &lt;code>golang:1.14&lt;/code> 官方镜像作为基础镜像执行编译，其使用的 Linux 发行版为 Debian。假设交叉编译的目标平台是 &lt;code>linux/arm64&lt;/code>，则需要准备的交叉编译器为 &lt;code>gcc-aarch64-linux-gnu&lt;/code>，C 标准库为 &lt;code>libc6-dev-arm64-cross&lt;/code>，安装方式为：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ apt-get update
+$ apt-get install gcc-aarch64-linux-gnu
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>libc6-dev-arm64-cross&lt;/code> 会同时被安装。&lt;/p>
+&lt;p>得益于 Debian 包管理器 &lt;code>dpkg&lt;/code> 提供的多架构安装能力，假如我们的代码依赖 &lt;code>libopus-dev&lt;/code> 等非标准库，可通过 &lt;code>&amp;lt;library&amp;gt;:&amp;lt;architecture&amp;gt;&lt;/code> 的方式安装其 &lt;code>arm64&lt;/code> 架构的安装包：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ dpkg --add-architecture arm64
+$ apt-get update
+$ apt-get install -y libopus-dev:arm64
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="交叉编译-cgo-示例">交叉编译 CGO 示例&lt;/h3>
+&lt;p>假设有如下 &lt;code>cgo&lt;/code> 的示例代码：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -306,9 +335,7 @@ Running in &lt;span class="o">[&lt;/span>arm64&lt;span class="o">]&lt;/span> arc
 &lt;span class="p">}&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>为了能够顺利编译 C 代码，首先需要在编译环境中安装 C 的交叉编译器（通常基于 &lt;code>gcc&lt;/code>），常用的 Linux 发行版提供了现成的交叉编译器安装包，可以直接通过包管理器安装。其次取决于你所调用的 C 代码复杂程度，可能还需要安装一些额外的 C 依赖库（如 &lt;code>libportaudio&lt;/code> 之类），但一般情况下 C 的标准库就已经足够。&lt;/p>
-&lt;p>下面将使用官方的 &lt;code>golang:1.14&lt;/code> 作为基础镜像进行编译，通过 &lt;code>apt-get&lt;/code> 安装 &lt;code>gcc-aarch64-linux-gnu&lt;/code> 作为交叉编译器，示例程序较为简单因此不会安装额外的依赖库。在执行 &lt;code>go build&lt;/code> 进行编译时，需要通过 &lt;code>CC&lt;/code> 和 &lt;code>CC_FOR_TARGET&lt;/code> 环境变量指定所使用的交叉编译器。&lt;/p>
-&lt;p>完整的 Dockerfile 如下：&lt;/p>
+&lt;/div>&lt;p>将使用的 Dockerfile 如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -335,14 +362,26 @@ Running in &lt;span class="o">[&lt;/span>arm64&lt;span class="o">]&lt;/span> arc
 &lt;/span>&lt;span class="se">&lt;/span> &lt;span class="nv">CGO_ENABLED&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">1&lt;/span> &lt;span class="nv">GOOS&lt;/span>&lt;span class="o">=&lt;/span>linux &lt;span class="nv">GOARCH&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="nv">$TARGETARCH&lt;/span> &lt;span class="nv">CC&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="nv">$CC&lt;/span> &lt;span class="nv">CC_FOR_TARGET&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="nv">$CC_FOR_TARGET&lt;/span> go build -a -ldflags &lt;span class="s1">&amp;#39;-extldflags &amp;#34;-static&amp;#34;&amp;#39;&lt;/span> -o /main main.go&lt;span class="err">
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>为了基于同一份 Dockerfile 执行多个目标平台的编译（假设目标架构只有 &lt;code>amd64&lt;/code>/&lt;code>arm64&lt;/code>），在最后的 &lt;code>RUN&lt;/code> 指令中通过 Bash 的条件判断语法执行编译命令：&lt;/p>
+&lt;/div>&lt;p>Dockerfile 中通过 &lt;code>apt-get&lt;/code> 安装了 &lt;code>gcc-aarch64-linux-gnu&lt;/code> 作为交叉编译器，示例程序较为简单因此不需要额外的依赖库。在执行 &lt;code>go build&lt;/code> 进行编译时，需要通过 &lt;code>CC&lt;/code> 和 &lt;code>CC_FOR_TARGET&lt;/code> 环境变量指定所使用的交叉编译器。&lt;/p>
+&lt;p>为了基于同一份 Dockerfile 执行多个目标平台的编译（假设目标架构只有 &lt;code>amd64&lt;/code>/&lt;code>arm64&lt;/code>），最下方的 &lt;code>RUN&lt;/code> 指令使用了一个小技巧，通过 Bash 的条件判断语法来执行不同的编译命令：&lt;/p>
 &lt;ul>
 &lt;li>假如构建任务的目标平台是 &lt;code>arm64&lt;/code>，则指定 &lt;code>CC&lt;/code> 和 &lt;code>CC_FOR_TARGET&lt;/code> 环境变量为已安装的交叉编译器（注意它们的值有所不同）。&lt;/li>
-&lt;li>假如构建任务的目标平台是 &lt;code>amd64&lt;/code>，则不指定交叉编译器相关的变量，此时将使用默认的 &lt;code>gcc&lt;/code>。&lt;/li>
+&lt;li>假如构建任务的目标平台是 &lt;code>amd64&lt;/code>，则不指定交叉编译器相关的变量，此时将使用默认的 &lt;code>gcc&lt;/code> 作为编译器。&lt;/li>
 &lt;/ul>
 &lt;p>最后使用 buildx 执行构建的命令如下：&lt;/p>
-&lt;pre>&lt;code>docker buildx build --platform linux/amd64,linux/arm64 -t registry.cn-hangzhou.aliyuncs.com/waynerv/cgo-demo -o type=registry .
-&lt;/code>&lt;/pre>&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-shell" data-lang="shell">$ docker buildx build --platform linux/amd64,linux/arm64 -t registry.cn-hangzhou.aliyuncs.com/waynerv/cgo-demo -o &lt;span class="nv">type&lt;/span>&lt;span class="o">=&lt;/span>registry .
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="总结">总结&lt;/h2>
+&lt;p>有了 &lt;code>Buildx&lt;/code> 插件的帮助，在缺少基础设施的情况下，我们也能使用 &lt;code>docker&lt;/code> 方便地构建跨平台的应用镜像。&lt;/p>
+&lt;p>但默认通过 QEMU 虚拟化目标平台指令的方式有明显地性能瓶颈，如果编写应用的语言支持交叉编译，我们可以通过结合 &lt;code>buildx&lt;/code> 和交叉编译获得更高的效率。&lt;/p>
+&lt;p>本文最后介绍了一种进阶场景的解决方案：如何对使用了 CGO 的 Golang 项目进行交叉编译，并给出了编译到 &lt;code>linux/arm64&lt;/code> 平台的示例。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://docs.docker.com/desktop/multi-arch/">Leverage multi-CPU architecture support&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.docker.com/buildx/working-with-buildx/#build-with-buildx">Docker Buildx&lt;/a>&lt;/li>
