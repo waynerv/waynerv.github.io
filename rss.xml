@@ -1,4 +1,278 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 16 Sep 2021 07:07:07 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>如何使用 docker buildx 构建跨平台 Go 镜像</title><link>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</link><guid isPermaLink="true">https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</guid><pubDate>Thu, 02 Sep 2021 20:07:08 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在不同操作系统和处理器架构上运行应用是很普遍的场景，因此为不同平台单独构建发布版本是一种常见做法。当我们用来开发应用的平台与部署的目标平台不同时，实现这一目标并不容易。例如在 x86 架构上开发一个应用程序并将其部署到 ARM 平台的机器上，通常需要准备 ARM 平台的基础设施用于开发和编译。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 07 Dec 2021 15:27:41 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>制作开箱即用的 Ubuntu qcow2 镜像</title><link>https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/</link><guid isPermaLink="true">https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/</guid><pubDate>Tue, 07 Dec 2021 23:08:26 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近负责的一个组件需要针对 Ubuntu 系统做兼容性适配，由于组件运行时会修改系统配置并写入大量文件，有必要使用虚拟机来开发测试。但通常开发使用的 Linux 发行版都是 RedHat 系的，找遍公司也没有能直接用的 Ubuntu 虚拟机镜像，最后自己手搓了一个，过程记录如下。&lt;/p>
+&lt;h2 id="下载所需版本的-cloud-image">下载所需版本的 cloud image&lt;/h2>
+&lt;p>首先需要确定所使用的 Ubuntu 版本，然后从&lt;a href="https://cloud-images.ubuntu.com/">官方镜像列表&lt;/a>中下载相应的云主机镜像，云主机镜像预装了 cloud-init，可以更方便地运行在 openstack 等云平台中。&lt;/p>
+&lt;p>在镜像列表页面，需要根据发布频率（如 Release、Daily builds）、镜像大小（完整包和 Minimal）以及 Ubuntu 版本选择合适的镜像，在镜像下载页面有许多不同类型的文件，如校验和文件、manifest 以及不同架构的镜像，我们只需要文件后缀为 &lt;code>.img&lt;/code> 的 QEMU qcow2 镜像。``&lt;/p>
+&lt;p>本示例将选择 X86 架构的 &lt;code>20.04-lts&lt;/code> 版本，最终所下载的镜像为 &lt;a href="https://cloud-images.ubuntu.com/releases/focal/release-20211129/ubuntu-20.04-server-cloudimg-amd64.img">ubuntu-20.04-server-cloudimg-amd64.img&lt;/a>。&lt;/p>
+&lt;p>使用 &lt;code>wget&lt;/code> 命令将其下载到本地：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">wget https://cloud-images.ubuntu.com/releases/focal/release-20211129/ubuntu-20.04-server-cloudimg-amd64.img
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="cloud-init">cloud-init&lt;/h3>
+&lt;p>cloud-init 是用于跨平台初始化云主机实例的行业标准方法。它支持所有的主要公有云供应商、私有云配置系统和裸机安装。&lt;/p>
+&lt;p>有了 cloud-init，只需要提供系统镜像和规定的元数据（以及可选的用户数据和供应商数据）即可初始化一个云主机实例，在启动过程中，cloud-init 将读取所提供的元数据，识别它所运行的平台并完成相应的系统初始化步骤。初始化过程涉及设置网络和存储设备，配置 SSH 访问密钥及其他系统配置，还可将可选的用户或供应商数据传递给实例。&lt;/p>
+&lt;p>cloud-init 大幅简化了云主机的复杂配置过程，只需要编写一个统一的配置文件，就可以在不同的云平台创建出相同规格的主机实例。&lt;/p>
+&lt;h2 id="配置模板镜像">配置模板镜像&lt;/h2>
+&lt;p>下载的初始镜像并不能直接上传到云主机平台使用，否则创建的虚拟机无法通过 SSH 登录，会提示如下类似错误（SSH 用户只能使用镜像默认的 &lt;code>ubuntu&lt;/code> ）：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">ubuntu@10.10.40.125: Permission denied &lt;span class="o">(&lt;/span>publickey&lt;span class="o">)&lt;/span>.
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>下面需要使用一些虚拟机管理工具，基于模板镜像运行一个虚拟机，在虚拟机中完成所需配置，最终将模板镜像修改至可直接使用的镜像。&lt;/p>
+&lt;h3 id="安装虚拟机管理工具">安装虚拟机管理工具&lt;/h3>
+&lt;p>以下安装命令基于 &lt;code>CentOS&lt;/code>，其他发行版本也可通过对应的包管理系统下载所需工具：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ yum install -y libvirt-client cloud-utils virt-install libguestfs-tools
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="创建模板镜像并配置磁盘大小">创建模板镜像并配置磁盘大小&lt;/h3>
+&lt;p>基于初始镜像创建模板镜像，并命名为 &lt;code>root-disk.qcow2&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ qemu-img convert -f qcow2 -O qcow2 ubuntu-20.04-server-cloudimg-amd64.img root-disk.qcow2
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>根据需要，设置基于该模板镜像所创建的虚拟机磁盘大小，示例设置为 50G：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ qemu-img resize root-disk.qcow2 50G
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="准备-cloud-init-配置">准备 cloud-init 配置&lt;/h3>
+&lt;p>假设将使用的默认主机名和密码如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ &lt;span class="nv">VM_NAME&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;ubuntu-vm&amp;#34;&lt;/span>
+$ &lt;span class="nv">PASSWORD&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;thisIsMyPassword&amp;#34;&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>用于测试开发的虚拟机，可配置为直接使用 &lt;code>root&lt;/code> 用户并以密码登录，但切勿用于生产用途。生产环境镜像需使用普通用户加 &lt;code>sudo&lt;/code> 权限以及 &lt;code>public key&lt;/code> 等更安全的登录途径。&lt;/p>
+&lt;p>接下来创建一个 cloud-init 的配置文件，并在其中定义主机名和密码等：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ &lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;#cloud-config
+&lt;/span>&lt;span class="s2">system_info:
+&lt;/span>&lt;span class="s2"> default_user:
+&lt;/span>&lt;span class="s2"> name: ubuntu
+&lt;/span>&lt;span class="s2"> home: /home/ubuntu
+&lt;/span>&lt;span class="s2">
+&lt;/span>&lt;span class="s2">password: &lt;/span>&lt;span class="nv">$PASSWORD&lt;/span>&lt;span class="s2">
+&lt;/span>&lt;span class="s2">chpasswd: { expire: False }
+&lt;/span>&lt;span class="s2">hostname: &lt;/span>&lt;span class="nv">$VM_NAME&lt;/span>&lt;span class="s2">
+&lt;/span>&lt;span class="s2">
+&lt;/span>&lt;span class="s2"># 配置 sshd 允许使用密码登录
+&lt;/span>&lt;span class="s2">ssh_pwauth: True
+&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> &lt;span class="p">|&lt;/span> tee cloud-init.cfg
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>如果还需要对主机做更多配置，可参考 &lt;code>cloud-init&lt;/code> 的文档示例：&lt;/p>
+&lt;p>&lt;a href="https://cloudinit.readthedocs.io/en/latest/topics/examples.html#">Cloud config examples - cloud-init 21.4 documentation&lt;/a>&lt;/p>
+&lt;p>然后使用 &lt;code>cloud-localds&lt;/code> 基于配置文件创建 ISO 镜像：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ cloud-localds cloud-init.iso cloud-init.cfg
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>基于模板镜像以及配置镜像安装虚拟机：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ virt-install &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> --name &lt;span class="nv">$VM_NAME&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> --memory &lt;span class="m">1024&lt;/span> &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> --disk root-disk.qcow2,device&lt;span class="o">=&lt;/span>disk,bus&lt;span class="o">=&lt;/span>virtio &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> --disk cloud-init.iso,device&lt;span class="o">=&lt;/span>cdrom &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> --os-type linux &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> --os-variant ubuntu20.04 &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> --virt-type kvm &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> --graphics none &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> --network &lt;span class="nv">network&lt;/span>&lt;span class="o">=&lt;/span>default,model&lt;span class="o">=&lt;/span>virtio &lt;span class="se">\
+&lt;/span>&lt;span class="se">&lt;/span> --import
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>命令运行成功后会进入一个新的终端会话，在自动执行一系列的初始化操作之后，将可以用上文设置的用户名和密码登录所创建的虚拟机。&lt;/p>
+&lt;h2 id="初始化虚拟机">初始化虚拟机&lt;/h2>
+&lt;p>进入运行中的虚拟机后，我们希望进行一些与登录相关的初始化配置。以下操作以 Ubuntu 20.04 为例，其他版本可能有所区别。&lt;/p>
+&lt;h3 id="允许以-root-用户登录">允许以 &lt;code>root&lt;/code> 用户登录&lt;/h3>
+&lt;p>Ubuntu 20.04 默认的 SSH 配置不允许以 root 用户登录，我们需要修改 &lt;code>/etc/ssh/sshd_config&lt;/code> 文件将 &lt;code>PermitRootLogin prohibit-password&lt;/code> 配置更改为 &lt;code>PermitRootLogin yes&lt;/code>：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ sed -i &lt;span class="s1">&amp;#39;s/#PermitRootLogin prohibit-password/PermitRootLogin yes/&amp;#39;&lt;/span> /etc/ssh/sshd_config
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>重启 SSH 服务：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ systemctl restart ssh
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="设置-root-用户密码">设置 &lt;code>root&lt;/code> 用户密码&lt;/h3>
+&lt;p>默认情况下 Ubuntu 20.04 未设置 root 用户密码，因此无法使用 root 用户登录系统，需要通过 &lt;code>passwd&lt;/code> 命令初始化 root 用户的密码：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ passwd root
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>密码设置完毕后，我们可以输入 &lt;code>ctrl&lt;/code> + &lt;code>]&lt;/code> 退出虚拟机会话，并通过 &lt;code>virsh&lt;/code> 命令获取运行中虚拟机的 IP 地址，测试是否能通过 &lt;code>root&lt;/code> 用户 SSH 登录虚拟机：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ virsh domifaddr ubuntu-vm
+Name MAC address Protocol Address
+----------------------------------------------------------------
+vnet0 52:54:00:1b:3b:4f ipv4 192.168.122.201/24
+$ ssh root@192.168.122.201
+root@ubuntu-vm:~$
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>登陆成功后，可以在虚拟机中执行其他初始化操作，如安装基础依赖、配置镜像源等。&lt;/p>
+&lt;p>最后在虚拟机中执行关闭命令退出会话：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ shutdown -h now
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="清理与压缩镜像">清理与压缩镜像&lt;/h2>
+&lt;p>在 &lt;code>virt-install&lt;/code> 执行过程中，虚拟机会将虚拟网卡的 Mac 地址记录到文件系统中，但每一次基于镜像启动虚拟机都会生成一个新的 Mac 地址，因此需要将镜像中已经写入配置文件的 Mac 地址清除掉。&lt;/p>
+&lt;p>除了进入虚拟机手动清除，还可以使用上文已安装的专门工具来清理：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ virt-sysprep -d &lt;span class="nv">$VM_NAME&lt;/span>
+&lt;span class="o">[&lt;/span> 0.0&lt;span class="o">]&lt;/span> Examining the guest ...
+&lt;span class="o">[&lt;/span> 25.7&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;abrt-data&amp;#34;&lt;/span> ...
+&lt;span class="o">[&lt;/span> 25.7&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;backup-files&amp;#34;&lt;/span> ...
+&lt;span class="o">[&lt;/span> 26.4&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;bash-history&amp;#34;&lt;/span> ...
+&lt;span class="o">[&lt;/span> 26.4&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;blkid-tab&amp;#34;&lt;/span> ...
+&lt;span class="o">[&lt;/span> 26.5&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;crash-data&amp;#34;&lt;/span> ...
+&lt;span class="o">[&lt;/span> 26.5&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;cron-spool&amp;#34;&lt;/span> ...
+&lt;span class="o">[&lt;/span> 26.5&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;dhcp-client-state&amp;#34;&lt;/span> ...
+&lt;span class="o">[&lt;/span> 26.5&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;dhcp-server-state&amp;#34;&lt;/span> ...
+&lt;span class="o">[&lt;/span> 26.5&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;dovecot-data&amp;#34;&lt;/span> ...
+&lt;span class="o">[&lt;/span> 26.5&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;logfiles&amp;#34;&lt;/span> ...
+&lt;span class="o">[&lt;/span> 26.7&lt;span class="o">]&lt;/span> Performing &lt;span class="s2">&amp;#34;machine-id&amp;#34;&lt;/span> ...
+......
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>该命令还将执行清除操作历史等一系列操作。&lt;/p>
+&lt;p>接着在 libvirt 中注销已创建的虚拟机实例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ virsh undefine &lt;span class="nv">$VM_NAME&lt;/span>
+域 qfusion-vm 已经被取消定义
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>此时对虚拟机所做的更改都已写入到 &lt;code>root-disk.qcow2&lt;/code> 模板镜像中，将其上传到云主机平台的镜像服务器，就可以基于已写入的配置重复创建新的虚拟机实例。&lt;/p>
+&lt;p>如果此时镜像体积较大，可执行以下命令可对镜像体积进行压缩，并使用压缩得到的 &lt;code>ubuntu-20.04.qcow2&lt;/code> 镜像：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ qemu-img convert -f qcow2 -O qcow2 -c root-disk.qcow2 ubuntu-20.04.qcow2
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在本示例中，镜像大小从 7 个多 G 压缩到了 500M 左右，效果显著。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://blog.programster.org/create-ubuntu-20-kvm-guest-from-cloud-image">https://blog.programster.org/create-ubuntu-20-kvm-guest-from-cloud-image&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://docs.openstack.org/image-guide/ubuntu-image.html">https://docs.openstack.org/image-guide/ubuntu-image.html&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://medium.com/@art.vasilyev/use-ubuntu-cloud-image-with-kvm-1f28c19f82f8">https://medium.com/@art.vasilyev/use-ubuntu-cloud-image-with-kvm-1f28c19f82f8&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/linux/">Linux</category><category domain="https://www.waynerv.com/tags/qemu/">qemu</category><category domain="https://www.waynerv.com/tags/kvm/">kvm</category></item><item><title>如何使用 docker buildx 构建跨平台 Go 镜像</title><link>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</link><guid isPermaLink="true">https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</guid><pubDate>Thu, 02 Sep 2021 20:07:08 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>在不同操作系统和处理器架构上运行应用是很普遍的场景，因此为不同平台单独构建发布版本是一种常见做法。当我们用来开发应用的平台与部署的目标平台不同时，实现这一目标并不容易。例如在 x86 架构上开发一个应用程序并将其部署到 ARM 平台的机器上，通常需要准备 ARM 平台的基础设施用于开发和编译。&lt;/p>
 &lt;p>一次构建多处部署的镜像分发大幅提高了应用的交付效率，对于需要跨平台部署应用的场景，利用 docker buildx 构建跨平台的镜像也是一种快捷高效的解决方案。&lt;/p>
 &lt;h2 id="前提">前提&lt;/h2>
 &lt;p>大部分镜像托管平台支持多平台镜像，这意味着镜像仓库中单个标签可以包含不同平台的多个镜像，以 &lt;code>docker hub&lt;/code> 的 &lt;code>python&lt;/code> 镜像仓库为例，&lt;code>3.9.6&lt;/code> 这个标签就包含了 10 个不同系统和架构的镜像（平台 = 系统 + 架构）：&lt;/p>
