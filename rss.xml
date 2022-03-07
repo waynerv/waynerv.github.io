@@ -1,4 +1,338 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 07 Dec 2021 15:36:23 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>制作开箱即用的 Ubuntu qcow2 镜像</title><link>https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/</link><guid isPermaLink="true">https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/</guid><pubDate>Tue, 07 Dec 2021 23:08:26 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近负责的一个组件需要针对 Ubuntu 系统做兼容性适配，由于组件运行时会修改系统配置并写入大量文件，有必要使用虚拟机来开发测试。但通常开发使用的 Linux 发行版都是 RedHat 系的，找遍公司也没有能直接用的 Ubuntu 虚拟机镜像，最后自己手搓了一个，过程记录如下。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 07 Mar 2022 15:34:15 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>深入理解 netfilter 和 iptables</title><link>https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</link><guid isPermaLink="true">https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</guid><pubDate>Mon, 07 Mar 2022 23:27:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
+&lt;p>关于 netfilter 的介绍文章很多，但很大部分描述的过于抽象，实际上 netfilter 模块的基本实现不算复杂，本文主要参考较老的 Linux 内核 2.6 版本的实现（代码较为简单），与最新的 5.x 版本可能有较大差异，但不影响理解其原理。&lt;/p>
+&lt;p>本文假设读者已对 TCP/IP 协议有基本了解。&lt;/p>
+&lt;h1 id="netfilter-的设计与实现">Netfilter 的设计与实现&lt;/h1>
+&lt;p>netfilter 的定义是一个工作在 Linux 内核的网络数据包处理框架，为了彻底理解 netfilter 的工作方式，我们首先需要对数据包在 Linux 内核中的处理路径建立基本认识。&lt;/p>
+&lt;h2 id="数据包的内核之旅">数据包的内核之旅&lt;/h2>
+&lt;p>数据包在内核中的处理路径，也就是处理网络数据包的内核代码调用链，大体上也可按 TCP/IP 模型分为多个层级，以接收一个 IPv4 的 tcp 数据包为例：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>在物理-网络设备层，网卡通过 DMA 将接收到的数据包写入内存中的 &lt;code>ring buffer&lt;/code>，经过一系列中断和调度后，操作系统内核调用 &lt;code>__skb_dequeue&lt;/code> 将数据包加入对应设备的处理队列中，并转换成 &lt;code>sk_buffer&lt;/code> 类型（即 socket buffer - 将在整个内核调用栈中持续作为参数传递的基础数据结构，下文指称的数据包都可以认为是 &lt;code>sk_buffer&lt;/code>），最后调用 &lt;code>netif_receive_skb&lt;/code> 函数按协议类型对数据包进行分类，并跳转到对应的处理函数。如下图所示：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Untitled.png" alt="Untitled">&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>假设该数据包为 IP 协议包，对应的接收包处理函数 &lt;code>ip_rcv&lt;/code> 将被调用，数据包处理进入网络（IP）层。&lt;code>ip_rcv&lt;/code> 检查数据包的 IP 首部并丢弃出错的包，必要时还会聚合被分片的 IP 包。然后执行 &lt;code>ip_rcv_finish&lt;/code> 函数，对数据包进行路由查询并决定是将数据包交付本机还是转发其他主机。假设数据包的目的地址是本主机，接着执行的 &lt;code>dst_input&lt;/code> 函数将调用 &lt;code>ip_local_deliver&lt;/code> 函数。&lt;code>ip_local_deliver&lt;/code> 函数中将根据 IP 首部中的协议号判断载荷数据的协议类型，最后调用对应类型的包处理函数。本例中将调用 TCP 协议对应的 &lt;code>tcp_v4_rcv&lt;/code> 函数，之后数据包处理进入传输层。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>tcp_v4_rcv&lt;/code> 函数同样读取数据包的 TCP 首部并计算校验和，然后在数据包对应的 TCP control buffer 中维护一些必要状态包括 TCP 序列号以及 SACK 号等。该函数下一步将调用 &lt;code>__tcp_v4_lookup&lt;/code> 查询数据包对应的 socket，如果没找到或 socket 的连接状态处于 &lt;strong>TCP_TIME_WAIT&lt;/strong>，数据包将被丢弃。如果 socket 处于未加锁状态，数据包将通过调用 &lt;code>tcp_prequeue&lt;/code> 函数进入 &lt;code>prequeue&lt;/code> 队列，之后数据包将可被用户态的用户程序所处理。传输层的处理流程超出本文讨论范围，实际上还要复杂很多。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="netfilter-hooks">netfilter hooks&lt;/h2>
+&lt;p>接下来我们正式进入主题。netfilter 的首要组成部分是 netfilter hooks。&lt;/p>
+&lt;h3 id="hook-触发点">hook 触发点&lt;/h3>
+&lt;p>对于不同的协议（IPv4、IPv6 或 ARP 等），Linux 内核网络栈会在该协议栈数据包处理路径上的预设位置触发对应的 hook。在不同协议处理流程中的触发点位置以及对应的 hook 名称（蓝色矩形外部的黑体字）如下，本文仅重点关注 IPv4 协议：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 1.png)&lt;/p>
+&lt;p>所谓的 hook 实质上是代码中的枚举对象（值为从0开始递增的整型）：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="k">enum&lt;/span> &lt;span class="n">nf_inet_hooks&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="n">NF_INET_PRE_ROUTING&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_INET_LOCAL_IN&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_INET_FORWARD&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_INET_LOCAL_OUT&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_INET_POST_ROUTING&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_INET_NUMHOOKS&lt;/span>
+&lt;span class="p">};&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>每个 hook 在内核网络栈中对应特定的触发点位置，以 IPv4 协议栈为例，有以下 netfilter hooks 定义：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 2.png)&lt;/p>
+&lt;ul>
+&lt;li>NF_INET_PRE_ROUTING: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_rcv&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ipv6_rcv&lt;/code> 函数中执行。所有接收数据包到达的第一个 hook 触发点（实际上新版本 Linux 增加了 INGRESS hook 作为最早触发点），在进行路由判断之前执行。&lt;/li>
+&lt;li>NF_INET_LOCAL_IN: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_local_deliver()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ip6_input()&lt;/code> 函数中执行。经过路由判断后，所有目标地址是本机的接收数据包到达此 hook 触发点。&lt;/li>
+&lt;li>NF_INET_FORWARD: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_forward()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ip6_forward()&lt;/code> 函数中执行。经过路由判断后，所有目标地址不是本机的接收数据包到达此 hook 触发点。&lt;/li>
+&lt;li>NF_INET_LOCAL_OUT: 这个 hook 在 IPv4 协议栈的 &lt;code>__ip_local_out()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>__ip6_local_out()&lt;/code> 函数中执行。所有本机产生的准备发出的数据包，在进入网络栈后首先到达此 hook 触发点。&lt;/li>
+&lt;li>NF_INET_POST_ROUTING: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_output()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ip6_finish_output2()&lt;/code> 函数中执行。本机产生的准备发出的数据包或者转发的数据包，在经过路由判断之后， 将到达此 hook 触发点。&lt;/li>
+&lt;/ul>
+&lt;h3 id="nf_hook-宏和-netfilter-向量">NF_HOOK 宏和 netfilter 向量&lt;/h3>
+&lt;p>所有的触发点位置统一调用 &lt;code>NF_HOOK&lt;/code> 这个宏来触发 hook：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="k">static&lt;/span> &lt;span class="kr">inline&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="nf">NF_HOOK&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">uint8_t&lt;/span> &lt;span class="n">pf&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">unsigned&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">hook&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="k">struct&lt;/span> &lt;span class="n">sk_buff&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">skb&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="k">struct&lt;/span> &lt;span class="n">net_device&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">in&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="k">struct&lt;/span> &lt;span class="n">net_device&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">out&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="kt">int&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="n">okfn&lt;/span>&lt;span class="p">)(&lt;/span>&lt;span class="k">struct&lt;/span> &lt;span class="n">sk_buff&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;span class="p">{&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="n">NF_HOOK_THRESH&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">pf&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">hook&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">skb&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">in&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">out&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">okfn&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">INT_MIN&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>NF-HOOK&lt;/code> 接收的参数如下：&lt;/p>
+&lt;ul>
+&lt;li>pf: 数据包的协议族，对 IPv4 来说是 &lt;code>NFPROTO_IPV4&lt;/code>。&lt;/li>
+&lt;li>hook: 上图中所示的 netfilter hook 枚举对象，如 NF_INET_PRE_ROUTING 或NF_INET_LOCAL_OUT。&lt;/li>
+&lt;li>skb: SKB 对象，表示正在被处理的数据包。&lt;/li>
+&lt;li>in: 数据包的输入网络设备。&lt;/li>
+&lt;li>out: 数据包的输出网络设备。&lt;/li>
+&lt;li>okfn: 一个指向函数的指针，该函数将在该 hook 即将终止时调用，通常传入数据包处理路径上的下一个处理函数。&lt;/li>
+&lt;/ul>
+&lt;p>&lt;code>NF-HOOK&lt;/code> 的返回值是以下具有特定含义的 netfilter 向量之一：&lt;/p>
+&lt;ol>
+&lt;li>NF_ACCEPT: 在处理路径上正常继续（实际上是在 &lt;code>NF-HOOK&lt;/code> 中最后执行传入的 &lt;code>okfn&lt;/code>）。&lt;/li>
+&lt;li>NF_DROP: 丢弃数据包，终止处理。&lt;/li>
+&lt;li>NF_STOLEN: 数据包已转交，终止处理。&lt;/li>
+&lt;li>NF_QUEUE: 将数据包入队后供其他处理。&lt;/li>
+&lt;li>NF_REPEAT: 重新调用当前 hook。&lt;/li>
+&lt;/ol>
+&lt;p>回归到源码，IPv4 内核网络栈会在以下代码模块中调用 &lt;code>NF_HOOK()&lt;/code>：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 3.png)&lt;/p>
+&lt;p>实际调用方式以 &lt;strong>&lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/source/net/ipv4/ip_forward.c#L115">&lt;code>net/ipv4/ip_forward.c&lt;/code>&lt;/a>&lt;/strong> 对数据包进行转发的源码为例，在 &lt;code>ip_forward&lt;/code> 函数结尾部分的第 115 行以 &lt;strong>NF_INET_FORWARD&lt;/strong> hook 作为入参调用了 &lt;strong>&lt;code>NF_HOOK&lt;/code>&lt;/strong> 宏，并将网络栈接下来的处理函数 &lt;code>ip_forward_finish&lt;/code> 作为 &lt;code>okfn&lt;/code> 参数传入**：**&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="kt">int&lt;/span> &lt;span class="nf">ip_forward&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="k">struct&lt;/span> &lt;span class="n">sk_buff&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">skb&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="p">{&lt;/span>
+&lt;span class="p">.....(&lt;/span>&lt;span class="err">省略部分代码&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">rt&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">rt_flags&lt;/span>&lt;span class="o">&amp;amp;&lt;/span>&lt;span class="n">RTCF_DOREDIRECT&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="o">!&lt;/span>&lt;span class="n">opt&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">srr&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="o">!&lt;/span>&lt;span class="n">skb_sec_path&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">skb&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;span class="n">ip_rt_send_redirect&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">skb&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;span class="n">skb&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">priority&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">rt_tos2priority&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">iph&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">tos&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="n">NF_HOOK&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">NFPROTO_IPV4&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">NF_INET_FORWARD&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">skb&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">skb&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">dev&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">rt&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">dst&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">dev&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ip_forward_finish&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;span class="p">.....(&lt;/span>&lt;span class="err">省略部分代码&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="回调函数与优先级">回调函数与优先级&lt;/h2>
+&lt;p>netfilter 的另一组成部分是 hook 的回调函数。内核网络栈既使用 hook 来代表特定触发位置，也使用 hook （的整数值）作为数据索引来访问触发点对应的回调函数。&lt;/p>
+&lt;p>内核的其他模块可以通过 netfilter 提供的 api 向指定的 hook 注册回调函数，同一 hook 可以注册多个回调函数，通过注册时指定的 &lt;strong>priority&lt;/strong> 参数可指定回调函数在执行时的优先级。&lt;/p>
+&lt;p>注册 hook 的回调函数时，首先需要定义一个 &lt;code>nf_hook_ops&lt;/code> 结构（或由多个该结构组成的数组），其定义如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="k">struct&lt;/span> &lt;span class="n">nf_hook_ops&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="k">struct&lt;/span> &lt;span class="n">list_head&lt;/span> &lt;span class="n">list&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* User fills in from here down. */&lt;/span>
+&lt;span class="n">nf_hookfn&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">hook&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="k">struct&lt;/span> &lt;span class="n">module&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">owner&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="n">u_int8_t&lt;/span> &lt;span class="n">pf&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="kt">unsigned&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">hooknum&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* Hooks are ordered in ascending priority. */&lt;/span>
+&lt;span class="kt">int&lt;/span> &lt;span class="n">priority&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="p">};&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在定义中有 3 个重要成员：&lt;/p>
+&lt;ul>
+&lt;li>hook: 将要注册的回调函数，函数参数定义与 &lt;code>NF_HOOK&lt;/code> 类似，可通过 &lt;code>okfn&lt;/code> 参数嵌套其他函数。&lt;/li>
+&lt;li>hooknum: 注册的目标 hook 枚举值。&lt;/li>
+&lt;li>priority: 回调函数的优先级，&lt;strong>较小的值优先执行&lt;/strong>。&lt;/li>
+&lt;/ul>
+&lt;p>定义结构体后可通过 &lt;code>int nf_register_hook(struct nf_hook_ops *reg)&lt;/code> 或 &lt;code>int nf_register_hooks(struct nf_hook_ops *reg, unsigned int n);&lt;/code> 分别注册一个或多个回调函数。同一 netfilter hook 下所有的 &lt;code>nf_hook_ops&lt;/code> 注册后以 priority 为顺序组成一个链表结构，注册过程会根据 priority 从链表中找到合适的位置，然后执行链表插入操作。&lt;/p>
+&lt;p>在执行 &lt;code>NF-HOOK&lt;/code> 宏触发指定的 hook 时，将调用 &lt;code>nf_iterate&lt;/code> 函数迭代这个 hook 对应的 &lt;code>nf_hook_ops&lt;/code> 链表，并依次调用每一个 &lt;code>nf_hook_ops&lt;/code> 的注册函数成员 &lt;code>hookfn&lt;/code>。示意图如下：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 4.png)&lt;/p>
+&lt;p>这种链式调用回调函数的工作方式，也让 netfilter hook 被称为 Chain，下文的 iptables 介绍中尤其体现了这一关联。&lt;/p>
+&lt;p>每个回调函数也必须返回一个 netfilter 向量；如果该向量为 &lt;strong>NF_ACCEPT，&lt;/strong>&lt;code>nf_iterate&lt;/code> 将会继续调用下一个 &lt;code>nf_hook_ops&lt;/code> 的回调函数，直到所有回调函数调用完毕后返回 &lt;strong>NF_ACCEPT&lt;/strong>；如果该向量为 &lt;strong>NF_DROP&lt;/strong>，将中断遍历并直接返回 &lt;strong>NF_DROP；&lt;strong>如果该向量为 &lt;strong>NF_REPEAT&lt;/strong>，将重新执行该回调函数&lt;/strong>。&lt;/strong> &lt;code>nf_iterate&lt;/code> 的返回值也将作为 &lt;code>NF-HOOK&lt;/code> 的返回值，网络栈将根据该向量值判断是否继续执行处理函数。示意图如下：&lt;/p>
+&lt;p>![Untitled](D:/深入理解 netfi 39a80/Untitled 5.png)&lt;/p>
+&lt;p>netfilter hook 的回调函数机制具有以下特性：&lt;/p>
+&lt;ul>
+&lt;li>回调函数按优先级依次执行，只有上一回调函数返回 &lt;strong>NF_ACCEPT&lt;/strong> 才会继续执行下一回调函数。&lt;/li>
+&lt;li>任一回调函数都可以中断该 hook 的回调函数执行链，同时要求整个网络栈中止对数据包的处理。&lt;/li>
+&lt;/ul>
+&lt;h1 id="iptables">iptables&lt;/h1>
+&lt;p>基于内核 netfilter 提供的 hook 回调函数机制，netfilter 作者 Rusty Russell 还开发了 iptables，实现在用户空间管理应用于数据包的自定义规则。&lt;/p>
+&lt;p>iptbles 分为两部分：&lt;/p>
+&lt;ul>
+&lt;li>用户空间的 iptables 命令向用户提供访问内核 iptables 模块的管理界面。&lt;/li>
+&lt;li>内核空间的 iptables 模块在内存中维护规则表，实现表的创建及注册。&lt;/li>
+&lt;/ul>
+&lt;h2 id="内核空间模块">内核空间模块&lt;/h2>
+&lt;h3 id="xt_table-的初始化">xt_table 的初始化&lt;/h3>
+&lt;p>在内核网络栈中，iptables 通过 &lt;code>xt_table&lt;/code> 结构对众多的数据包处理规则进行有序管理，一个 &lt;code>xt_table&lt;/code> 对应一个规则表，对应的用户空间概念为 table。不同的规则表有以下特征：&lt;/p>
+&lt;ul>
+&lt;li>对不同的 netfilter hooks 生效。&lt;/li>
+&lt;li>在同一 hook 中检查不同规则表的优先级不同。&lt;/li>
+&lt;/ul>
+&lt;p>基于规则的最终目的，iptables 默认初始化了 4 个不同的规则表，分别是 raw、 filter、nat 和 mangle。下文以 filter 为例介绍 &lt;code>xt_table&lt;/code>的初始化和调用过程。&lt;/p>
+&lt;p>filter table 的定义如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="cp">#define FILTER_VALID_HOOKS ((1 &amp;lt;&amp;lt; NF_INET_LOCAL_IN) | \
+&lt;/span>&lt;span class="cp"> (1 &amp;lt;&amp;lt; NF_INET_FORWARD) | \
+&lt;/span>&lt;span class="cp">&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="mi">1&lt;/span> &lt;span class="o">&amp;lt;&amp;lt;&lt;/span> &lt;span class="n">NF_INET_LOCAL_OUT&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;span class="k">static&lt;/span> &lt;span class="k">const&lt;/span> &lt;span class="k">struct&lt;/span> &lt;span class="n">xt_table&lt;/span> &lt;span class="n">packet_filter&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="p">.&lt;/span>&lt;span class="n">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;filter&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">.&lt;/span>&lt;span class="n">valid_hooks&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">FILTER_VALID_HOOKS&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">.&lt;/span>&lt;span class="n">me&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">THIS_MODULE&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">.&lt;/span>&lt;span class="n">af&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">NFPROTO_IPV4&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">.&lt;/span>&lt;span class="n">priority&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">NF_IP_PRI_FILTER&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">};&lt;/span>
+&lt;span class="p">(&lt;/span>&lt;span class="n">net&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">ipv4&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">netfilter&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">iptable_filter&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">c&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在 &lt;strong>&lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/source/net/ipv4/netfilter/iptable_filter.c#L87">iptable_filter.c&lt;/a>&lt;/strong> 模块的初始化函数 &lt;code>[iptable_filter_init](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/iptable_filter_init)&lt;/code> ****中，调用&lt;code>xt_hook_link&lt;/code> 对 &lt;code>xt_table&lt;/code> 结构 packet_filter 执行如下初始化过程：&lt;/p>
+&lt;ol>
+&lt;li>通过 &lt;code>.valid_hooks&lt;/code> 属性迭代 &lt;code>xt_table&lt;/code> 将生效的每一个 hook，对于 filter 来说是 &lt;strong>NF_INET_LOCAL_IN&lt;/strong>，&lt;strong>NF_INET_FORWARD&lt;/strong> 和 &lt;strong>NF_INET_LOCAL_OUT&lt;/strong> 这3个hook。&lt;/li>
+&lt;li>对每一个 hook，使用 &lt;code>xt_table&lt;/code> 的 priority 属性向 hook 注册一个回调函数。&lt;/li>
+&lt;/ol>
+&lt;p>不同 table 的 priority 值如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="k">enum&lt;/span> &lt;span class="n">nf_ip_hook_priorities&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="n">NF_IP_PRI_RAW&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="mi">300&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_IP_PRI_MANGLE&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="mi">150&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_IP_PRI_NAT_DST&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_IP_PRI_FILTER&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_IP_PRI_SECURITY&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">50&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_IP_PRI_NAT_SRC&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">100&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">};&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>当数据包到达某一 hook 触发点时，会依次执行不同 table 在该 hook 上注册的所有回调函数，这些回调函数总是根据上文的 priority 值以固定的相对顺序执行：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 6.png)&lt;/p>
+&lt;h3 id="ipt_do_table">ipt_do_table&lt;/h3>
+&lt;p>filter 注册的 hook 回调函数 &lt;strong>&lt;code>[iptable_filter_hook](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/iptable_filter_hook)&lt;/code>&lt;/strong> 将对 &lt;code>xt_table&lt;/code> 结构执行公共的规则检查函数 &lt;strong>&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code>。&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code>&lt;/strong> 接收 &lt;code>skb&lt;/code>、&lt;code>hook&lt;/code> 和 &lt;code>xt_table&lt;/code>作为参数，对 &lt;code>skb&lt;/code> 执行后两个参数所确定的规则集，返回 netfilter 向量作为回调函数的返回值。&lt;/p>
+&lt;p>在深入规则执行过程前，需要先了解规则集如何在内存中表示。每一条规则由 3 部分组成：&lt;/p>
+&lt;ol>
+&lt;li>一个 &lt;code>ipt_entry&lt;/code> 结构体。通过 &lt;code>.next_offset&lt;/code> 指向下一个 &lt;code>ipt_entry&lt;/code> 的内存偏移地址。&lt;/li>
+&lt;li>0 个或多个 &lt;code>ipt_entry_match&lt;/code> 结构体，每个结构体可以动态的添加额外数据。&lt;/li>
+&lt;li>1 个 &lt;code>ipt_entry_target&lt;/code> 结构体， 结构体可以动态的添加额外数据。&lt;/li>
+&lt;/ol>
+&lt;p>&lt;code>ipt_entry&lt;/code> 结构体定义如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="k">struct&lt;/span> &lt;span class="n">ipt_entry&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="k">struct&lt;/span> &lt;span class="n">ipt_ip&lt;/span> &lt;span class="n">ip&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="kt">unsigned&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">nfcache&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* ipt_entry + matches 在内存中的大小*/&lt;/span>
+&lt;span class="n">u_int16_t&lt;/span> &lt;span class="n">target_offset&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* ipt_entry + matches + target 在内存中的大小 */&lt;/span>
+&lt;span class="n">u_int16_t&lt;/span> &lt;span class="n">next_offset&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* 跳转后指向前一规则 */&lt;/span>
+&lt;span class="kt">unsigned&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">comefrom&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* 数据包计数器 */&lt;/span>
+&lt;span class="k">struct&lt;/span> &lt;span class="n">xt_counters&lt;/span> &lt;span class="n">counters&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* 长度为0数组的特殊用法，作为 match 的内存地址 */&lt;/span>
+&lt;span class="kt">unsigned&lt;/span> &lt;span class="kt">char&lt;/span> &lt;span class="n">elems&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;span class="p">};&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code> 首先根据 hook 类型以及 &lt;code>xt_table.private.entries&lt;/code> 属性跳转到对应的规则集内存区域，执行如下过程：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 7.png)&lt;/p>
+&lt;ol>
+&lt;li>首先检查数据包的 IP 首部与第一条规则 &lt;code>ipt_entry&lt;/code> 的 &lt;code>.ipt_ip&lt;/code> 属性是否一致，如不匹配根据 &lt;code>next_offset&lt;/code> 属性跳转到下一条规则。&lt;/li>
+&lt;li>若IP 首部匹配 ，则开始依次检查该规则所定义的所有 &lt;code>ipt_entry_match&lt;/code> 对象，与对象关联的匹配函数将被调用，根据调用返回值有返回到回调函数（以及是否丢弃数据包）、跳转到下一规则或继续检查等结果。&lt;/li>
+&lt;li>所有检查通过后读取 &lt;code>ipt_entry_target&lt;/code>，根据其属性返回 netfilter 向量到回调函数、继续下一规则或跳转到指定内存地址的其他规则，非标准 &lt;code>ipt_entry_target&lt;/code> 还会调用被绑定的函数，但只能返回向量值不能跳转其他规则。&lt;/li>
+&lt;/ol>
+&lt;h3 id="灵活性和更新时延">灵活性和更新时延&lt;/h3>
+&lt;p>以上数据结构与执行方式为 iptables 提供了强大的扩展能力，我们可以灵活地自定义每条规则的匹配条件并根据结果执行不同行为，甚至还能在额外的规则集之间栈式跳转。&lt;/p>
+&lt;p>由于每条规则长度不等、内部结构复杂，且同一规则集位于连续的内存空间，iptables 使用全量替换的方式来更新规则，这使得我们能够从用户空间以原子操作来添加/删除规则，但非增量式的规则更新会在规则数量级较大时带来严重的性能问题：假如在一个大规模 Kubernetes 集群中使用 iptables 方式实现 Service，当 service 数量较多时，哪怕更新一个 service 也会整体修改 iptables 规则表。全量提交的过程会 kernel lock 进行保护，因此会有很大的更新时延。&lt;/p>
+&lt;h2 id="用户空间的-tableschains-和-rules">用户空间的 tables、chains 和 rules&lt;/h2>
+&lt;p>用户空间的 iptables 命令行可以读取指定表的数据并渲染到终端，添加新的规则（实际上是替换整个 table 的规则表）等。&lt;/p>
+&lt;p>iptables 主要操作以下几种对象：&lt;/p>
+&lt;ul>
+&lt;li>table：对应内核空间的 &lt;code>xt_table&lt;/code> 结构，iptable 的所有操作都对指定的 table 执行，默认为 filter。&lt;/li>
+&lt;li>chain：对应指定 table 通过特定 netfilter hook 调用的规则集，此外还可以自定义规则集，然后从 hook 规则集中跳转过去。&lt;/li>
+&lt;li>rule：对应上文中 &lt;code>ipt_entry&lt;/code>、&lt;code>ipt_entry_match&lt;/code> 和 &lt;code>ipt_entry_target&lt;/code>，定义了对数据包的匹配规则以及匹配后执行的行为。&lt;/li>
+&lt;li>match：具有很强扩展性的自定义匹配规则。&lt;/li>
+&lt;li>target：具有很强扩展性的自定义匹配后行为。&lt;/li>
+&lt;/ul>
+&lt;p>基于上文介绍的代码调用过程流程，chain 和 rule 按如下示意图执行：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 8.png)&lt;/p>
+&lt;p>对于 iptables 具体的用法和指令本文不做详细介绍，可参考 &lt;a href="https://www.digitalocean.com/community/tutorials/iptables-essentials-common-firewall-rules-and-commands">Iptables Essentials: Common Firewall Rules and Commands | DigitalOcean&lt;/a>。&lt;/p>
+&lt;h1 id="conntrack">conntrack&lt;/h1>
+&lt;p>仅仅通过3、4层的首部信息对数据包进行过滤是不够的，有时候还需要进一步考虑连接的状态。netfilter 通过另一内置模块 &lt;code>conntrack&lt;/code> 进行连接跟踪（connection tracking），以提供根据连接过滤、地址转换（NAT）等更进阶的网络过滤功能。由于需要对连接状态进行判断，&lt;code>conntrack&lt;/code> 在整体机制相同的基础上，又针对协议特点有单独的实现。&lt;/p>
+&lt;p>本来打算继续介绍 &lt;code>conntrack&lt;/code> 和 NAT，但考虑到篇幅过长遂作罢，感兴趣的读者推荐阅读&lt;a href="https://arthurchiao.art/blog/conntrack-design-and-implementation-zh/#hook-%E4%BC%98%E5%85%88%E7%BA%A7">连接跟踪（conntrack）：原理、应用及 Linux 内核实现&lt;/a>。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/source/include/linux/netfilter.h">netfilter.h - include/linux/netfilter.h - Linux source code (v2.6.39.4) - Bootlin&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.cs.dartmouth.edu/~sergey/netreads/path-of-packet/Network_stack.pdf">Network_stack.pdf&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.netfilter.org/documentation/HOWTO/netfilter-hacking-HOWTO.html#toc3">Linux netfilter Hacking HOWTO&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://link.springer.com/book/10.1007/978-1-4302-6197-1">Linux Kernel Networking: Implementation and Theory - Chapter 9: Netfilter&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.teldat.com/blog/nftables-and-netfilter-hooks-via-linux-kernel/">Netfilter framework providing hooks system for Nftables&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.digitalocean.com/community/tutorials/a-deep-dive-into-iptables-and-netfilter-architecture">A Deep Dive into Iptables and Netfilter Architecture | DigitalOcean&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://arthurchiao.art/blog/conntrack-design-and-implementation-zh/#hook-%E4%BC%98%E5%85%88%E7%BA%A7">连接跟踪（conntrack）：原理、应用及 Linux 内核实现&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://wiki.nftables.org/wiki-nftables/index.php/Netfilter_hooks">Netfilter hooks - nftables wiki&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.digitalocean.com/community/tutorials/iptables-essentials-common-firewall-rules-and-commands">Iptables Essentials: Common Firewall Rules and Commands | DigitalOcean&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.tigera.io/blog/comparing-kube-proxy-modes-iptables-or-ipvs/">Comparing kube-proxy modes: iptables or IPVS?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.tigera.io/blog/when-linux-conntrack-is-no-longer-your-friend/">Linux Conntrack: Why It Breaks Down and Avoiding the Problem&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://juejin.cn/post/7008945265021288484">走进Linux内核之Netfilter框架 - 掘金&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://flylib.com/books/en/3.475.1.101/1/">19.3 The Netfilter Architecture of Linux 2.4 | Linux Network Architecture&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/linux/">Linux</category><category domain="https://www.waynerv.com/tags/networking/">Networking</category></item><item><title>制作开箱即用的 Ubuntu qcow2 镜像</title><link>https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/</link><guid isPermaLink="true">https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/</guid><pubDate>Tue, 07 Dec 2021 23:08:26 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近负责的一个组件需要针对 Ubuntu 系统做兼容性适配，由于组件运行时会修改系统配置并写入大量文件，有必要使用虚拟机来开发测试。但通常开发使用的 Linux 发行版都是 RedHat 系的，找遍公司也没有能直接用的 Ubuntu 虚拟机镜像，最后自己手搓了一个，过程记录如下。&lt;/p>
 &lt;h2 id="下载所需版本的-cloud-image">下载所需版本的 cloud image&lt;/h2>
 &lt;p>首先需要确定所使用的 Ubuntu 版本，然后从&lt;a href="https://cloud-images.ubuntu.com/">官方镜像列表&lt;/a>中下载相应的云主机镜像，云主机镜像预装了 cloud-init，可以更方便地运行在 openstack 等云平台中。&lt;/p>
 &lt;p>在镜像列表页面，需要根据发布频率（如 Release、Daily builds）、镜像大小（完整包和 Minimal）以及 Ubuntu 版本选择合适的镜像，在镜像下载页面有许多不同类型的文件，如校验和文件、manifest 以及不同架构的镜像，我们只需要文件后缀为 &lt;code>.img&lt;/code> 的 QEMU qcow2 镜像。``&lt;/p>

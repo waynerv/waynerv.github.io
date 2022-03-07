@@ -1,4 +1,338 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</subtitle><updated>2021-12-07T15:36:23+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">制作开箱即用的 Ubuntu qcow2 镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/"/><id>https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-12-07T23:08:26+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">记录一个开箱即用的 Ubuntu 虚拟机镜像的完整制作过程，可以直接导入到 OpenStack 和 Zstack 等平台使用。</summary><content type="html">&lt;p>最近负责的一个组件需要针对 Ubuntu 系统做兼容性适配，由于组件运行时会修改系统配置并写入大量文件，有必要使用虚拟机来开发测试。但通常开发使用的 Linux 发行版都是 RedHat 系的，找遍公司也没有能直接用的 Ubuntu 虚拟机镜像，最后自己手搓了一个，过程记录如下。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</subtitle><updated>2022-03-07T15:34:15+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">深入理解 netfilter 和 iptables</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/"/><id>https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2022-03-07T23:27:11+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Netfilter 配合 iptables 使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。</summary><content type="html">&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
+&lt;p>关于 netfilter 的介绍文章很多，但很大部分描述的过于抽象，实际上 netfilter 模块的基本实现不算复杂，本文主要参考较老的 Linux 内核 2.6 版本的实现（代码较为简单），与最新的 5.x 版本可能有较大差异，但不影响理解其原理。&lt;/p>
+&lt;p>本文假设读者已对 TCP/IP 协议有基本了解。&lt;/p>
+&lt;h1 id="netfilter-的设计与实现">Netfilter 的设计与实现&lt;/h1>
+&lt;p>netfilter 的定义是一个工作在 Linux 内核的网络数据包处理框架，为了彻底理解 netfilter 的工作方式，我们首先需要对数据包在 Linux 内核中的处理路径建立基本认识。&lt;/p>
+&lt;h2 id="数据包的内核之旅">数据包的内核之旅&lt;/h2>
+&lt;p>数据包在内核中的处理路径，也就是处理网络数据包的内核代码调用链，大体上也可按 TCP/IP 模型分为多个层级，以接收一个 IPv4 的 tcp 数据包为例：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>在物理-网络设备层，网卡通过 DMA 将接收到的数据包写入内存中的 &lt;code>ring buffer&lt;/code>，经过一系列中断和调度后，操作系统内核调用 &lt;code>__skb_dequeue&lt;/code> 将数据包加入对应设备的处理队列中，并转换成 &lt;code>sk_buffer&lt;/code> 类型（即 socket buffer - 将在整个内核调用栈中持续作为参数传递的基础数据结构，下文指称的数据包都可以认为是 &lt;code>sk_buffer&lt;/code>），最后调用 &lt;code>netif_receive_skb&lt;/code> 函数按协议类型对数据包进行分类，并跳转到对应的处理函数。如下图所示：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/Untitled.png" alt="Untitled">&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>假设该数据包为 IP 协议包，对应的接收包处理函数 &lt;code>ip_rcv&lt;/code> 将被调用，数据包处理进入网络（IP）层。&lt;code>ip_rcv&lt;/code> 检查数据包的 IP 首部并丢弃出错的包，必要时还会聚合被分片的 IP 包。然后执行 &lt;code>ip_rcv_finish&lt;/code> 函数，对数据包进行路由查询并决定是将数据包交付本机还是转发其他主机。假设数据包的目的地址是本主机，接着执行的 &lt;code>dst_input&lt;/code> 函数将调用 &lt;code>ip_local_deliver&lt;/code> 函数。&lt;code>ip_local_deliver&lt;/code> 函数中将根据 IP 首部中的协议号判断载荷数据的协议类型，最后调用对应类型的包处理函数。本例中将调用 TCP 协议对应的 &lt;code>tcp_v4_rcv&lt;/code> 函数，之后数据包处理进入传输层。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>tcp_v4_rcv&lt;/code> 函数同样读取数据包的 TCP 首部并计算校验和，然后在数据包对应的 TCP control buffer 中维护一些必要状态包括 TCP 序列号以及 SACK 号等。该函数下一步将调用 &lt;code>__tcp_v4_lookup&lt;/code> 查询数据包对应的 socket，如果没找到或 socket 的连接状态处于 &lt;strong>TCP_TIME_WAIT&lt;/strong>，数据包将被丢弃。如果 socket 处于未加锁状态，数据包将通过调用 &lt;code>tcp_prequeue&lt;/code> 函数进入 &lt;code>prequeue&lt;/code> 队列，之后数据包将可被用户态的用户程序所处理。传输层的处理流程超出本文讨论范围，实际上还要复杂很多。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="netfilter-hooks">netfilter hooks&lt;/h2>
+&lt;p>接下来我们正式进入主题。netfilter 的首要组成部分是 netfilter hooks。&lt;/p>
+&lt;h3 id="hook-触发点">hook 触发点&lt;/h3>
+&lt;p>对于不同的协议（IPv4、IPv6 或 ARP 等），Linux 内核网络栈会在该协议栈数据包处理路径上的预设位置触发对应的 hook。在不同协议处理流程中的触发点位置以及对应的 hook 名称（蓝色矩形外部的黑体字）如下，本文仅重点关注 IPv4 协议：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 1.png)&lt;/p>
+&lt;p>所谓的 hook 实质上是代码中的枚举对象（值为从0开始递增的整型）：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="k">enum&lt;/span> &lt;span class="n">nf_inet_hooks&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="n">NF_INET_PRE_ROUTING&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_INET_LOCAL_IN&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_INET_FORWARD&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_INET_LOCAL_OUT&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_INET_POST_ROUTING&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_INET_NUMHOOKS&lt;/span>
+&lt;span class="p">};&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>每个 hook 在内核网络栈中对应特定的触发点位置，以 IPv4 协议栈为例，有以下 netfilter hooks 定义：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 2.png)&lt;/p>
+&lt;ul>
+&lt;li>NF_INET_PRE_ROUTING: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_rcv&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ipv6_rcv&lt;/code> 函数中执行。所有接收数据包到达的第一个 hook 触发点（实际上新版本 Linux 增加了 INGRESS hook 作为最早触发点），在进行路由判断之前执行。&lt;/li>
+&lt;li>NF_INET_LOCAL_IN: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_local_deliver()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ip6_input()&lt;/code> 函数中执行。经过路由判断后，所有目标地址是本机的接收数据包到达此 hook 触发点。&lt;/li>
+&lt;li>NF_INET_FORWARD: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_forward()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ip6_forward()&lt;/code> 函数中执行。经过路由判断后，所有目标地址不是本机的接收数据包到达此 hook 触发点。&lt;/li>
+&lt;li>NF_INET_LOCAL_OUT: 这个 hook 在 IPv4 协议栈的 &lt;code>__ip_local_out()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>__ip6_local_out()&lt;/code> 函数中执行。所有本机产生的准备发出的数据包，在进入网络栈后首先到达此 hook 触发点。&lt;/li>
+&lt;li>NF_INET_POST_ROUTING: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_output()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ip6_finish_output2()&lt;/code> 函数中执行。本机产生的准备发出的数据包或者转发的数据包，在经过路由判断之后， 将到达此 hook 触发点。&lt;/li>
+&lt;/ul>
+&lt;h3 id="nf_hook-宏和-netfilter-向量">NF_HOOK 宏和 netfilter 向量&lt;/h3>
+&lt;p>所有的触发点位置统一调用 &lt;code>NF_HOOK&lt;/code> 这个宏来触发 hook：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="k">static&lt;/span> &lt;span class="kr">inline&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="nf">NF_HOOK&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">uint8_t&lt;/span> &lt;span class="n">pf&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="kt">unsigned&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">hook&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="k">struct&lt;/span> &lt;span class="n">sk_buff&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">skb&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="k">struct&lt;/span> &lt;span class="n">net_device&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">in&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="k">struct&lt;/span> &lt;span class="n">net_device&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">out&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="kt">int&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="n">okfn&lt;/span>&lt;span class="p">)(&lt;/span>&lt;span class="k">struct&lt;/span> &lt;span class="n">sk_buff&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;span class="p">{&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="n">NF_HOOK_THRESH&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">pf&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">hook&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">skb&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">in&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">out&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">okfn&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">INT_MIN&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>NF-HOOK&lt;/code> 接收的参数如下：&lt;/p>
+&lt;ul>
+&lt;li>pf: 数据包的协议族，对 IPv4 来说是 &lt;code>NFPROTO_IPV4&lt;/code>。&lt;/li>
+&lt;li>hook: 上图中所示的 netfilter hook 枚举对象，如 NF_INET_PRE_ROUTING 或NF_INET_LOCAL_OUT。&lt;/li>
+&lt;li>skb: SKB 对象，表示正在被处理的数据包。&lt;/li>
+&lt;li>in: 数据包的输入网络设备。&lt;/li>
+&lt;li>out: 数据包的输出网络设备。&lt;/li>
+&lt;li>okfn: 一个指向函数的指针，该函数将在该 hook 即将终止时调用，通常传入数据包处理路径上的下一个处理函数。&lt;/li>
+&lt;/ul>
+&lt;p>&lt;code>NF-HOOK&lt;/code> 的返回值是以下具有特定含义的 netfilter 向量之一：&lt;/p>
+&lt;ol>
+&lt;li>NF_ACCEPT: 在处理路径上正常继续（实际上是在 &lt;code>NF-HOOK&lt;/code> 中最后执行传入的 &lt;code>okfn&lt;/code>）。&lt;/li>
+&lt;li>NF_DROP: 丢弃数据包，终止处理。&lt;/li>
+&lt;li>NF_STOLEN: 数据包已转交，终止处理。&lt;/li>
+&lt;li>NF_QUEUE: 将数据包入队后供其他处理。&lt;/li>
+&lt;li>NF_REPEAT: 重新调用当前 hook。&lt;/li>
+&lt;/ol>
+&lt;p>回归到源码，IPv4 内核网络栈会在以下代码模块中调用 &lt;code>NF_HOOK()&lt;/code>：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 3.png)&lt;/p>
+&lt;p>实际调用方式以 &lt;strong>&lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/source/net/ipv4/ip_forward.c#L115">&lt;code>net/ipv4/ip_forward.c&lt;/code>&lt;/a>&lt;/strong> 对数据包进行转发的源码为例，在 &lt;code>ip_forward&lt;/code> 函数结尾部分的第 115 行以 &lt;strong>NF_INET_FORWARD&lt;/strong> hook 作为入参调用了 &lt;strong>&lt;code>NF_HOOK&lt;/code>&lt;/strong> 宏，并将网络栈接下来的处理函数 &lt;code>ip_forward_finish&lt;/code> 作为 &lt;code>okfn&lt;/code> 参数传入**：**&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="kt">int&lt;/span> &lt;span class="nf">ip_forward&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="k">struct&lt;/span> &lt;span class="n">sk_buff&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">skb&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="p">{&lt;/span>
+&lt;span class="p">.....(&lt;/span>&lt;span class="err">省略部分代码&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="k">if&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="n">rt&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">rt_flags&lt;/span>&lt;span class="o">&amp;amp;&lt;/span>&lt;span class="n">RTCF_DOREDIRECT&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="o">!&lt;/span>&lt;span class="n">opt&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">srr&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> &lt;span class="o">!&lt;/span>&lt;span class="n">skb_sec_path&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">skb&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;span class="n">ip_rt_send_redirect&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">skb&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;span class="n">skb&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">priority&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">rt_tos2priority&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">iph&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">tos&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;span class="k">return&lt;/span> &lt;span class="n">NF_HOOK&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="n">NFPROTO_IPV4&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">NF_INET_FORWARD&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">skb&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">skb&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">dev&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">rt&lt;/span>&lt;span class="o">-&amp;gt;&lt;/span>&lt;span class="n">dst&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">dev&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="n">ip_forward_finish&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;span class="p">.....(&lt;/span>&lt;span class="err">省略部分代码&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;span class="p">}&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="回调函数与优先级">回调函数与优先级&lt;/h2>
+&lt;p>netfilter 的另一组成部分是 hook 的回调函数。内核网络栈既使用 hook 来代表特定触发位置，也使用 hook （的整数值）作为数据索引来访问触发点对应的回调函数。&lt;/p>
+&lt;p>内核的其他模块可以通过 netfilter 提供的 api 向指定的 hook 注册回调函数，同一 hook 可以注册多个回调函数，通过注册时指定的 &lt;strong>priority&lt;/strong> 参数可指定回调函数在执行时的优先级。&lt;/p>
+&lt;p>注册 hook 的回调函数时，首先需要定义一个 &lt;code>nf_hook_ops&lt;/code> 结构（或由多个该结构组成的数组），其定义如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="k">struct&lt;/span> &lt;span class="n">nf_hook_ops&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="k">struct&lt;/span> &lt;span class="n">list_head&lt;/span> &lt;span class="n">list&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* User fills in from here down. */&lt;/span>
+&lt;span class="n">nf_hookfn&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">hook&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="k">struct&lt;/span> &lt;span class="n">module&lt;/span> &lt;span class="o">*&lt;/span>&lt;span class="n">owner&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="n">u_int8_t&lt;/span> &lt;span class="n">pf&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="kt">unsigned&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">hooknum&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* Hooks are ordered in ascending priority. */&lt;/span>
+&lt;span class="kt">int&lt;/span> &lt;span class="n">priority&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="p">};&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在定义中有 3 个重要成员：&lt;/p>
+&lt;ul>
+&lt;li>hook: 将要注册的回调函数，函数参数定义与 &lt;code>NF_HOOK&lt;/code> 类似，可通过 &lt;code>okfn&lt;/code> 参数嵌套其他函数。&lt;/li>
+&lt;li>hooknum: 注册的目标 hook 枚举值。&lt;/li>
+&lt;li>priority: 回调函数的优先级，&lt;strong>较小的值优先执行&lt;/strong>。&lt;/li>
+&lt;/ul>
+&lt;p>定义结构体后可通过 &lt;code>int nf_register_hook(struct nf_hook_ops *reg)&lt;/code> 或 &lt;code>int nf_register_hooks(struct nf_hook_ops *reg, unsigned int n);&lt;/code> 分别注册一个或多个回调函数。同一 netfilter hook 下所有的 &lt;code>nf_hook_ops&lt;/code> 注册后以 priority 为顺序组成一个链表结构，注册过程会根据 priority 从链表中找到合适的位置，然后执行链表插入操作。&lt;/p>
+&lt;p>在执行 &lt;code>NF-HOOK&lt;/code> 宏触发指定的 hook 时，将调用 &lt;code>nf_iterate&lt;/code> 函数迭代这个 hook 对应的 &lt;code>nf_hook_ops&lt;/code> 链表，并依次调用每一个 &lt;code>nf_hook_ops&lt;/code> 的注册函数成员 &lt;code>hookfn&lt;/code>。示意图如下：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 4.png)&lt;/p>
+&lt;p>这种链式调用回调函数的工作方式，也让 netfilter hook 被称为 Chain，下文的 iptables 介绍中尤其体现了这一关联。&lt;/p>
+&lt;p>每个回调函数也必须返回一个 netfilter 向量；如果该向量为 &lt;strong>NF_ACCEPT，&lt;/strong>&lt;code>nf_iterate&lt;/code> 将会继续调用下一个 &lt;code>nf_hook_ops&lt;/code> 的回调函数，直到所有回调函数调用完毕后返回 &lt;strong>NF_ACCEPT&lt;/strong>；如果该向量为 &lt;strong>NF_DROP&lt;/strong>，将中断遍历并直接返回 &lt;strong>NF_DROP；&lt;strong>如果该向量为 &lt;strong>NF_REPEAT&lt;/strong>，将重新执行该回调函数&lt;/strong>。&lt;/strong> &lt;code>nf_iterate&lt;/code> 的返回值也将作为 &lt;code>NF-HOOK&lt;/code> 的返回值，网络栈将根据该向量值判断是否继续执行处理函数。示意图如下：&lt;/p>
+&lt;p>![Untitled](D:/深入理解 netfi 39a80/Untitled 5.png)&lt;/p>
+&lt;p>netfilter hook 的回调函数机制具有以下特性：&lt;/p>
+&lt;ul>
+&lt;li>回调函数按优先级依次执行，只有上一回调函数返回 &lt;strong>NF_ACCEPT&lt;/strong> 才会继续执行下一回调函数。&lt;/li>
+&lt;li>任一回调函数都可以中断该 hook 的回调函数执行链，同时要求整个网络栈中止对数据包的处理。&lt;/li>
+&lt;/ul>
+&lt;h1 id="iptables">iptables&lt;/h1>
+&lt;p>基于内核 netfilter 提供的 hook 回调函数机制，netfilter 作者 Rusty Russell 还开发了 iptables，实现在用户空间管理应用于数据包的自定义规则。&lt;/p>
+&lt;p>iptbles 分为两部分：&lt;/p>
+&lt;ul>
+&lt;li>用户空间的 iptables 命令向用户提供访问内核 iptables 模块的管理界面。&lt;/li>
+&lt;li>内核空间的 iptables 模块在内存中维护规则表，实现表的创建及注册。&lt;/li>
+&lt;/ul>
+&lt;h2 id="内核空间模块">内核空间模块&lt;/h2>
+&lt;h3 id="xt_table-的初始化">xt_table 的初始化&lt;/h3>
+&lt;p>在内核网络栈中，iptables 通过 &lt;code>xt_table&lt;/code> 结构对众多的数据包处理规则进行有序管理，一个 &lt;code>xt_table&lt;/code> 对应一个规则表，对应的用户空间概念为 table。不同的规则表有以下特征：&lt;/p>
+&lt;ul>
+&lt;li>对不同的 netfilter hooks 生效。&lt;/li>
+&lt;li>在同一 hook 中检查不同规则表的优先级不同。&lt;/li>
+&lt;/ul>
+&lt;p>基于规则的最终目的，iptables 默认初始化了 4 个不同的规则表，分别是 raw、 filter、nat 和 mangle。下文以 filter 为例介绍 &lt;code>xt_table&lt;/code>的初始化和调用过程。&lt;/p>
+&lt;p>filter table 的定义如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="cp">#define FILTER_VALID_HOOKS ((1 &amp;lt;&amp;lt; NF_INET_LOCAL_IN) | \
+&lt;/span>&lt;span class="cp"> (1 &amp;lt;&amp;lt; NF_INET_FORWARD) | \
+&lt;/span>&lt;span class="cp">&lt;/span> &lt;span class="p">(&lt;/span>&lt;span class="mi">1&lt;/span> &lt;span class="o">&amp;lt;&amp;lt;&lt;/span> &lt;span class="n">NF_INET_LOCAL_OUT&lt;/span>&lt;span class="p">))&lt;/span>
+&lt;span class="k">static&lt;/span> &lt;span class="k">const&lt;/span> &lt;span class="k">struct&lt;/span> &lt;span class="n">xt_table&lt;/span> &lt;span class="n">packet_filter&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="p">.&lt;/span>&lt;span class="n">name&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s">&amp;#34;filter&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">.&lt;/span>&lt;span class="n">valid_hooks&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">FILTER_VALID_HOOKS&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">.&lt;/span>&lt;span class="n">me&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">THIS_MODULE&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">.&lt;/span>&lt;span class="n">af&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">NFPROTO_IPV4&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">.&lt;/span>&lt;span class="n">priority&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="n">NF_IP_PRI_FILTER&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">};&lt;/span>
+&lt;span class="p">(&lt;/span>&lt;span class="n">net&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">ipv4&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">netfilter&lt;/span>&lt;span class="o">/&lt;/span>&lt;span class="n">iptable_filter&lt;/span>&lt;span class="p">.&lt;/span>&lt;span class="n">c&lt;/span>&lt;span class="p">)&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在 &lt;strong>&lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/source/net/ipv4/netfilter/iptable_filter.c#L87">iptable_filter.c&lt;/a>&lt;/strong> 模块的初始化函数 &lt;code>[iptable_filter_init](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/iptable_filter_init)&lt;/code> ****中，调用&lt;code>xt_hook_link&lt;/code> 对 &lt;code>xt_table&lt;/code> 结构 packet_filter 执行如下初始化过程：&lt;/p>
+&lt;ol>
+&lt;li>通过 &lt;code>.valid_hooks&lt;/code> 属性迭代 &lt;code>xt_table&lt;/code> 将生效的每一个 hook，对于 filter 来说是 &lt;strong>NF_INET_LOCAL_IN&lt;/strong>，&lt;strong>NF_INET_FORWARD&lt;/strong> 和 &lt;strong>NF_INET_LOCAL_OUT&lt;/strong> 这3个hook。&lt;/li>
+&lt;li>对每一个 hook，使用 &lt;code>xt_table&lt;/code> 的 priority 属性向 hook 注册一个回调函数。&lt;/li>
+&lt;/ol>
+&lt;p>不同 table 的 priority 值如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="k">enum&lt;/span> &lt;span class="n">nf_ip_hook_priorities&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="n">NF_IP_PRI_RAW&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="mi">300&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_IP_PRI_MANGLE&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="mi">150&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_IP_PRI_NAT_DST&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="o">-&lt;/span>&lt;span class="mi">100&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_IP_PRI_FILTER&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_IP_PRI_SECURITY&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">50&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="n">NF_IP_PRI_NAT_SRC&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="mi">100&lt;/span>&lt;span class="p">,&lt;/span>
+&lt;span class="p">};&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>当数据包到达某一 hook 触发点时，会依次执行不同 table 在该 hook 上注册的所有回调函数，这些回调函数总是根据上文的 priority 值以固定的相对顺序执行：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 6.png)&lt;/p>
+&lt;h3 id="ipt_do_table">ipt_do_table&lt;/h3>
+&lt;p>filter 注册的 hook 回调函数 &lt;strong>&lt;code>[iptable_filter_hook](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/iptable_filter_hook)&lt;/code>&lt;/strong> 将对 &lt;code>xt_table&lt;/code> 结构执行公共的规则检查函数 &lt;strong>&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code>。&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code>&lt;/strong> 接收 &lt;code>skb&lt;/code>、&lt;code>hook&lt;/code> 和 &lt;code>xt_table&lt;/code>作为参数，对 &lt;code>skb&lt;/code> 执行后两个参数所确定的规则集，返回 netfilter 向量作为回调函数的返回值。&lt;/p>
+&lt;p>在深入规则执行过程前，需要先了解规则集如何在内存中表示。每一条规则由 3 部分组成：&lt;/p>
+&lt;ol>
+&lt;li>一个 &lt;code>ipt_entry&lt;/code> 结构体。通过 &lt;code>.next_offset&lt;/code> 指向下一个 &lt;code>ipt_entry&lt;/code> 的内存偏移地址。&lt;/li>
+&lt;li>0 个或多个 &lt;code>ipt_entry_match&lt;/code> 结构体，每个结构体可以动态的添加额外数据。&lt;/li>
+&lt;li>1 个 &lt;code>ipt_entry_target&lt;/code> 结构体， 结构体可以动态的添加额外数据。&lt;/li>
+&lt;/ol>
+&lt;p>&lt;code>ipt_entry&lt;/code> 结构体定义如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="k">struct&lt;/span> &lt;span class="n">ipt_entry&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;span class="k">struct&lt;/span> &lt;span class="n">ipt_ip&lt;/span> &lt;span class="n">ip&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="kt">unsigned&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">nfcache&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* ipt_entry + matches 在内存中的大小*/&lt;/span>
+&lt;span class="n">u_int16_t&lt;/span> &lt;span class="n">target_offset&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* ipt_entry + matches + target 在内存中的大小 */&lt;/span>
+&lt;span class="n">u_int16_t&lt;/span> &lt;span class="n">next_offset&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* 跳转后指向前一规则 */&lt;/span>
+&lt;span class="kt">unsigned&lt;/span> &lt;span class="kt">int&lt;/span> &lt;span class="n">comefrom&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* 数据包计数器 */&lt;/span>
+&lt;span class="k">struct&lt;/span> &lt;span class="n">xt_counters&lt;/span> &lt;span class="n">counters&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;span class="cm">/* 长度为0数组的特殊用法，作为 match 的内存地址 */&lt;/span>
+&lt;span class="kt">unsigned&lt;/span> &lt;span class="kt">char&lt;/span> &lt;span class="n">elems&lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="mi">0&lt;/span>&lt;span class="p">];&lt;/span>
+&lt;span class="p">};&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code> 首先根据 hook 类型以及 &lt;code>xt_table.private.entries&lt;/code> 属性跳转到对应的规则集内存区域，执行如下过程：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 7.png)&lt;/p>
+&lt;ol>
+&lt;li>首先检查数据包的 IP 首部与第一条规则 &lt;code>ipt_entry&lt;/code> 的 &lt;code>.ipt_ip&lt;/code> 属性是否一致，如不匹配根据 &lt;code>next_offset&lt;/code> 属性跳转到下一条规则。&lt;/li>
+&lt;li>若IP 首部匹配 ，则开始依次检查该规则所定义的所有 &lt;code>ipt_entry_match&lt;/code> 对象，与对象关联的匹配函数将被调用，根据调用返回值有返回到回调函数（以及是否丢弃数据包）、跳转到下一规则或继续检查等结果。&lt;/li>
+&lt;li>所有检查通过后读取 &lt;code>ipt_entry_target&lt;/code>，根据其属性返回 netfilter 向量到回调函数、继续下一规则或跳转到指定内存地址的其他规则，非标准 &lt;code>ipt_entry_target&lt;/code> 还会调用被绑定的函数，但只能返回向量值不能跳转其他规则。&lt;/li>
+&lt;/ol>
+&lt;h3 id="灵活性和更新时延">灵活性和更新时延&lt;/h3>
+&lt;p>以上数据结构与执行方式为 iptables 提供了强大的扩展能力，我们可以灵活地自定义每条规则的匹配条件并根据结果执行不同行为，甚至还能在额外的规则集之间栈式跳转。&lt;/p>
+&lt;p>由于每条规则长度不等、内部结构复杂，且同一规则集位于连续的内存空间，iptables 使用全量替换的方式来更新规则，这使得我们能够从用户空间以原子操作来添加/删除规则，但非增量式的规则更新会在规则数量级较大时带来严重的性能问题：假如在一个大规模 Kubernetes 集群中使用 iptables 方式实现 Service，当 service 数量较多时，哪怕更新一个 service 也会整体修改 iptables 规则表。全量提交的过程会 kernel lock 进行保护，因此会有很大的更新时延。&lt;/p>
+&lt;h2 id="用户空间的-tableschains-和-rules">用户空间的 tables、chains 和 rules&lt;/h2>
+&lt;p>用户空间的 iptables 命令行可以读取指定表的数据并渲染到终端，添加新的规则（实际上是替换整个 table 的规则表）等。&lt;/p>
+&lt;p>iptables 主要操作以下几种对象：&lt;/p>
+&lt;ul>
+&lt;li>table：对应内核空间的 &lt;code>xt_table&lt;/code> 结构，iptable 的所有操作都对指定的 table 执行，默认为 filter。&lt;/li>
+&lt;li>chain：对应指定 table 通过特定 netfilter hook 调用的规则集，此外还可以自定义规则集，然后从 hook 规则集中跳转过去。&lt;/li>
+&lt;li>rule：对应上文中 &lt;code>ipt_entry&lt;/code>、&lt;code>ipt_entry_match&lt;/code> 和 &lt;code>ipt_entry_target&lt;/code>，定义了对数据包的匹配规则以及匹配后执行的行为。&lt;/li>
+&lt;li>match：具有很强扩展性的自定义匹配规则。&lt;/li>
+&lt;li>target：具有很强扩展性的自定义匹配后行为。&lt;/li>
+&lt;/ul>
+&lt;p>基于上文介绍的代码调用过程流程，chain 和 rule 按如下示意图执行：&lt;/p>
+&lt;p>![Untitled](/images/Untitled 8.png)&lt;/p>
+&lt;p>对于 iptables 具体的用法和指令本文不做详细介绍，可参考 &lt;a href="https://www.digitalocean.com/community/tutorials/iptables-essentials-common-firewall-rules-and-commands">Iptables Essentials: Common Firewall Rules and Commands | DigitalOcean&lt;/a>。&lt;/p>
+&lt;h1 id="conntrack">conntrack&lt;/h1>
+&lt;p>仅仅通过3、4层的首部信息对数据包进行过滤是不够的，有时候还需要进一步考虑连接的状态。netfilter 通过另一内置模块 &lt;code>conntrack&lt;/code> 进行连接跟踪（connection tracking），以提供根据连接过滤、地址转换（NAT）等更进阶的网络过滤功能。由于需要对连接状态进行判断，&lt;code>conntrack&lt;/code> 在整体机制相同的基础上，又针对协议特点有单独的实现。&lt;/p>
+&lt;p>本来打算继续介绍 &lt;code>conntrack&lt;/code> 和 NAT，但考虑到篇幅过长遂作罢，感兴趣的读者推荐阅读&lt;a href="https://arthurchiao.art/blog/conntrack-design-and-implementation-zh/#hook-%E4%BC%98%E5%85%88%E7%BA%A7">连接跟踪（conntrack）：原理、应用及 Linux 内核实现&lt;/a>。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/source/include/linux/netfilter.h">netfilter.h - include/linux/netfilter.h - Linux source code (v2.6.39.4) - Bootlin&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.cs.dartmouth.edu/~sergey/netreads/path-of-packet/Network_stack.pdf">Network_stack.pdf&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.netfilter.org/documentation/HOWTO/netfilter-hacking-HOWTO.html#toc3">Linux netfilter Hacking HOWTO&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://link.springer.com/book/10.1007/978-1-4302-6197-1">Linux Kernel Networking: Implementation and Theory - Chapter 9: Netfilter&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.teldat.com/blog/nftables-and-netfilter-hooks-via-linux-kernel/">Netfilter framework providing hooks system for Nftables&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.digitalocean.com/community/tutorials/a-deep-dive-into-iptables-and-netfilter-architecture">A Deep Dive into Iptables and Netfilter Architecture | DigitalOcean&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://arthurchiao.art/blog/conntrack-design-and-implementation-zh/#hook-%E4%BC%98%E5%85%88%E7%BA%A7">连接跟踪（conntrack）：原理、应用及 Linux 内核实现&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://wiki.nftables.org/wiki-nftables/index.php/Netfilter_hooks">Netfilter hooks - nftables wiki&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.digitalocean.com/community/tutorials/iptables-essentials-common-firewall-rules-and-commands">Iptables Essentials: Common Firewall Rules and Commands | DigitalOcean&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.tigera.io/blog/comparing-kube-proxy-modes-iptables-or-ipvs/">Comparing kube-proxy modes: iptables or IPVS?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.tigera.io/blog/when-linux-conntrack-is-no-longer-your-friend/">Linux Conntrack: Why It Breaks Down and Avoiding the Problem&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://juejin.cn/post/7008945265021288484">走进Linux内核之Netfilter框架 - 掘金&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://flylib.com/books/en/3.475.1.101/1/">19.3 The Netfilter Architecture of Linux 2.4 | Linux Network Architecture&lt;/a>&lt;/li>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/networking/" term="Networking" label="Networking"/></entry><entry><title type="text">制作开箱即用的 Ubuntu qcow2 镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/"/><id>https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-12-07T23:08:26+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">记录一个开箱即用的 Ubuntu 虚拟机镜像的完整制作过程，可以直接导入到 OpenStack 和 Zstack 等平台使用。</summary><content type="html">&lt;p>最近负责的一个组件需要针对 Ubuntu 系统做兼容性适配，由于组件运行时会修改系统配置并写入大量文件，有必要使用虚拟机来开发测试。但通常开发使用的 Linux 发行版都是 RedHat 系的，找遍公司也没有能直接用的 Ubuntu 虚拟机镜像，最后自己手搓了一个，过程记录如下。&lt;/p>
 &lt;h2 id="下载所需版本的-cloud-image">下载所需版本的 cloud image&lt;/h2>
 &lt;p>首先需要确定所使用的 Ubuntu 版本，然后从&lt;a href="https://cloud-images.ubuntu.com/">官方镜像列表&lt;/a>中下载相应的云主机镜像，云主机镜像预装了 cloud-init，可以更方便地运行在 openstack 等云平台中。&lt;/p>
 &lt;p>在镜像列表页面，需要根据发布频率（如 Release、Daily builds）、镜像大小（完整包和 Minimal）以及 Ubuntu 版本选择合适的镜像，在镜像下载页面有许多不同类型的文件，如校验和文件、manifest 以及不同架构的镜像，我们只需要文件后缀为 &lt;code>.img&lt;/code> 的 QEMU qcow2 镜像。``&lt;/p>
@@ -272,7 +606,7 @@ root@ubuntu-vm:~$
 &lt;li>&lt;a href="https://blog.programster.org/create-ubuntu-20-kvm-guest-from-cloud-image">https://blog.programster.org/create-ubuntu-20-kvm-guest-from-cloud-image&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.openstack.org/image-guide/ubuntu-image.html">https://docs.openstack.org/image-guide/ubuntu-image.html&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://medium.com/@art.vasilyev/use-ubuntu-cloud-image-with-kvm-1f28c19f82f8">https://medium.com/@art.vasilyev/use-ubuntu-cloud-image-with-kvm-1f28c19f82f8&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/qemu/" term="qemu" label="qemu"/><category scheme="https://www.waynerv.com/tags/kvm/" term="kvm" label="kvm"/></entry><entry><title type="text">如何使用 docker buildx 构建跨平台 Go 镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/"/><id>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-09-02T20:07:08+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">一次构建多处部署的镜像分发大幅提高了应用的交付效率，但跨平台的部署依然是个挑战。当需要部署应用到 ARM 架构等其他平台时，利用 docker buildx 构建跨平台的镜像是个快捷高效的解决方案。</summary><content type="html">&lt;p>在不同操作系统和处理器架构上运行应用是很普遍的场景，因此为不同平台单独构建发布版本是一种常见做法。当我们用来开发应用的平台与部署的目标平台不同时，实现这一目标并不容易。例如在 x86 架构上开发一个应用程序并将其部署到 ARM 平台的机器上，通常需要准备 ARM 平台的基础设施用于开发和编译。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/qemu/" term="qemu" label="qemu"/><category scheme="https://www.waynerv.com/tags/kvm/" term="kvm" label="kvm"/></entry><entry><title type="text">如何使用 docker buildx 构建跨平台 Go 镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/"/><id>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-09-02T20:07:08+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">一次构建多处部署的镜像分发大幅提高了应用的交付效率，但跨平台的部署依然是个挑战。当需要部署应用到 ARM 架构等其他平台时，利用 docker buildx 构建跨平台的镜像是个快捷高效的解决方案。</summary><content type="html">&lt;p>在不同操作系统和处理器架构上运行应用是很普遍的场景，因此为不同平台单独构建发布版本是一种常见做法。当我们用来开发应用的平台与部署的目标平台不同时，实现这一目标并不容易。例如在 x86 架构上开发一个应用程序并将其部署到 ARM 平台的机器上，通常需要准备 ARM 平台的基础设施用于开发和编译。&lt;/p>
 &lt;p>一次构建多处部署的镜像分发大幅提高了应用的交付效率，对于需要跨平台部署应用的场景，利用 docker buildx 构建跨平台的镜像也是一种快捷高效的解决方案。&lt;/p>
 &lt;h2 id="前提">前提&lt;/h2>
 &lt;p>大部分镜像托管平台支持多平台镜像，这意味着镜像仓库中单个标签可以包含不同平台的多个镜像，以 &lt;code>docker hub&lt;/code> 的 &lt;code>python&lt;/code> 镜像仓库为例，&lt;code>3.9.6&lt;/code> 这个标签就包含了 10 个不同系统和架构的镜像（平台 = 系统 + 架构）：&lt;/p>
@@ -671,7 +1005,7 @@ $ apt-get install -y libopus-dev:arm64
 &lt;li>&lt;a href="https://docs.docker.com/engine/reference/commandline/buildx_build/#output">docker buildx build&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://go.dev/blog/cgo">C? Go? Cgo! - go.dev&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://dh1tw.de/2019/12/cross-compiling-golang-cgo-projects/">Cross-Compiling Golang (CGO) Projects&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/golang/" term="Golang" label="Golang"/><category scheme="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/" term="云原生" label="云原生"/><category scheme="https://www.waynerv.com/tags/docker/" term="Docker" label="Docker"/></entry><entry><title type="text">如何手动安装 Nginx 二进制文件</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/"/><id>https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-08-11T15:47:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，本文将记录如何将一个已编译好的 Nginx 二进制文件手动安装到 Linux 系统中。</summary><content type="html">&lt;p>在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，这时推荐的做法是从源码自行编译安装，通常来说 &lt;code>configure + make install&lt;/code> 两步即可完成。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/golang/" term="Golang" label="Golang"/><category scheme="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/" term="云原生" label="云原生"/><category scheme="https://www.waynerv.com/tags/docker/" term="Docker" label="Docker"/></entry><entry><title type="text">如何手动安装 Nginx 二进制文件</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/"/><id>https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-08-11T15:47:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，本文将记录如何将一个已编译好的 Nginx 二进制文件手动安装到 Linux 系统中。</summary><content type="html">&lt;p>在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，这时推荐的做法是从源码自行编译安装，通常来说 &lt;code>configure + make install&lt;/code> 两步即可完成。&lt;/p>
 &lt;p>假如我们只能获取已编译好的程序或者没有编译环境，就只能手动执行安装步骤了。本文将记录如何将一个已编译好的 Nginx 二进制文件安装到 Linux 系统中。&lt;/p>
 &lt;h2 id="prefix-配置">prefix 配置&lt;/h2>
 &lt;p>对安装 nginx 来说，最需要注意的是 &lt;code>prefix&lt;/code> 路径配置，默认值为 &lt;code>/usr/local/nginx&lt;/code>，它是 nginx 运行时的基础路径：&lt;/p>
@@ -860,7 +1194,7 @@ mkdir -p /etc/nginx/conf.d
 &lt;li>&lt;a href="https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source">Compiling and Installing from Source&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://serverfault.com/questions/308890/nginx-permission-13/338461">Nginx Permission 13&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://serverfault.com/questions/691310/nginx-relative-path-to-include">nginx relative path to include&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/nginx/" term="Nginx" label="Nginx"/></entry><entry><title type="text">容器技术原理(五)：文件系统的隔离和共享</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-filesystem-isolation-and-sharing/"/><id>https://www.waynerv.com/posts/container-fundamentals-filesystem-isolation-and-sharing/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-07-27T14:38:20+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Unix 系统中所有可访问的文件都被组织在一个巨大的树状文件层次结构中，这颗文件树的根节点就是 &lt;code>/&lt;/code> 目录。</summary><content type="html">&lt;h2 id="背景知识">背景知识&lt;/h2>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/nginx/" term="Nginx" label="Nginx"/></entry><entry><title type="text">容器技术原理(五)：文件系统的隔离和共享</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-filesystem-isolation-and-sharing/"/><id>https://www.waynerv.com/posts/container-fundamentals-filesystem-isolation-and-sharing/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-07-27T14:38:20+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Unix 系统中所有可访问的文件都被组织在一个巨大的树状文件层次结构中，这颗文件树的根节点就是 &lt;code>/&lt;/code> 目录。</summary><content type="html">&lt;h2 id="背景知识">背景知识&lt;/h2>
 &lt;p>Unix 系统中所有可访问的文件都被组织在一个巨大的树状文件层次结构中，这颗文件树的根节点就是 &lt;code>/&lt;/code> 目录。这些文件可以分散保存在不同的设备中，前提是我们使用 &lt;code>mount&lt;/code> 系统调用将这些设备上的文件系统挂载到文件树中。&lt;/p>
 &lt;h3 id="目录-vs-文件系统">目录 VS 文件系统&lt;/h3>
 &lt;p>了解文件系统和目录之间的区别是很重要的。文件系统是存储设备如硬盘的一个部分，它被分配来保存文件数据。在目录上挂载文件系统后，可以访问这部分存储的文件。文件系统被挂载后，对终端用户来说访问起来就像普通目录一样。&lt;/p>
@@ -1248,7 +1582,7 @@ $ cat /proc/self/mounts &lt;span class="p">|&lt;/span> grep host_dir
 &lt;li>&lt;a href="https://lists.linuxcontainers.org/pipermail/lxc-devel/2011-September/002065.html">DIfference between chroot &amp;amp; pivot_root&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://www.quora.com/What-is-the-purpose-of-pivot_root-system-call-in-Linux">What is the purpose of pivot_root system call in Linux?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://unix.stackexchange.com/questions/198590/what-is-a-bind-mount">What is a bind mount?&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/namespace/" term="Namespace" label="Namespace"/><category scheme="https://www.waynerv.com/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/" term="文件系统" label="文件系统"/></entry><entry><title type="text">容器技术原理(四)：使用 Capabilities 实现权限控制</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-permission-control-using-capabilities/"/><id>https://www.waynerv.com/posts/container-fundamentals-permission-control-using-capabilities/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-07-22T15:45:56+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">&lt;code>root&lt;/code> 用户拥有最高特权早就成了过去式，Linux 内核在 2.2 版本就引入了一种新的权限检查机制 - capabilities。</summary><content type="html">&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，会得到有趣的结果：&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/namespace/" term="Namespace" label="Namespace"/><category scheme="https://www.waynerv.com/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/" term="文件系统" label="文件系统"/></entry><entry><title type="text">容器技术原理(四)：使用 Capabilities 实现权限控制</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-permission-control-using-capabilities/"/><id>https://www.waynerv.com/posts/container-fundamentals-permission-control-using-capabilities/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-07-22T15:45:56+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">&lt;code>root&lt;/code> 用户拥有最高特权早就成了过去式，Linux 内核在 2.2 版本就引入了一种新的权限检查机制 - capabilities。</summary><content type="html">&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，会得到有趣的结果：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -1526,7 +1860,7 @@ root &lt;span class="m">9776&lt;/span> &lt;span class="m">9765&lt;/span> &lt;spa
 &lt;li>&lt;a href="https://dockerlabs.collabnix.com/advanced/security/capabilities/">dockerlabs-Capabilities&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://fuckcloudnative.io/posts/linux-capabilities-why-they-exist-and-how-they-work/">Linux Capabilities 入门教程：概念篇&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://www.trendmicro.com/en_us/research/19/l/why-running-a-privileged-container-in-docker-is-a-bad-idea.html">Why A Privileged Container in Docker Is a Bad Idea&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/capabilities/" term="Capabilities" label="Capabilities"/></entry><entry><title type="text">容器技术原理(三)：使用 Cgroups 实现资源限制</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-resource-limitation-using-cgroups/"/><id>https://www.waynerv.com/posts/container-fundamentals-resource-limitation-using-cgroups/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-07-21T17:38:06+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">cgroups 是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。</summary><content type="html">&lt;p>cgroups（control groups）是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/capabilities/" term="Capabilities" label="Capabilities"/></entry><entry><title type="text">容器技术原理(三)：使用 Cgroups 实现资源限制</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-resource-limitation-using-cgroups/"/><id>https://www.waynerv.com/posts/container-fundamentals-resource-limitation-using-cgroups/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-07-21T17:38:06+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">cgroups 是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。</summary><content type="html">&lt;p>cgroups（control groups）是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。&lt;/p>
 &lt;p>在上一篇文章中我们已了解 Namespace 在容器技术中扮演的角色，如果说 Namespace 控制了容器中的进程能看到什么，那么 cgroups 则控制了容器中的进程能使用多少资源。Namespace 实现了进程的隔离，cgroups 则实现了资源的限制，后者同样是构建容器的基础。&lt;/p>
 &lt;p>本文将沿袭 Namespace 文章的行文思路，实际创建一个容器，观察宿主机中 cgroups 的变化，来实际展示 cgroups 如何工作，然后了解如何自行配置 cgroups。&lt;/p>
 &lt;h2 id="cgroup-在何时创建">cgroup 在何时创建&lt;/h2>
@@ -1776,7 +2110,7 @@ root &lt;span class="m">2576&lt;/span> &lt;span class="m">2250&lt;/span> &lt;spa
 &lt;li>&lt;a href="https://en.wikipedia.org/wiki/Cgroups">cgroups-wikipedia&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.docker.com/config/containers/resource_constraints/#limit-a-containers-access-to-memory">Limit a container’s access to memory&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://github.com/opencontainers/runtime-spec/blob/master/config-linux.md#memory">Control groups - Memory&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/cgroups/" term="Cgroups" label="Cgroups"/></entry><entry><title type="text">容器技术原理(二)：使用 Namespace 实现进程隔离</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-process-isolation-using-namespace/"/><id>https://www.waynerv.com/posts/container-fundamentals-process-isolation-using-namespace/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-07-21T12:45:11+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。Namespace 是构建容器技术的基石。</summary><content type="html">&lt;p>Namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。Namespace 是构建容器技术的基石，它使得容器内的进程只能看到容器内的进程和资源，实现与宿主系统以及其他容器的进程和资源隔离。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/cgroups/" term="Cgroups" label="Cgroups"/></entry><entry><title type="text">容器技术原理(二)：使用 Namespace 实现进程隔离</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-process-isolation-using-namespace/"/><id>https://www.waynerv.com/posts/container-fundamentals-process-isolation-using-namespace/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-07-21T12:45:11+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。Namespace 是构建容器技术的基石。</summary><content type="html">&lt;p>Namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。Namespace 是构建容器技术的基石，它使得容器内的进程只能看到容器内的进程和资源，实现与宿主系统以及其他容器的进程和资源隔离。&lt;/p>
 &lt;p>Namespace 按操作的系统资源不同有很多种类，比如 cgroup namespace，mount namespace 等等，接下来我们仅以 pid namespace 为例，以 &lt;code>runC&lt;/code> 作为容器运行时实现，来演示当我们执行对容器的操作时，namespace 是如何工作的。&lt;/p>
 &lt;p>在上一篇文章中我们已经介绍过，绝大部分容器系统都使用 &lt;code>runC&lt;/code> 作为底层的运行时实现，如果你是在 Linux 发行版系统中使用 &lt;code>docker&lt;/code> ，甚至不需要专门安装就能使用 &lt;code>runc&lt;/code> 命令。&lt;/p>
 &lt;h2 id="准备工作">准备工作&lt;/h2>
@@ -2190,7 +2524,7 @@ PID PPID NAME CMD NTHREADS CGROUPS STATE
 &lt;li>&lt;a href="https://github.com/opencontainers/runc/blob/master/README.md#creating-an-oci-bundle">Creating an OCI Bundle&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://jarekprzygodzki.dev/post/monitor-new-process-creation/">Monitoring new process creation&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://en.wikipedia.org/wiki/Linux_namespaces">Linux namespaces&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/namespace/" term="Namespace" label="Namespace"/></entry><entry><title type="text">容器技术原理(一)：从根本上认识容器镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/"/><id>https://www.waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-07-20T13:24:03+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">OCI 规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，它描述了容器如何被创建和运行，了解 OCI 规范有助于对容器技术建立更本质全面的认知。</summary><content type="html">&lt;h2 id="从-oci-规范说起">从 OCI 规范说起&lt;/h2>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/namespace/" term="Namespace" label="Namespace"/></entry><entry><title type="text">容器技术原理(一)：从根本上认识容器镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/"/><id>https://www.waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-07-20T13:24:03+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">OCI 规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，它描述了容器如何被创建和运行，了解 OCI 规范有助于对容器技术建立更本质全面的认知。</summary><content type="html">&lt;h2 id="从-oci-规范说起">从 OCI 规范说起&lt;/h2>
 &lt;p>OCI（Open Container Initiative）规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，包括 Docker 和 Kubernetes。它的出现是一段关于开源商业化的有趣历史：它由 Dokcer 公司作为领头者在 2015 年推出，但如今 Docker 公司在容器行业中已经成了打工仔。&lt;/p>
 &lt;p>从 OCI 规范开始了解容器镜像，可以让我们对容器技术建立更全面清晰的认知，而不是囿于实现细节。OCI 规范分为 &lt;code>Image spec&lt;/code> 和 &lt;code>Runtime spec&lt;/code> 两部分，它们分别覆盖了容器生命周期的不同阶段：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-oci-spec.png" alt="">&lt;/p>
@@ -2786,7 +3120,7 @@ $ diff layers.a layers.b
 &lt;li>
 &lt;p>深入剖析Kubernetes - 张磊&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/kubernetes/" term="Kubernetes" label="Kubernetes"/><category scheme="https://www.waynerv.com/tags/docker/" term="Docker" label="Docker"/></entry><entry><title type="text">究极的 Python 开源项目模板</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/ultimate-python-open-source-project-template/"/><id>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-06-25T18:08:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个……</summary><content type="html">&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/kubernetes/" term="Kubernetes" label="Kubernetes"/><category scheme="https://www.waynerv.com/tags/docker/" term="Docker" label="Docker"/></entry><entry><title type="text">究极的 Python 开源项目模板</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/ultimate-python-open-source-project-template/"/><id>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-06-25T18:08:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个……</summary><content type="html">&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
 &lt;p>制作一个项目启动模板，也是开始一个新开源项目的好 idea。两年前我曾经接触过 cookiecutter （一个项目生成工具）；在发布了几个项目后，对于 Python 打包发布到 PyPI 的流程也比较熟悉了；何况在 GitHub 上还看过许多类似的项目模板，可以 fork 后在其基础上进行自定义。一切都水到渠成，这应该不是个很难的事。&lt;/p>
 &lt;p>不过我还是经过一段时间的测试和反复打磨，才终于完成一份 Python 开源项目模板：&lt;a href="https://github.com/waynerv/cookiecutter-pypackage">Cookiecutter PyPackage&lt;/a>，标题中的「究极」有夸大之嫌，但内容的确是相当全面。模板的使用方法在项目文档中有详细介绍，这篇文章主要分享我在模板中所选择的工具以及选择它们的理由。&lt;/p>
 &lt;h2 id="包管理工具">包管理工具&lt;/h2>
@@ -2905,7 +3239,7 @@ additional_dependencies:
 &lt;li>通过 &lt;code>changelog-reader-action&lt;/code> 这一 action 从 &lt;code>CHANGELOG.md&lt;/code> 文件中按规则解析出最新版本的版本信息。&lt;/li>
 &lt;li>执行项目的构建得到最新版本的包。&lt;/li>
 &lt;li>通过 &lt;code>action-gh-release&lt;/code> 这一 action 根据上面解析得到的版本历史信息自动创建新的 Realease，并以构建好的包作为附件。&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/><category scheme="https://www.waynerv.com/tags/%E5%BC%80%E6%BA%90/" term="开源" label="开源"/></entry><entry><title type="text">使用 Sphinx 为项目自动生成 API 文档</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/"/><id>https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-06-07T21:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。 从流行的开源项目中，我们可以总结出一些……</summary><content type="html">&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/><category scheme="https://www.waynerv.com/tags/%E5%BC%80%E6%BA%90/" term="开源" label="开源"/></entry><entry><title type="text">使用 Sphinx 为项目自动生成 API 文档</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/"/><id>https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-06-07T21:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。 从流行的开源项目中，我们可以总结出一些……</summary><content type="html">&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。&lt;/p>
 &lt;p>从流行的开源项目中，我们可以总结出一些关于文档的最佳实践：&lt;/p>
 &lt;ul>
 &lt;li>文档和代码库在一个仓库中维护以做到同步更新（个别体量超大的项目例外）&lt;/li>
@@ -3345,7 +3679,7 @@ additional_dependencies:
 &lt;li>
 &lt;p>&lt;a href="https://myst-parser.readthedocs.io/en/latest/using/howto.html#use-sphinx-ext-autodoc-in-markdown-files">How-To Guides&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/sphinx/" term="Sphinx" label="Sphinx"/></entry><entry><title type="text">Python 时间处理标准库：time 与 datetime 模块</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/"/><id>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-04-29T17:07:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Python 中内置了许多和操作时间有关的 API，它们分布在 time，datetime 等标准库中，在使用时很容易混淆，本文将力求清晰地阐述它们的用法和区别。</summary><content type="html">&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/sphinx/" term="Sphinx" label="Sphinx"/></entry><entry><title type="text">Python 时间处理标准库：time 与 datetime 模块</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/"/><id>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-04-29T17:07:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Python 中内置了许多和操作时间有关的 API，它们分布在 time，datetime 等标准库中，在使用时很容易混淆，本文将力求清晰地阐述它们的用法和区别。</summary><content type="html">&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
 &lt;p>下文将分别介绍每个模块的主要目的、核心对象、常用方法以及用途，并在最后做分析对比，如果已经了解这些细节可以直接跳转到结尾的总结对比部分。&lt;/p>
 &lt;p>另外本文将避免涉及字符串格式化、时区、冬夏令时等更复杂深入的话题。&lt;/p>
 &lt;h2 id="time-模块">time 模块&lt;/h2>
@@ -4052,7 +4386,7 @@ additional_dependencies:
 &lt;li>其余名称的函数均为类方法&lt;/li>
 &lt;/ul>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">理解 Python 中的描述符</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/python-descriptor-in-detail/"/><id>https://www.waynerv.com/posts/python-descriptor-in-detail/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-04-15T21:32:47+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">描述符（descriptor）是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。</summary><content type="html">&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">理解 Python 中的描述符</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/python-descriptor-in-detail/"/><id>https://www.waynerv.com/posts/python-descriptor-in-detail/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-04-15T21:32:47+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">描述符（descriptor）是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。</summary><content type="html">&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
 &lt;h2 id="描述符的定义">描述符的定义&lt;/h2>
 &lt;p>描述符的定义很简单，实现了下列&lt;em>任意一个方法&lt;/em>的 Python 对象就是一个描述符（descriptor）：&lt;/p>
 &lt;ul>
@@ -4748,7 +5082,7 @@ additional_dependencies:
 &lt;li>&lt;a href="https://docs.python.org/3/reference/datamodel.html#implementing-descriptors">Python Refenrence - Data model - Implementing Descriptors&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://realpython.com/python-descriptors/">Python Descriptors: An Introduction&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://blog.peterlamut.com/2018/11/04/python-attribute-lookup-explained-in-detail/">Python attribute lookup explained in detail&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">自己编译一个最新版本的 Python3</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/compiling-a-latest-python/"/><id>https://www.waynerv.com/posts/compiling-a-latest-python/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-04-06T10:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。 工……</summary><content type="html">&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">自己编译一个最新版本的 Python3</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/compiling-a-latest-python/"/><id>https://www.waynerv.com/posts/compiling-a-latest-python/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-04-06T10:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。 工……</summary><content type="html">&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
 &lt;h2 id="工作环境">工作环境&lt;/h2>
 &lt;p>测试机的操作系统是 Ubuntu 20.10，已安装有 &lt;code>gcc&lt;/code> 、&lt;code>git&lt;/code> 等基础的开发工具。经验证以下步骤同样适用于 macOS 11。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -4945,7 +5279,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://devguide.python.org/setup/#getting-started">Python Developer’s Guide: Getting Started&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/" term="编译" label="编译"/></entry><entry><title type="text">[CSAPP] 计算机如何表示浮点数</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/csapp-ieee-floating-intro/"/><id>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-03-29T22:48:53+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">计算机无法精确地表示所有实数，本文作为《深入理解计算机系统》的学习笔记，将介绍计算机在底层如何使用 IEEE754 标准来表示浮点数。</summary><content type="html">&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/" term="编译" label="编译"/></entry><entry><title type="text">[CSAPP] 计算机如何表示浮点数</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/csapp-ieee-floating-intro/"/><id>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-03-29T22:48:53+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">计算机无法精确地表示所有实数，本文作为《深入理解计算机系统》的学习笔记，将介绍计算机在底层如何使用 IEEE754 标准来表示浮点数。</summary><content type="html">&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -5011,7 +5345,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;ol>
 &lt;li>虽然使用了不同的计算方式，但非规范化值可以平滑地过渡到规范化值，如上最大的非规范化值为 $\frac{7}{512}$，而最小的规范化值为 $\frac{8}{512}$。&lt;/li>
 &lt;li>随着浮点数的递增，其比特位表示所解释地无符号整数也随之递增，因此我们可以用相对简单的无符号整数的排序规则来对浮点数进行排序，这并非巧合，而是有意设计的。&lt;/li>
-&lt;/ol></content><category scheme="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/" term="笔记总结" label="笔记总结"/><category scheme="https://www.waynerv.com/tags/csapp/" term="CSAPP" label="CSAPP"/></entry><entry><title type="text">深入理解 git cherry-pick 操作</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-cherry-pick-intro/"/><id>https://www.waynerv.com/posts/git-cherry-pick-intro/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-01-26T16:49:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 rebase，merge，checkout， reset 等多种操作的使用……</summary><content type="html">&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
+&lt;/ol></content><category scheme="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/" term="笔记总结" label="笔记总结"/><category scheme="https://www.waynerv.com/tags/csapp/" term="CSAPP" label="CSAPP"/></entry><entry><title type="text">深入理解 git cherry-pick 操作</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-cherry-pick-intro/"/><id>https://www.waynerv.com/posts/git-cherry-pick-intro/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-01-26T16:49:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 rebase，merge，checkout， reset 等多种操作的使用……</summary><content type="html">&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
 &lt;h2 id="如何使用-git-cherry-pick">如何使用 git cherry-pick&lt;/h2>
 &lt;p>Git 命令文档的描述不一定直观易懂，但绝对准确，文档对 &lt;code>git cherry-pick&lt;/code> 描述是： &lt;code>Apply the changes introduced by some existing commits&lt;/code>，即应用某些已有提交所引入的更改。通常我们会说 &lt;code>cherry-pick&lt;/code> 是将某个（些）提交从一个分支移动到另一个分支，这种说法更加容易理解，但后面我们会解释为何文档的描述才是最准确的。&lt;/p>
 &lt;p>假设我们有如下提交：&lt;/p>
@@ -5205,7 +5539,7 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;li>&lt;a href="https://stackoverflow.com/a/52932137/10224392">what does git cherry-pick {commit-hash} do?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/a/10058070/10224392">In a Git cherry-pick or rebase merge conflict, how are BASE (aka “the ancestor”), LOCAL, and REMOTE determined?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/questions/27417656/should-diff3-be-default-conflictstyle-on-git">Should diff3 be default conflictstyle on git?&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">git 工作原理与撤销操作图解</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">绝大部分程序员一定搜索过「如何撤销 git 提交」，&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code> 或 &lt;code>git revert&lt;/code> 是暂时的答案，掌握一定的 git 工作原理才能一劳永逸地解决类似问题。</summary><content type="html">&lt;p>「如何撤销 git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什么这次搜到的命令不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">git 工作原理与撤销操作图解</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">绝大部分程序员一定搜索过「如何撤销 git 提交」，&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code> 或 &lt;code>git revert&lt;/code> 是暂时的答案，掌握一定的 git 工作原理才能一劳永逸地解决类似问题。</summary><content type="html">&lt;p>「如何撤销 git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什么这次搜到的命令不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
 &lt;p>之所以这样，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
 &lt;ul>
 &lt;li>我在本地修改了一些文件还未提交，但我想放弃某些文件的更改。&lt;/li>
@@ -6022,7 +6356,7 @@ $ git stash pop
 &lt;li>&lt;a href="https://shafiul.github.io//gitbook/7_the_git_index.html">The Git Index&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://mincong.io/2018/04/28/git-index/#:~:text=The%20index%20is%20a%20binary,Git%3A%20they%20are%20used%20interchangeably.">Git: Understanding the Index File&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tom.preston-werner.com/2009/05/19/the-git-parable.html">The Git Parable&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">代码质量是程序员的职业底线，维护底线不能全靠自觉，本文将介绍如何将 flake8、black、pre-commit 等工具集成到日常的工作流中，省心省力的持续保障代码质量。</summary><content type="html">&lt;p>在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">代码质量是程序员的职业底线，维护底线不能全靠自觉，本文将介绍如何将 flake8、black、pre-commit 等工具集成到日常的工作流中，省心省力的持续保障代码质量。</summary><content type="html">&lt;p>在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
 &lt;h2 id="linter">Linter&lt;/h2>
 &lt;p>Linter 是一类用于标记程序错误、bug、风格错误和可疑结构的静态代码分析工具，比如 Python 中的 &lt;code>Pylint&lt;/code>、 &lt;code>flake8&lt;/code>，JavaScript 中的 &lt;code>EsLint&lt;/code>，这类工具会找到你代码中的错误，并给出如何修复的提示。&lt;/p>
 &lt;h3 id="为何要使用-linter">为何要使用 Linter&lt;/h3>
@@ -6766,7 +7100,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/quickstart">Quickstart for GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/introduction-to-github-actions">Introduction to GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="http://www.ruanyifeng.com/blog/2019/09/getting-started-with-github-actions.html">GitHub Actions 入门教程&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 搭建静态博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">本文将介绍如何使用 Hugo 和 GitHub Pages 快速搭建个人使用的静态博客，并通过 GitHub actions 实现自动发布。</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 搭建静态博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">本文将介绍如何使用 Hugo 和 GitHub Pages 快速搭建个人使用的静态博客，并通过 GitHub actions 实现自动发布。</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
 &lt;p>刚学编程的时候，还开源过一个基于 Flask 和 MongoDB 的&lt;a href="https://github.com/waynerv/originblog">博客项目&lt;/a>，但后面就没怎么使用和维护了，除开主观上的懒，还因为：&lt;/p>
 &lt;ul>
 &lt;li>自建博客绕不开主机和域名，这是一笔持续的经济成本。国内的主机往往是第一年割肉第二年宰猪，国外的主机访问延迟很高。&lt;/li>
@@ -6980,7 +7314,7 @@ publish_dir: ./public
 &lt;p>在本地做一些更改，预览效果后提交并推送，然后在项目仓库的 GitHub Actions 页面检查相应的 &lt;code>workflow&lt;/code> 是否运行成功。不出意外的话，很快个人主页仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，访问个人博客页面也会发现页面已经更新。&lt;/p>
 &lt;h2 id="个人体验">个人体验&lt;/h2>
 &lt;p>由于先后选择的 3 个主题均遭遇了上述发布地址不能包含子路径的问题，我在基本按照官方文档操作的前提下，依然花了超过 10 个小时才把&lt;a href="https://waynerv.github.io/">博客&lt;/a>上线，浪费了很多时间在配置主题以及寻找问题的解决方案上。本以为选择了一个简单快捷的省心方案，结果还是免不了过程的一顿踩坑和折腾。&lt;/p>
-&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/><category scheme="https://www.waynerv.com/tags/hugo/" term="Hugo" label="Hugo"/><category scheme="https://www.waynerv.com/tags/github/" term="GitHub" label="GitHub"/></entry><entry><title type="text">深入理解 git 合并操作</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2020-11-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作，都需要进行合并。 但对新手来说， git merge 这一命令……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
+&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/><category scheme="https://www.waynerv.com/tags/hugo/" term="Hugo" label="Hugo"/><category scheme="https://www.waynerv.com/tags/github/" term="GitHub" label="GitHub"/></entry><entry><title type="text">深入理解 git 合并操作</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2020-11-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作，都需要进行合并。 但对新手来说， git merge 这一命令……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
 &lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
 &lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
 &lt;h2 id="认识合并">认识合并&lt;/h2>
@@ -7084,7 +7418,7 @@ $ git merge feature
 &lt;li>
 &lt;p>&lt;a href="https://segmentfault.com/a/1190000021712743">git merge的原理（递归三路合并算法）&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">git rebase 用法详解与工作原理</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2020-10-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">rebase 命令是 git 高手的一大利器，使用 rebase 重写提交历史在日常开发中非常有用，这篇近六千字的长文将帮助你彻底掌握 git rebase 的用法和原理。</summary><content type="html">&lt;p>以前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">git rebase 用法详解与工作原理</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2020-10-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">rebase 命令是 git 高手的一大利器，使用 rebase 重写提交历史在日常开发中非常有用，这篇近六千字的长文将帮助你彻底掌握 git rebase 的用法和原理。</summary><content type="html">&lt;p>以前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
 &lt;h2 id="理解-rebase-命令">理解 Rebase 命令&lt;/h2>
 &lt;p>&lt;code>git rebase&lt;/code> 命令的文档描述是 &lt;code>Reapply commits on top of another base tip&lt;/code>，从字面上理解是「在另一个基端之上重新应用提交」，这个定义听起来有点抽象，换个角度可以理解为「将分支的基础从一个提交改成另一个提交，使其看起来就像是从另一个提交中创建了分支一样」，如下图：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
@@ -7619,7 +7953,7 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>
 &lt;p>&lt;a href="https://medium.com/@fabisiakradoslaw/understand-how-does-git-rebase-work-and-compare-with-git-merge-and-git-interactive-rebase-cce2c9775e43">Understand how does git rebase work and compare with git merge and git interactive rebase&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">写了一份 Web API 设计规范</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/my-web-api-spcification/"/><id>https://www.waynerv.com/posts/my-web-api-spcification/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2020-10-17T11:40:09+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">基于 GitHub REST API v3 和 RFC7807，并结合自己在工作中的一些实践，编写了这份 Web API 规范。</summary><content type="html">&lt;p>基于 &lt;a href="https://developer.github.com/v3">GitHub REST API v3&lt;/a> 和 &lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a> ，并结合自己在工作中的一些实践，编写了这份 Web API 规范。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">写了一份 Web API 设计规范</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/my-web-api-spcification/"/><id>https://www.waynerv.com/posts/my-web-api-spcification/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2020-10-17T11:40:09+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">基于 GitHub REST API v3 和 RFC7807，并结合自己在工作中的一些实践，编写了这份 Web API 规范。</summary><content type="html">&lt;p>基于 &lt;a href="https://developer.github.com/v3">GitHub REST API v3&lt;/a> 和 &lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a> ，并结合自己在工作中的一些实践，编写了这份 Web API 规范。&lt;/p>
 &lt;p>本规范虽然整体上遵循 RESTful 风格，但并未强制要求使用超媒体表示，严格来说不符合 REST API 的要求，因此基于此规范构建的项目应该定义为 Web API。&lt;/p>
 &lt;h2 id="概览">概览&lt;/h2>
 &lt;p>所有 API 应该使用统一的根域名。&lt;/p>
@@ -7985,7 +8319,7 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>&lt;a href="https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md">Microsoft api guidelines&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">Best Practices for Designing a Pragmatic RESTful API&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/web/" term="Web" label="Web"/><category scheme="https://www.waynerv.com/tags/restful/" term="RESTful" label="RESTful"/></entry><entry><title type="text">记录一次迁移MySQL数据文件到新硬盘的过程</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/"/><id>https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/</id><updated>2021-12-07T15:36:14+00:00</updated><published>2020-09-08T12:14:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">迁移前的环境 MySQL Server 程序编译安装于 qmysql 用户的 /home/qmysql/qmysql/packages 目录下，文件夹结构如下： 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 .……</summary><content type="html">&lt;h2 id="迁移前的环境">迁移前的环境&lt;/h2>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/web/" term="Web" label="Web"/><category scheme="https://www.waynerv.com/tags/restful/" term="RESTful" label="RESTful"/></entry><entry><title type="text">记录一次迁移MySQL数据文件到新硬盘的过程</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/"/><id>https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/</id><updated>2022-03-07T15:34:08+00:00</updated><published>2020-09-08T12:14:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">迁移前的环境 MySQL Server 程序编译安装于 qmysql 用户的 /home/qmysql/qmysql/packages 目录下，文件夹结构如下： 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 .……</summary><content type="html">&lt;h2 id="迁移前的环境">迁移前的环境&lt;/h2>
 &lt;p>MySQL Server 程序编译安装于 &lt;code>qmysql&lt;/code> 用户的 &lt;code>/home/qmysql/qmysql/packages&lt;/code> 目录下，文件夹结构如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
