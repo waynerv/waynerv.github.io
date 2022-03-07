@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 07 Mar 2022 15:34:15 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>深入理解 netfilter 和 iptables</title><link>https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</link><guid isPermaLink="true">https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</guid><pubDate>Mon, 07 Mar 2022 23:27:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 07 Mar 2022 15:39:36 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>深入理解 netfilter 和 iptables</title><link>https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</link><guid isPermaLink="true">https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</guid><pubDate>Mon, 07 Mar 2022 23:27:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
 &lt;p>关于 netfilter 的介绍文章很多，但很大部分描述的过于抽象，实际上 netfilter 模块的基本实现不算复杂，本文主要参考较老的 Linux 内核 2.6 版本的实现（代码较为简单），与最新的 5.x 版本可能有较大差异，但不影响理解其原理。&lt;/p>
 &lt;p>本文假设读者已对 TCP/IP 协议有基本了解。&lt;/p>
-&lt;h1 id="netfilter-的设计与实现">Netfilter 的设计与实现&lt;/h1>
+&lt;h2 id="netfilter-的设计与实现">Netfilter 的设计与实现&lt;/h2>
 &lt;p>netfilter 的定义是一个工作在 Linux 内核的网络数据包处理框架，为了彻底理解 netfilter 的工作方式，我们首先需要对数据包在 Linux 内核中的处理路径建立基本认识。&lt;/p>
-&lt;h2 id="数据包的内核之旅">数据包的内核之旅&lt;/h2>
+&lt;h3 id="数据包的内核之旅">数据包的内核之旅&lt;/h3>
 &lt;p>数据包在内核中的处理路径，也就是处理网络数据包的内核代码调用链，大体上也可按 TCP/IP 模型分为多个层级，以接收一个 IPv4 的 tcp 数据包为例：&lt;/p>
 &lt;ol>
 &lt;li>
@@ -17,9 +17,9 @@
 &lt;p>&lt;code>tcp_v4_rcv&lt;/code> 函数同样读取数据包的 TCP 首部并计算校验和，然后在数据包对应的 TCP control buffer 中维护一些必要状态包括 TCP 序列号以及 SACK 号等。该函数下一步将调用 &lt;code>__tcp_v4_lookup&lt;/code> 查询数据包对应的 socket，如果没找到或 socket 的连接状态处于 &lt;strong>TCP_TIME_WAIT&lt;/strong>，数据包将被丢弃。如果 socket 处于未加锁状态，数据包将通过调用 &lt;code>tcp_prequeue&lt;/code> 函数进入 &lt;code>prequeue&lt;/code> 队列，之后数据包将可被用户态的用户程序所处理。传输层的处理流程超出本文讨论范围，实际上还要复杂很多。&lt;/p>
 &lt;/li>
 &lt;/ol>
-&lt;h2 id="netfilter-hooks">netfilter hooks&lt;/h2>
+&lt;h3 id="netfilter-hooks">netfilter hooks&lt;/h3>
 &lt;p>接下来我们正式进入主题。netfilter 的首要组成部分是 netfilter hooks。&lt;/p>
-&lt;h3 id="hook-触发点">hook 触发点&lt;/h3>
+&lt;h4 id="hook-触发点">hook 触发点&lt;/h4>
 &lt;p>对于不同的协议（IPv4、IPv6 或 ARP 等），Linux 内核网络栈会在该协议栈数据包处理路径上的预设位置触发对应的 hook。在不同协议处理流程中的触发点位置以及对应的 hook 名称（蓝色矩形外部的黑体字）如下，本文仅重点关注 IPv4 协议：&lt;/p>
 &lt;p>![Untitled](/images/Untitled 1.png)&lt;/p>
 &lt;p>所谓的 hook 实质上是代码中的枚举对象（值为从0开始递增的整型）：&lt;/p>
@@ -54,7 +54,7 @@
 &lt;li>NF_INET_LOCAL_OUT: 这个 hook 在 IPv4 协议栈的 &lt;code>__ip_local_out()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>__ip6_local_out()&lt;/code> 函数中执行。所有本机产生的准备发出的数据包，在进入网络栈后首先到达此 hook 触发点。&lt;/li>
 &lt;li>NF_INET_POST_ROUTING: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_output()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ip6_finish_output2()&lt;/code> 函数中执行。本机产生的准备发出的数据包或者转发的数据包，在经过路由判断之后， 将到达此 hook 触发点。&lt;/li>
 &lt;/ul>
-&lt;h3 id="nf_hook-宏和-netfilter-向量">NF_HOOK 宏和 netfilter 向量&lt;/h3>
+&lt;h4 id="nf_hook-宏和-netfilter-向量">NF_HOOK 宏和 netfilter 向量&lt;/h4>
 &lt;p>所有的触发点位置统一调用 &lt;code>NF_HOOK&lt;/code> 这个宏来触发 hook：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -122,7 +122,7 @@
 &lt;span class="p">}&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;h2 id="回调函数与优先级">回调函数与优先级&lt;/h2>
+&lt;/div>&lt;h3 id="回调函数与优先级">回调函数与优先级&lt;/h3>
 &lt;p>netfilter 的另一组成部分是 hook 的回调函数。内核网络栈既使用 hook 来代表特定触发位置，也使用 hook （的整数值）作为数据索引来访问触发点对应的回调函数。&lt;/p>
 &lt;p>内核的其他模块可以通过 netfilter 提供的 api 向指定的 hook 注册回调函数，同一 hook 可以注册多个回调函数，通过注册时指定的 &lt;strong>priority&lt;/strong> 参数可指定回调函数在执行时的优先级。&lt;/p>
 &lt;p>注册 hook 的回调函数时，首先需要定义一个 &lt;code>nf_hook_ops&lt;/code> 结构（或由多个该结构组成的数组），其定义如下：&lt;/p>
@@ -170,15 +170,15 @@
 &lt;li>回调函数按优先级依次执行，只有上一回调函数返回 &lt;strong>NF_ACCEPT&lt;/strong> 才会继续执行下一回调函数。&lt;/li>
 &lt;li>任一回调函数都可以中断该 hook 的回调函数执行链，同时要求整个网络栈中止对数据包的处理。&lt;/li>
 &lt;/ul>
-&lt;h1 id="iptables">iptables&lt;/h1>
+&lt;h2 id="iptables">iptables&lt;/h2>
 &lt;p>基于内核 netfilter 提供的 hook 回调函数机制，netfilter 作者 Rusty Russell 还开发了 iptables，实现在用户空间管理应用于数据包的自定义规则。&lt;/p>
 &lt;p>iptbles 分为两部分：&lt;/p>
 &lt;ul>
 &lt;li>用户空间的 iptables 命令向用户提供访问内核 iptables 模块的管理界面。&lt;/li>
 &lt;li>内核空间的 iptables 模块在内存中维护规则表，实现表的创建及注册。&lt;/li>
 &lt;/ul>
-&lt;h2 id="内核空间模块">内核空间模块&lt;/h2>
-&lt;h3 id="xt_table-的初始化">xt_table 的初始化&lt;/h3>
+&lt;h3 id="内核空间模块">内核空间模块&lt;/h3>
+&lt;h4 id="xt_table-的初始化">xt_table 的初始化&lt;/h4>
 &lt;p>在内核网络栈中，iptables 通过 &lt;code>xt_table&lt;/code> 结构对众多的数据包处理规则进行有序管理，一个 &lt;code>xt_table&lt;/code> 对应一个规则表，对应的用户空间概念为 table。不同的规则表有以下特征：&lt;/p>
 &lt;ul>
 &lt;li>对不同的 netfilter hooks 生效。&lt;/li>
@@ -246,7 +246,7 @@
 &lt;/div>
 &lt;/div>&lt;p>当数据包到达某一 hook 触发点时，会依次执行不同 table 在该 hook 上注册的所有回调函数，这些回调函数总是根据上文的 priority 值以固定的相对顺序执行：&lt;/p>
 &lt;p>![Untitled](/images/Untitled 6.png)&lt;/p>
-&lt;h3 id="ipt_do_table">ipt_do_table&lt;/h3>
+&lt;h4 id="ipt_do_table">ipt_do_table()&lt;/h4>
 &lt;p>filter 注册的 hook 回调函数 &lt;strong>&lt;code>[iptable_filter_hook](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/iptable_filter_hook)&lt;/code>&lt;/strong> 将对 &lt;code>xt_table&lt;/code> 结构执行公共的规则检查函数 &lt;strong>&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code>。&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code>&lt;/strong> 接收 &lt;code>skb&lt;/code>、&lt;code>hook&lt;/code> 和 &lt;code>xt_table&lt;/code>作为参数，对 &lt;code>skb&lt;/code> 执行后两个参数所确定的规则集，返回 netfilter 向量作为回调函数的返回值。&lt;/p>
 &lt;p>在深入规则执行过程前，需要先了解规则集如何在内存中表示。每一条规则由 3 部分组成：&lt;/p>
 &lt;ol>
@@ -298,10 +298,10 @@
 &lt;li>若IP 首部匹配 ，则开始依次检查该规则所定义的所有 &lt;code>ipt_entry_match&lt;/code> 对象，与对象关联的匹配函数将被调用，根据调用返回值有返回到回调函数（以及是否丢弃数据包）、跳转到下一规则或继续检查等结果。&lt;/li>
 &lt;li>所有检查通过后读取 &lt;code>ipt_entry_target&lt;/code>，根据其属性返回 netfilter 向量到回调函数、继续下一规则或跳转到指定内存地址的其他规则，非标准 &lt;code>ipt_entry_target&lt;/code> 还会调用被绑定的函数，但只能返回向量值不能跳转其他规则。&lt;/li>
 &lt;/ol>
-&lt;h3 id="灵活性和更新时延">灵活性和更新时延&lt;/h3>
+&lt;h4 id="灵活性和更新时延">灵活性和更新时延&lt;/h4>
 &lt;p>以上数据结构与执行方式为 iptables 提供了强大的扩展能力，我们可以灵活地自定义每条规则的匹配条件并根据结果执行不同行为，甚至还能在额外的规则集之间栈式跳转。&lt;/p>
 &lt;p>由于每条规则长度不等、内部结构复杂，且同一规则集位于连续的内存空间，iptables 使用全量替换的方式来更新规则，这使得我们能够从用户空间以原子操作来添加/删除规则，但非增量式的规则更新会在规则数量级较大时带来严重的性能问题：假如在一个大规模 Kubernetes 集群中使用 iptables 方式实现 Service，当 service 数量较多时，哪怕更新一个 service 也会整体修改 iptables 规则表。全量提交的过程会 kernel lock 进行保护，因此会有很大的更新时延。&lt;/p>
-&lt;h2 id="用户空间的-tableschains-和-rules">用户空间的 tables、chains 和 rules&lt;/h2>
+&lt;h3 id="用户空间的-tableschains-和-rules">用户空间的 tables、chains 和 rules&lt;/h3>
 &lt;p>用户空间的 iptables 命令行可以读取指定表的数据并渲染到终端，添加新的规则（实际上是替换整个 table 的规则表）等。&lt;/p>
 &lt;p>iptables 主要操作以下几种对象：&lt;/p>
 &lt;ul>
@@ -314,7 +314,7 @@
 &lt;p>基于上文介绍的代码调用过程流程，chain 和 rule 按如下示意图执行：&lt;/p>
 &lt;p>![Untitled](/images/Untitled 8.png)&lt;/p>
 &lt;p>对于 iptables 具体的用法和指令本文不做详细介绍，可参考 &lt;a href="https://www.digitalocean.com/community/tutorials/iptables-essentials-common-firewall-rules-and-commands">Iptables Essentials: Common Firewall Rules and Commands | DigitalOcean&lt;/a>。&lt;/p>
-&lt;h1 id="conntrack">conntrack&lt;/h1>
+&lt;h2 id="conntrack">conntrack&lt;/h2>
 &lt;p>仅仅通过3、4层的首部信息对数据包进行过滤是不够的，有时候还需要进一步考虑连接的状态。netfilter 通过另一内置模块 &lt;code>conntrack&lt;/code> 进行连接跟踪（connection tracking），以提供根据连接过滤、地址转换（NAT）等更进阶的网络过滤功能。由于需要对连接状态进行判断，&lt;code>conntrack&lt;/code> 在整体机制相同的基础上，又针对协议特点有单独的实现。&lt;/p>
 &lt;p>本来打算继续介绍 &lt;code>conntrack&lt;/code> 和 NAT，但考虑到篇幅过长遂作罢，感兴趣的读者推荐阅读&lt;a href="https://arthurchiao.art/blog/conntrack-design-and-implementation-zh/#hook-%E4%BC%98%E5%85%88%E7%BA%A7">连接跟踪（conntrack）：原理、应用及 Linux 内核实现&lt;/a>。&lt;/p>
 &lt;h2 id="参考链接">参考链接&lt;/h2>
