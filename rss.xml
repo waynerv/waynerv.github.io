@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 07 Mar 2022 15:39:36 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>深入理解 netfilter 和 iptables</title><link>https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</link><guid isPermaLink="true">https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</guid><pubDate>Mon, 07 Mar 2022 23:27:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
-&lt;p>关于 netfilter 的介绍文章很多，但很大部分描述的过于抽象，实际上 netfilter 模块的基本实现不算复杂，本文主要参考较老的 Linux 内核 2.6 版本的实现（代码较为简单），与最新的 5.x 版本可能有较大差异，但不影响理解其原理。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Tue, 08 Mar 2022 05:03:27 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>深入理解 netfilter 和 iptables</title><link>https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</link><guid isPermaLink="true">https://www.waynerv.com/posts/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3netfilter%E5%92%8Ciptables/</guid><pubDate>Mon, 07 Mar 2022 23:27:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
+&lt;p>关于 netfilter 的介绍文章大部分只描述了抽象的概念，实际上其内核代码的基本实现不算复杂，本文主要参考 Linux 内核 2.6 版本代码（早期版本较为简单），与最新的 5.x 版本在实现上可能有较大差异，但基本设计变化不大，不影响理解其原理。&lt;/p>
 &lt;p>本文假设读者已对 TCP/IP 协议有基本了解。&lt;/p>
 &lt;h2 id="netfilter-的设计与实现">Netfilter 的设计与实现&lt;/h2>
 &lt;p>netfilter 的定义是一个工作在 Linux 内核的网络数据包处理框架，为了彻底理解 netfilter 的工作方式，我们首先需要对数据包在 Linux 内核中的处理路径建立基本认识。&lt;/p>
@@ -8,7 +8,7 @@
 &lt;ol>
 &lt;li>
 &lt;p>在物理-网络设备层，网卡通过 DMA 将接收到的数据包写入内存中的 &lt;code>ring buffer&lt;/code>，经过一系列中断和调度后，操作系统内核调用 &lt;code>__skb_dequeue&lt;/code> 将数据包加入对应设备的处理队列中，并转换成 &lt;code>sk_buffer&lt;/code> 类型（即 socket buffer - 将在整个内核调用栈中持续作为参数传递的基础数据结构，下文指称的数据包都可以认为是 &lt;code>sk_buffer&lt;/code>），最后调用 &lt;code>netif_receive_skb&lt;/code> 函数按协议类型对数据包进行分类，并跳转到对应的处理函数。如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Untitled.png" alt="Untitled">&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-network-path.png" alt="network-path">&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>假设该数据包为 IP 协议包，对应的接收包处理函数 &lt;code>ip_rcv&lt;/code> 将被调用，数据包处理进入网络（IP）层。&lt;code>ip_rcv&lt;/code> 检查数据包的 IP 首部并丢弃出错的包，必要时还会聚合被分片的 IP 包。然后执行 &lt;code>ip_rcv_finish&lt;/code> 函数，对数据包进行路由查询并决定是将数据包交付本机还是转发其他主机。假设数据包的目的地址是本主机，接着执行的 &lt;code>dst_input&lt;/code> 函数将调用 &lt;code>ip_local_deliver&lt;/code> 函数。&lt;code>ip_local_deliver&lt;/code> 函数中将根据 IP 首部中的协议号判断载荷数据的协议类型，最后调用对应类型的包处理函数。本例中将调用 TCP 协议对应的 &lt;code>tcp_v4_rcv&lt;/code> 函数，之后数据包处理进入传输层。&lt;/p>
@@ -21,7 +21,7 @@
 &lt;p>接下来我们正式进入主题。netfilter 的首要组成部分是 netfilter hooks。&lt;/p>
 &lt;h4 id="hook-触发点">hook 触发点&lt;/h4>
 &lt;p>对于不同的协议（IPv4、IPv6 或 ARP 等），Linux 内核网络栈会在该协议栈数据包处理路径上的预设位置触发对应的 hook。在不同协议处理流程中的触发点位置以及对应的 hook 名称（蓝色矩形外部的黑体字）如下，本文仅重点关注 IPv4 协议：&lt;/p>
-&lt;p>![Untitled](/images/Untitled 1.png)&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-netfilter-flow.png" alt="netfilter-flow">&lt;/p>
 &lt;p>所谓的 hook 实质上是代码中的枚举对象（值为从0开始递增的整型）：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -46,7 +46,7 @@
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>每个 hook 在内核网络栈中对应特定的触发点位置，以 IPv4 协议栈为例，有以下 netfilter hooks 定义：&lt;/p>
-&lt;p>![Untitled](/images/Untitled 2.png)&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-netfilter-hooks-stack.png" alt="netfilter-hooks-stack">&lt;/p>
 &lt;ul>
 &lt;li>NF_INET_PRE_ROUTING: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_rcv&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ipv6_rcv&lt;/code> 函数中执行。所有接收数据包到达的第一个 hook 触发点（实际上新版本 Linux 增加了 INGRESS hook 作为最早触发点），在进行路由判断之前执行。&lt;/li>
 &lt;li>NF_INET_LOCAL_IN: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_local_deliver()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ip6_input()&lt;/code> 函数中执行。经过路由判断后，所有目标地址是本机的接收数据包到达此 hook 触发点。&lt;/li>
@@ -92,7 +92,7 @@
 &lt;li>NF_REPEAT: 重新调用当前 hook。&lt;/li>
 &lt;/ol>
 &lt;p>回归到源码，IPv4 内核网络栈会在以下代码模块中调用 &lt;code>NF_HOOK()&lt;/code>：&lt;/p>
-&lt;p>![Untitled](/images/Untitled 3.png)&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-NF_HOOK.png" alt="NF_HOOK">&lt;/p>
 &lt;p>实际调用方式以 &lt;strong>&lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/source/net/ipv4/ip_forward.c#L115">&lt;code>net/ipv4/ip_forward.c&lt;/code>&lt;/a>&lt;/strong> 对数据包进行转发的源码为例，在 &lt;code>ip_forward&lt;/code> 函数结尾部分的第 115 行以 &lt;strong>NF_INET_FORWARD&lt;/strong> hook 作为入参调用了 &lt;strong>&lt;code>NF_HOOK&lt;/code>&lt;/strong> 宏，并将网络栈接下来的处理函数 &lt;code>ip_forward_finish&lt;/code> 作为 &lt;code>okfn&lt;/code> 参数传入**：**&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -161,10 +161,10 @@
 &lt;/ul>
 &lt;p>定义结构体后可通过 &lt;code>int nf_register_hook(struct nf_hook_ops *reg)&lt;/code> 或 &lt;code>int nf_register_hooks(struct nf_hook_ops *reg, unsigned int n);&lt;/code> 分别注册一个或多个回调函数。同一 netfilter hook 下所有的 &lt;code>nf_hook_ops&lt;/code> 注册后以 priority 为顺序组成一个链表结构，注册过程会根据 priority 从链表中找到合适的位置，然后执行链表插入操作。&lt;/p>
 &lt;p>在执行 &lt;code>NF-HOOK&lt;/code> 宏触发指定的 hook 时，将调用 &lt;code>nf_iterate&lt;/code> 函数迭代这个 hook 对应的 &lt;code>nf_hook_ops&lt;/code> 链表，并依次调用每一个 &lt;code>nf_hook_ops&lt;/code> 的注册函数成员 &lt;code>hookfn&lt;/code>。示意图如下：&lt;/p>
-&lt;p>![Untitled](/images/Untitled 4.png)&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-netfilter-hookfn1.png" alt="netfilter-hookfn1">&lt;/p>
 &lt;p>这种链式调用回调函数的工作方式，也让 netfilter hook 被称为 Chain，下文的 iptables 介绍中尤其体现了这一关联。&lt;/p>
 &lt;p>每个回调函数也必须返回一个 netfilter 向量；如果该向量为 &lt;strong>NF_ACCEPT，&lt;/strong>&lt;code>nf_iterate&lt;/code> 将会继续调用下一个 &lt;code>nf_hook_ops&lt;/code> 的回调函数，直到所有回调函数调用完毕后返回 &lt;strong>NF_ACCEPT&lt;/strong>；如果该向量为 &lt;strong>NF_DROP&lt;/strong>，将中断遍历并直接返回 &lt;strong>NF_DROP；&lt;strong>如果该向量为 &lt;strong>NF_REPEAT&lt;/strong>，将重新执行该回调函数&lt;/strong>。&lt;/strong> &lt;code>nf_iterate&lt;/code> 的返回值也将作为 &lt;code>NF-HOOK&lt;/code> 的返回值，网络栈将根据该向量值判断是否继续执行处理函数。示意图如下：&lt;/p>
-&lt;p>![Untitled](D:/深入理解 netfi 39a80/Untitled 5.png)&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-netfilter-hookfn2.png" alt="netfilter-hookfn2">&lt;/p>
 &lt;p>netfilter hook 的回调函数机制具有以下特性：&lt;/p>
 &lt;ul>
 &lt;li>回调函数按优先级依次执行，只有上一回调函数返回 &lt;strong>NF_ACCEPT&lt;/strong> 才会继续执行下一回调函数。&lt;/li>
@@ -245,9 +245,9 @@
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>当数据包到达某一 hook 触发点时，会依次执行不同 table 在该 hook 上注册的所有回调函数，这些回调函数总是根据上文的 priority 值以固定的相对顺序执行：&lt;/p>
-&lt;p>![Untitled](/images/Untitled 6.png)&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-tables-priority.png" alt="tables-priority">&lt;/p>
 &lt;h4 id="ipt_do_table">ipt_do_table()&lt;/h4>
-&lt;p>filter 注册的 hook 回调函数 &lt;strong>&lt;code>[iptable_filter_hook](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/iptable_filter_hook)&lt;/code>&lt;/strong> 将对 &lt;code>xt_table&lt;/code> 结构执行公共的规则检查函数 &lt;strong>&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code>。&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code>&lt;/strong> 接收 &lt;code>skb&lt;/code>、&lt;code>hook&lt;/code> 和 &lt;code>xt_table&lt;/code>作为参数，对 &lt;code>skb&lt;/code> 执行后两个参数所确定的规则集，返回 netfilter 向量作为回调函数的返回值。&lt;/p>
+&lt;p>filter 注册的 hook 回调函数 &lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/iptable_filter_hook">iptable_filter_hook&lt;/a> 将对 &lt;code>xt_table&lt;/code> 结构执行公共的规则检查函数 &lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table">ipt_do_table&lt;/a>。&lt;code>ipt_do_table&lt;/code> 接收 &lt;code>skb&lt;/code>、&lt;code>hook&lt;/code> 和 &lt;code>xt_table&lt;/code>作为参数，对 &lt;code>skb&lt;/code> 执行后两个参数所确定的规则集，返回 netfilter 向量作为回调函数的返回值。&lt;/p>
 &lt;p>在深入规则执行过程前，需要先了解规则集如何在内存中表示。每一条规则由 3 部分组成：&lt;/p>
 &lt;ol>
 &lt;li>一个 &lt;code>ipt_entry&lt;/code> 结构体。通过 &lt;code>.next_offset&lt;/code> 指向下一个 &lt;code>ipt_entry&lt;/code> 的内存偏移地址。&lt;/li>
@@ -291,8 +291,8 @@
 &lt;span class="p">};&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>&lt;code>[ipt_do_table](https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table)&lt;/code> 首先根据 hook 类型以及 &lt;code>xt_table.private.entries&lt;/code> 属性跳转到对应的规则集内存区域，执行如下过程：&lt;/p>
-&lt;p>![Untitled](/images/Untitled 7.png)&lt;/p>
+&lt;/div>&lt;p>&lt;code>ipt_do_table&lt;/code> 首先根据 hook 类型以及 &lt;code>xt_table.private.entries&lt;/code> 属性跳转到对应的规则集内存区域，执行如下过程：&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-ipt_do_table.png" alt="ipt_do_table">&lt;/p>
 &lt;ol>
 &lt;li>首先检查数据包的 IP 首部与第一条规则 &lt;code>ipt_entry&lt;/code> 的 &lt;code>.ipt_ip&lt;/code> 属性是否一致，如不匹配根据 &lt;code>next_offset&lt;/code> 属性跳转到下一条规则。&lt;/li>
 &lt;li>若IP 首部匹配 ，则开始依次检查该规则所定义的所有 &lt;code>ipt_entry_match&lt;/code> 对象，与对象关联的匹配函数将被调用，根据调用返回值有返回到回调函数（以及是否丢弃数据包）、跳转到下一规则或继续检查等结果。&lt;/li>
@@ -312,7 +312,7 @@
 &lt;li>target：具有很强扩展性的自定义匹配后行为。&lt;/li>
 &lt;/ul>
 &lt;p>基于上文介绍的代码调用过程流程，chain 和 rule 按如下示意图执行：&lt;/p>
-&lt;p>![Untitled](/images/Untitled 8.png)&lt;/p>
+&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-iptables-chains.png" alt="iptables-chains">&lt;/p>
 &lt;p>对于 iptables 具体的用法和指令本文不做详细介绍，可参考 &lt;a href="https://www.digitalocean.com/community/tutorials/iptables-essentials-common-firewall-rules-and-commands">Iptables Essentials: Common Firewall Rules and Commands | DigitalOcean&lt;/a>。&lt;/p>
 &lt;h2 id="conntrack">conntrack&lt;/h2>
 &lt;p>仅仅通过3、4层的首部信息对数据包进行过滤是不够的，有时候还需要进一步考虑连接的状态。netfilter 通过另一内置模块 &lt;code>conntrack&lt;/code> 进行连接跟踪（connection tracking），以提供根据连接过滤、地址转换（NAT）等更进阶的网络过滤功能。由于需要对连接状态进行判断，&lt;code>conntrack&lt;/code> 在整体机制相同的基础上，又针对协议特点有单独的实现。&lt;/p>
