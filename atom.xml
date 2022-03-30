@@ -1,4 +1,531 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</subtitle><updated>2022-03-11T03:17:30+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">深入理解 netfilter 和 iptables</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/understanding-netfilter-and-iptables/"/><id>https://www.waynerv.com/posts/understanding-netfilter-and-iptables/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2022-03-07T23:27:11+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Netfilter 配合 iptables 使得应用可以操作内核网络栈的数据包处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。</summary><content type="html">&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN"><title type="text">Shall We Code?</title><subtitle type="html">分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</subtitle><updated>2022-03-30T11:25:05+00:00</updated><id>https://www.waynerv.com/</id><link rel="alternate" type="text/html" href="https://www.waynerv.com/"/><link rel="self" type="application/atom+xml" href="https://www.waynerv.com/atom.xml"/><author><name>Waynerv</name><uri>https://www.waynerv.com/</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><generator uri="https://gohugo.io/" version="0.79.1">Hugo</generator><entry><title type="text">为 Kubernetes 集群启用 Pod 安全策略</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/enable-pod-security-policy-for-cluster/"/><id>https://www.waynerv.com/posts/enable-pod-security-policy-for-cluster/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2022-03-30T18:13:13+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近有客户反馈在开启了安全策略的集群中部署产品失败，因此研究了一下 Kubernetes 的 pod 安全策略。</summary><content type="html">&lt;p>最近有客户反馈在开启了安全策略的集群中部署产品失败，因此研究了一下 Kubernetes 提供的 pod 安全策略。&lt;/p>
+&lt;p>文中的演示和示例均在 v1.18.17 集群中通过验证。&lt;/p>
+&lt;h2 id="pod-security-policies">Pod Security Policies&lt;/h2>
+&lt;p>&lt;strong>Pod Security Policies&lt;/strong> （下文简称 psp 或 pod 安全策略）是一种集群级别的全局资源，能够对 pod 的创建和更新进行细粒度的授权控制。具体来说，一个 psp 对象定义了一组安全性条件，一个 pod 的 spec 字段必须满足这些条件以及适用相关字段的默认值，其创建或更新请求才会被 apiserver 所接受。&lt;/p>
+&lt;p>具体的 pod 字段和安全条件可见文档 &lt;a href="https://kubernetes.io/docs/concepts/policy/pod-security-policy/#what-is-a-pod-security-policy">what-is-a-pod-security-policy&lt;/a> 。&lt;/p>
+&lt;h3 id="启用-pod-security-policies">启用 Pod Security Policies&lt;/h3>
+&lt;p>Kubernetes 默认不开启 pod 安全策略功能，在集群中启用安全策略的步骤大体上分为三步：&lt;/p>
+&lt;ol>
+&lt;li>授予用户访问安全策略资源的权限，通常会授权给整个命名空间的 service account。&lt;/li>
+&lt;li>在集群中创建指定的安全策略资源。&lt;/li>
+&lt;li>启用 apiserver 的 admission-controller 插件。&lt;/li>
+&lt;/ol>
+&lt;p>注意步骤 1、2 的顺序不重要，因为它们不会产生实际影响。但步骤 3 推荐最后一步执行，否则一旦启用 admission-controller，如果集群中没有可用的安全策略或者未对安全策略资源进行授权，所有 pod 的创建都会被拒绝，包括 kube-system 命名空间下的系统管理组件如 apiserver（但由于是受 kubelet 管理的静态 pod 实际上容器依然会运行）。&lt;/p>
+&lt;h4 id="rbac-身份认证">RBAC 身份认证&lt;/h4>
+&lt;ol>
+&lt;li>
+&lt;p>创建可访问所有安全策略资源的 ClusterRole：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">rbac.authorization.k8s.io/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">ClusterRole&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">all-psp&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">rules&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>- &lt;span class="nt">apiGroups&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="s1">&amp;#39;policy&amp;#39;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">resources&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="s1">&amp;#39;podsecuritypolicies&amp;#39;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">verbs&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="p">[&lt;/span>&lt;span class="s1">&amp;#39;use&amp;#39;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>通过 ClusterRoleBinding 将创建的角色绑定到指定命名空间下的所有service account（也可以授权给指定的 sa 或者用户）：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;span class="lnt">32
+&lt;/span>&lt;span class="lnt">33
+&lt;/span>&lt;span class="lnt">34
+&lt;/span>&lt;span class="lnt">35
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">rbac.authorization.k8s.io/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">ClusterRoleBinding&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">cluster-psp-bind&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">roleRef&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">ClusterRole&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">all-psp&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">apiGroup&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">rbac.authorization.k8s.io&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">subjects&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="c"># 授权给指定命名空间下的所有 service account（推荐做法）:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>- &lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Group&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">apiGroup&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">rbac.authorization.k8s.io&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">system:nodes&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">kube-system&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>- &lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Group&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">apiGroup&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">rbac.authorization.k8s.io&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">system:serviceaccounts:kube-system&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>- &lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Group&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">apiGroup&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">rbac.authorization.k8s.io&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">system:serviceaccounts:security-test&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="c"># 也可授权给指定的 service account 或者用户（不推荐）:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>- &lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">ServiceAccount&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">&amp;lt;authorized service account name&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">namespace&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">&amp;lt;authorized pod namespace&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>- &lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">User&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">apiGroup&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">rbac.authorization.k8s.io&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">&amp;lt;authorized user name&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="c"># 授权给所有的 service accounts:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>- &lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Group&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">apiGroup&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">rbac.authorization.k8s.io&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">system:serviceaccounts&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="c"># 授权给所有已认证的用户:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>- &lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Group&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">apiGroup&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">rbac.authorization.k8s.io&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">system:authenticated&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ol>
+&lt;h4 id="创建安全策略资源">创建安全策略资源&lt;/h4>
+&lt;ol>
+&lt;li>
+&lt;p>在集群中创建一个 PodSecurePolicy 资源。宽松权限版本：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">policy/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">PodSecurityPolicy&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">privileged&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">annotations&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">seccomp.security.alpha.kubernetes.io/allowedProfileNames&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;*&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">privileged&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">allowPrivilegeEscalation&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">allowedCapabilities&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="s1">&amp;#39;*&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">volumes&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="s1">&amp;#39;*&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hostNetwork&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hostPorts&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">min&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">0&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">max&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">65535&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hostIPC&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hostPID&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">runAsUser&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rule&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;RunAsAny&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">seLinux&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rule&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;RunAsAny&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">supplementalGroups&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rule&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;RunAsAny&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">fsGroup&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rule&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;RunAsAny&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>严格权限版本：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;span class="lnt">30
+&lt;/span>&lt;span class="lnt">31
+&lt;/span>&lt;span class="lnt">32
+&lt;/span>&lt;span class="lnt">33
+&lt;/span>&lt;span class="lnt">34
+&lt;/span>&lt;span class="lnt">35
+&lt;/span>&lt;span class="lnt">36
+&lt;/span>&lt;span class="lnt">37
+&lt;/span>&lt;span class="lnt">38
+&lt;/span>&lt;span class="lnt">39
+&lt;/span>&lt;span class="lnt">40
+&lt;/span>&lt;span class="lnt">41
+&lt;/span>&lt;span class="lnt">42
+&lt;/span>&lt;span class="lnt">43
+&lt;/span>&lt;span class="lnt">44
+&lt;/span>&lt;span class="lnt">45
+&lt;/span>&lt;span class="lnt">46
+&lt;/span>&lt;span class="lnt">47
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">policy/v1beta1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">PodSecurityPolicy&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">restricted&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">annotations&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">seccomp.security.alpha.kubernetes.io/allowedProfileNames&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;docker/default,runtime/default&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">apparmor.security.beta.kubernetes.io/allowedProfileNames&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;runtime/default&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">apparmor.security.beta.kubernetes.io/defaultProfileName&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;runtime/default&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">privileged&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">false&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># Required to prevent escalations to root.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">allowPrivilegeEscalation&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">false&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">requiredDropCapabilities&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="l">ALL&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># Allow core volume types.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">volumes&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="s1">&amp;#39;configMap&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="s1">&amp;#39;emptyDir&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="s1">&amp;#39;projected&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="s1">&amp;#39;secret&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="s1">&amp;#39;downwardAPI&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># Assume that ephemeral CSI drivers &amp;amp; persistentVolumes set up by the cluster admin are safe to use.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="s1">&amp;#39;csi&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="s1">&amp;#39;persistentVolumeClaim&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="s1">&amp;#39;ephemeral&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hostNetwork&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">false&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hostIPC&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">false&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hostPID&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">false&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">runAsUser&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># Require the container to run without root privileges.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rule&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;MustRunAsNonRoot&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">seLinux&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># This policy assumes the nodes are using AppArmor rather than SELinux.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rule&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;RunAsAny&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">supplementalGroups&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rule&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;MustRunAs&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">ranges&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># Forbid adding the root group.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">min&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">max&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">65535&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">fsGroup&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">rule&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s1">&amp;#39;MustRunAs&amp;#39;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">ranges&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># Forbid adding the root group.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">min&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">max&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="m">65535&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">readOnlyRootFilesystem&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">false&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ol>
+&lt;h4 id="启用-admission-controller">启用 admission controller&lt;/h4>
+&lt;p>启用 admission controller 有两种方式：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>在已存在的集群中通过修改 apiserver 的静态 manifest 文件，为 apiserver 增加启动参数。kubelet 会自动检测到变更并重启 apiserver。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">sed -i &lt;span class="s1">&amp;#39;s/enable-admission-plugins=NodeRestriction/enable-admission-plugins=NodeRestriction,PodSecurityPolicy/&amp;#39;&lt;/span> /etc/kubernetes/manifests/kube-apiserver.yaml
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>在初始化集群时，在 kubeadm 配置文件中添加额外参数。&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">kubeadm.k8s.io/v1beta2&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">ClusterConfiguration&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">apiServer&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">extraArgs&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">enable-admission-plugins&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;NodeRestriction,PodSecurityPolicy&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;/ol>
+&lt;h3 id="验证-psp-的安全限制">验证 psp 的安全限制&lt;/h3>
+&lt;p>我们在上文授权过的 &lt;code>security-test&lt;/code> 命名空间进行测试，验证 psp 对 pod 的限制条件。我们尝试通过 deployment 创建一个需要使用 &lt;code>hostNetwork&lt;/code> 的 pod：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apps/v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Deployment&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx-hostnetwork&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">selector&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">matchLabels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">run&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">template&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">run&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">spec&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">hostNetwork&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="kc">true&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">containers&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">imagePullPolicy&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Always&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx-privileged&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>创建并查看结果：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="l">$ kubectl create -f hostnetwork-pod.yaml -n security-test &lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">deployment.apps/nginx-hostnetwork created&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl get deploy -n security-test nginx-hostnetwork&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">NAME READY UP-TO-DATE AVAILABLE AGE&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">nginx-hostnetwork 0/1 0 0 17s&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl -n security-test get event | grep &amp;#34;pod security policy&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">103s Warning FailedCreate deployment/nginx-hostnetwork Error creating&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">pods &amp;#34;nginx-hostnetwork-&amp;#34; is forbidden: unable to validate against any pod security policy: [spec.securityContext.hostNetwork: Invalid value: true: Host network is not allowed to be used]&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="局限性">局限性&lt;/h3>
+&lt;p>如果有 pod 违反了安全策略，解决方案是要么调整 pod 的规格，要么修改安全资源。psp 资源是全局生效的，不能针对不同的命名空间设置不同的安全策略级别，这是一个很明显的局限性。&lt;/p>
+&lt;p>另外授权机制也相对比较复杂。如果没有授权或者未创建安全策略，结果是所有 pod 被拒绝，这也导致在集群中默认开启该功能的操作难度很大。&lt;/p>
+&lt;p>从 Kubernetes v1.21开始，Pod Security Policy 将被弃用，并将在 v1.25 中删除。Kubernetes 引入了 Pod Security Admission 作为其替代者，我们将在下文中详细解析。&lt;/p>
+&lt;h2 id="pod-security-admission">Pod Security Admission&lt;/h2>
+&lt;h3 id="为什么要替换-psp">为什么要替换 psp&lt;/h3>
+&lt;p>&lt;a href="https://github.com/kubernetes/enhancements/tree/master/keps/sig-auth/2579-psp-replacement">KEP-2579&lt;/a> 详细阐述了使用 Pod Security Admission 替代 Pod Security Policy 的三点主要理由：&lt;/p>
+&lt;ol>
+&lt;li>将策略与用户或 service account 绑定的模型削弱了安全性。&lt;/li>
+&lt;li>功能无法流畅切换，在没有安全策略的情况下无法关闭。&lt;/li>
+&lt;li>API 不一致且缺乏灵活性。&lt;/li>
+&lt;/ol>
+&lt;p>新的 Pod Security Admission 机制在易用性和灵活性上都有了很大提升，从使用角度有以下三点显著不同：&lt;/p>
+&lt;ol>
+&lt;li>可以在集群中默认开启，只要不添加约束条件就不会触发对 pod 的校验。&lt;/li>
+&lt;li>只在命名空间级别生效，可以为不同命名空间通过添加标签的方式设置不同的安全限制。&lt;/li>
+&lt;li>可以为特定的用户、命名空间或者运行时设置豁免规则。&lt;/li>
+&lt;/ol>
+&lt;h3 id="工作方式">工作方式&lt;/h3>
+&lt;p>Pod Security Admission 将原来 Pod Security Policy 的安全条件划分成三种预设的安全等级：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>privileged&lt;/code>: 不受限，向 pod 提供所有可用的权限。&lt;/li>
+&lt;li>&lt;code>baseline&lt;/code>：最低限度的限制策略，防止已知的特权升级。&lt;/li>
+&lt;li>&lt;code>restricted&lt;/code>：严格限制策略，遵循当前 Pod 加固的最佳实践。&lt;/li>
+&lt;/ul>
+&lt;p>三种等级从宽松到严格递增，各自包含了&lt;a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/#profile-details">不同限度的安全条件&lt;/a>，适用于不同的 pod 工作场景。此外还可以将安全等级设置为固定的 Kubernetes 版本，这样即使集群升级到了新的版本且新版本的安全等级定义发生变化，依然可以按旧版本的安全条件对 pod 进行约束。&lt;/p>
+&lt;p>当 pod 与安全等级冲突时，我们可通过三种模式来选择不同的处理方式：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>enforce&lt;/code>：只允许符合安全等级要求的 pod，拒绝与安全等级冲突的 pod。&lt;/li>
+&lt;li>&lt;code>audit&lt;/code>：只将安全等级冲突记录在集群 event 中，不会拒绝 pod。&lt;/li>
+&lt;li>&lt;code>warn&lt;/code>：与安全等级冲突时会向用户返回一个警告信息，但不会拒绝 pod。警告和审计模式是独立的，如果同时需要两者的功能必须分别设置两种模式。&lt;/li>
+&lt;/ul>
+&lt;p>应用安全策略不再需要创建单独的集群资源，只需要为命名空间设置控制标签：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">pod-security.kubernetes.io/&amp;lt;mode&amp;gt;&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">&amp;lt;level&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">pod-security.kubernetes.io/&amp;lt;mode&amp;gt;-version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">&amp;lt;version&amp;gt;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>下文会有更完整的示例。&lt;/p>
+&lt;h3 id="在旧版本启用-psa">在旧版本启用 psa&lt;/h3>
+&lt;p>虽然 &lt;strong>Pod Security Admission&lt;/strong> 是一个在 Kubernetes v1.22 引入的功能，但旧版本可以通过安装 PodSecurity admission webhook 来启用该功能，具体步骤如下：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="l">git clone https://github.com/kubernetes/pod-security-admission.git&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">cd pod-security-admission/webhook&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">make certs&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">kubectl apply -k .&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>以上来自官方文档的步骤在 v1.18.17 会有两个兼容性问题，具体问题和解决方案如下：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>kubectl 内置的 kustomize 版本不支持 &amp;quot;replacements&amp;quot; 字段:&lt;/p>
+&lt;pre>&lt;code>$ kubectl apply -k .
+error: json: unknown field &amp;quot;replacements&amp;quot;
+&lt;/code>&lt;/pre>&lt;p>解决方案：安装最新版本的 kusomize 然后在同一目录执行&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="l">$ kustomize build . | kubectl apply -f -&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>&lt;code>manifest/50-deployment.yaml&lt;/code> 文件中定义的 &lt;code>Deployment.spec.template.spec.containers[0].securityContext&lt;/code> 字段在 v1.19 版本才开始引入，因此 v1.18 需要将该字段修改为对应的 annotation 版本，详见 &lt;a href="https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp">Seccomp&lt;/a>：&lt;/p>
+&lt;pre>&lt;code>error: error validating &amp;quot;STDIN&amp;quot;: error validating data: ValidationError(Deployment.spec.template.spec.containers[0].securityContext): unknown field &amp;quot;seccompProfile&amp;quot; in io.k8s.api.core.v1.SecurityContext; if you choose to ignore these errors, turn validation off with --validate=false
+&lt;/code>&lt;/pre>&lt;/li>
+&lt;/ol>
+&lt;h3 id="验证-psa-的安全限制">验证 psa 的安全限制&lt;/h3>
+&lt;p>首先创建一个新的命名空间 &lt;code>psa-test&lt;/code> 用于测试，并将其定义强制应用 &lt;code>baseline&lt;/code> 安全等级，并对 &lt;code>restricted&lt;/code> 等级进行警告和审计：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Namespace&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">metadata&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">psa-test&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">labels&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">pod-security.kubernetes.io/enforce&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">baseline&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">pod-security.kubernetes.io/enforce-version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1.18&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="c"># We are setting these to our _desired_ `enforce` level.&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">pod-security.kubernetes.io/audit&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">restricted&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">pod-security.kubernetes.io/audit-version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1.18&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">pod-security.kubernetes.io/warn&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">restricted&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">pod-security.kubernetes.io/warn-version&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">v1.18&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>接着在该命名空间中创建上文示例中用过的 deployment：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="l">$ kubectl create -f hostnetwork-pod.yaml -n psa-test&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">deployment.apps/nginx-hostnetwork created&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl get deploy -n psa-test nginx-hostnetwork&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">NAME READY UP-TO-DATE AVAILABLE AGE&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">nginx-hostnetwork 0/1 0 0 17s&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl -n psa-test get event | grep PodSecurity&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">104s Warning FailedCreate replicaset/nginx-hostnetwork-644cdd6598 Error creating&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">admission webhook &amp;#34;pod-security-webhook.kubernetes.io&amp;#34; denied the request: pods &amp;#34;nginx-hostnetwork-644cdd6598-7rb5m&amp;#34; is forbidden: violates PodSecurity &amp;#34;baseline:v1.23&amp;#34;: host namespaces (hostNetwork=true)&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/kubernetes/enhancements/tree/master/keps/sig-auth/2579-psp-replacement">enhancements/keps/sig-auth/2579-psp-replacement at master · kubernetes/enhancements&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://kubernetes.io/docs/concepts/security/pod-security-admission/">Pod Security Admission | Kubernetes&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/#profile-details">Pod Security Standards | Kubernetes&lt;/a>&lt;/li>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/kubernetes/" term="Kubernetes" label="Kubernetes"/><category scheme="https://www.waynerv.com/tags/%E5%AE%89%E5%85%A8/" term="安全" label="安全"/></entry><entry><title type="text">深入理解 netfilter 和 iptables</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/understanding-netfilter-and-iptables/"/><id>https://www.waynerv.com/posts/understanding-netfilter-and-iptables/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2022-03-07T23:27:11+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Netfilter 配合 iptables 使得应用可以操作内核网络栈的数据包处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。</summary><content type="html">&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
 &lt;p>关于 netfilter 的介绍文章大部分只描述了抽象的概念，实际上其内核代码的基本实现不算复杂，本文主要参考 Linux 内核 2.6 版本代码（早期版本较为简单），与最新的 5.x 版本在实现上可能有较大差异，但基本设计变化不大，不影响理解其原理。&lt;/p>
 &lt;p>本文假设读者已对 TCP/IP 协议有基本了解。&lt;/p>
 &lt;h2 id="netfilter-的设计与实现">Netfilter 的设计与实现&lt;/h2>
@@ -332,7 +859,7 @@
 &lt;li>&lt;a href="https://www.tigera.io/blog/when-linux-conntrack-is-no-longer-your-friend/">Linux Conntrack: Why It Breaks Down and Avoiding the Problem&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://juejin.cn/post/7008945265021288484">走进Linux内核之Netfilter框架 - 掘金&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://flylib.com/books/en/3.475.1.101/1/">19.3 The Netfilter Architecture of Linux 2.4 | Linux Network Architecture&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/networking/" term="Networking" label="Networking"/><category scheme="https://www.waynerv.com/tags/netfilter/" term="netfilter" label="netfilter"/><category scheme="https://www.waynerv.com/tags/iptables/" term="iptables" label="iptables"/></entry><entry><title type="text">制作开箱即用的 Ubuntu qcow2 镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/"/><id>https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-12-07T23:08:26+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">记录一个开箱即用的 Ubuntu 虚拟机镜像的完整制作过程，可以直接导入到 OpenStack 和 Zstack 等平台使用。</summary><content type="html">&lt;p>最近负责的一个组件需要针对 Ubuntu 系统做兼容性适配，由于组件运行时会修改系统配置并写入大量文件，有必要使用虚拟机来开发测试。但通常开发使用的 Linux 发行版都是 RedHat 系的，找遍公司也没有能直接用的 Ubuntu 虚拟机镜像，最后自己手搓了一个，过程记录如下。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/networking/" term="Networking" label="Networking"/><category scheme="https://www.waynerv.com/tags/netfilter/" term="netfilter" label="netfilter"/><category scheme="https://www.waynerv.com/tags/iptables/" term="iptables" label="iptables"/></entry><entry><title type="text">制作开箱即用的 Ubuntu qcow2 镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/"/><id>https://www.waynerv.com/posts/create-out-of-box-ubuntu-qcow2-image/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-12-07T23:08:26+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">记录一个开箱即用的 Ubuntu 虚拟机镜像的完整制作过程，可以直接导入到 OpenStack 和 Zstack 等平台使用。</summary><content type="html">&lt;p>最近负责的一个组件需要针对 Ubuntu 系统做兼容性适配，由于组件运行时会修改系统配置并写入大量文件，有必要使用虚拟机来开发测试。但通常开发使用的 Linux 发行版都是 RedHat 系的，找遍公司也没有能直接用的 Ubuntu 虚拟机镜像，最后自己手搓了一个，过程记录如下。&lt;/p>
 &lt;h2 id="下载所需版本的-cloud-image">下载所需版本的 cloud image&lt;/h2>
 &lt;p>首先需要确定所使用的 Ubuntu 版本，然后从&lt;a href="https://cloud-images.ubuntu.com/">官方镜像列表&lt;/a>中下载相应的云主机镜像，云主机镜像预装了 cloud-init，可以更方便地运行在 openstack 等云平台中。&lt;/p>
 &lt;p>在镜像列表页面，需要根据发布频率（如 Release、Daily builds）、镜像大小（完整包和 Minimal）以及 Ubuntu 版本选择合适的镜像，在镜像下载页面有许多不同类型的文件，如校验和文件、manifest 以及不同架构的镜像，我们只需要文件后缀为 &lt;code>.img&lt;/code> 的 QEMU qcow2 镜像。``&lt;/p>
@@ -606,7 +1133,7 @@ root@ubuntu-vm:~$
 &lt;li>&lt;a href="https://blog.programster.org/create-ubuntu-20-kvm-guest-from-cloud-image">https://blog.programster.org/create-ubuntu-20-kvm-guest-from-cloud-image&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.openstack.org/image-guide/ubuntu-image.html">https://docs.openstack.org/image-guide/ubuntu-image.html&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://medium.com/@art.vasilyev/use-ubuntu-cloud-image-with-kvm-1f28c19f82f8">https://medium.com/@art.vasilyev/use-ubuntu-cloud-image-with-kvm-1f28c19f82f8&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/qemu/" term="qemu" label="qemu"/><category scheme="https://www.waynerv.com/tags/kvm/" term="kvm" label="kvm"/></entry><entry><title type="text">如何使用 docker buildx 构建跨平台 Go 镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/"/><id>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-09-02T20:07:08+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">一次构建多处部署的镜像分发大幅提高了应用的交付效率，但跨平台的部署依然是个挑战。当需要部署应用到 ARM 架构等其他平台时，利用 docker buildx 构建跨平台的镜像是个快捷高效的解决方案。</summary><content type="html">&lt;p>在不同操作系统和处理器架构上运行应用是很普遍的场景，因此为不同平台单独构建发布版本是一种常见做法。当我们用来开发应用的平台与部署的目标平台不同时，实现这一目标并不容易。例如在 x86 架构上开发一个应用程序并将其部署到 ARM 平台的机器上，通常需要准备 ARM 平台的基础设施用于开发和编译。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/qemu/" term="qemu" label="qemu"/><category scheme="https://www.waynerv.com/tags/kvm/" term="kvm" label="kvm"/></entry><entry><title type="text">如何使用 docker buildx 构建跨平台 Go 镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/"/><id>https://www.waynerv.com/posts/building-multi-architecture-images-with-docker-buildx/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-09-02T20:07:08+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">一次构建多处部署的镜像分发大幅提高了应用的交付效率，但跨平台的部署依然是个挑战。当需要部署应用到 ARM 架构等其他平台时，利用 docker buildx 构建跨平台的镜像是个快捷高效的解决方案。</summary><content type="html">&lt;p>在不同操作系统和处理器架构上运行应用是很普遍的场景，因此为不同平台单独构建发布版本是一种常见做法。当我们用来开发应用的平台与部署的目标平台不同时，实现这一目标并不容易。例如在 x86 架构上开发一个应用程序并将其部署到 ARM 平台的机器上，通常需要准备 ARM 平台的基础设施用于开发和编译。&lt;/p>
 &lt;p>一次构建多处部署的镜像分发大幅提高了应用的交付效率，对于需要跨平台部署应用的场景，利用 docker buildx 构建跨平台的镜像也是一种快捷高效的解决方案。&lt;/p>
 &lt;h2 id="前提">前提&lt;/h2>
 &lt;p>大部分镜像托管平台支持多平台镜像，这意味着镜像仓库中单个标签可以包含不同平台的多个镜像，以 &lt;code>docker hub&lt;/code> 的 &lt;code>python&lt;/code> 镜像仓库为例，&lt;code>3.9.6&lt;/code> 这个标签就包含了 10 个不同系统和架构的镜像（平台 = 系统 + 架构）：&lt;/p>
@@ -1005,7 +1532,7 @@ $ apt-get install -y libopus-dev:arm64
 &lt;li>&lt;a href="https://docs.docker.com/engine/reference/commandline/buildx_build/#output">docker buildx build&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://go.dev/blog/cgo">C? Go? Cgo! - go.dev&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://dh1tw.de/2019/12/cross-compiling-golang-cgo-projects/">Cross-Compiling Golang (CGO) Projects&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/golang/" term="Golang" label="Golang"/><category scheme="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/" term="云原生" label="云原生"/><category scheme="https://www.waynerv.com/tags/docker/" term="Docker" label="Docker"/></entry><entry><title type="text">如何手动安装 Nginx 二进制文件</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/"/><id>https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-08-11T15:47:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，本文将记录如何将一个已编译好的 Nginx 二进制文件手动安装到 Linux 系统中。</summary><content type="html">&lt;p>在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，这时推荐的做法是从源码自行编译安装，通常来说 &lt;code>configure + make install&lt;/code> 两步即可完成。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/golang/" term="Golang" label="Golang"/><category scheme="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/" term="云原生" label="云原生"/><category scheme="https://www.waynerv.com/tags/docker/" term="Docker" label="Docker"/></entry><entry><title type="text">如何手动安装 Nginx 二进制文件</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/"/><id>https://www.waynerv.com/posts/how-to-install-nginx-binary-manually/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-08-11T15:47:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，本文将记录如何将一个已编译好的 Nginx 二进制文件手动安装到 Linux 系统中。</summary><content type="html">&lt;p>在一些特殊场景如离线条件下，我们无法使用包管理器而只能用手动方式来安装特定软件，这时推荐的做法是从源码自行编译安装，通常来说 &lt;code>configure + make install&lt;/code> 两步即可完成。&lt;/p>
 &lt;p>假如我们只能获取已编译好的程序或者没有编译环境，就只能手动执行安装步骤了。本文将记录如何将一个已编译好的 Nginx 二进制文件安装到 Linux 系统中。&lt;/p>
 &lt;h2 id="prefix-配置">prefix 配置&lt;/h2>
 &lt;p>对安装 nginx 来说，最需要注意的是 &lt;code>prefix&lt;/code> 路径配置，默认值为 &lt;code>/usr/local/nginx&lt;/code>，它是 nginx 运行时的基础路径：&lt;/p>
@@ -1194,7 +1721,7 @@ mkdir -p /etc/nginx/conf.d
 &lt;li>&lt;a href="https://docs.nginx.com/nginx/admin-guide/installing-nginx/installing-nginx-open-source/#compiling-and-installing-from-source">Compiling and Installing from Source&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://serverfault.com/questions/308890/nginx-permission-13/338461">Nginx Permission 13&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://serverfault.com/questions/691310/nginx-relative-path-to-include">nginx relative path to include&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/nginx/" term="Nginx" label="Nginx"/></entry><entry><title type="text">容器技术原理(五)：文件系统的隔离和共享</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-filesystem-isolation-and-sharing/"/><id>https://www.waynerv.com/posts/container-fundamentals-filesystem-isolation-and-sharing/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-07-27T14:38:20+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Unix 系统中所有可访问的文件都被组织在一个巨大的树状文件层次结构中，这颗文件树的根节点就是 &lt;code>/&lt;/code> 目录。</summary><content type="html">&lt;h2 id="背景知识">背景知识&lt;/h2>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/nginx/" term="Nginx" label="Nginx"/></entry><entry><title type="text">容器技术原理(五)：文件系统的隔离和共享</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-filesystem-isolation-and-sharing/"/><id>https://www.waynerv.com/posts/container-fundamentals-filesystem-isolation-and-sharing/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-07-27T14:38:20+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Unix 系统中所有可访问的文件都被组织在一个巨大的树状文件层次结构中，这颗文件树的根节点就是 &lt;code>/&lt;/code> 目录。</summary><content type="html">&lt;h2 id="背景知识">背景知识&lt;/h2>
 &lt;p>Unix 系统中所有可访问的文件都被组织在一个巨大的树状文件层次结构中，这颗文件树的根节点就是 &lt;code>/&lt;/code> 目录。这些文件可以分散保存在不同的设备中，前提是我们使用 &lt;code>mount&lt;/code> 系统调用将这些设备上的文件系统挂载到文件树中。&lt;/p>
 &lt;h3 id="目录-vs-文件系统">目录 VS 文件系统&lt;/h3>
 &lt;p>了解文件系统和目录之间的区别是很重要的。文件系统是存储设备如硬盘的一个部分，它被分配来保存文件数据。在目录上挂载文件系统后，可以访问这部分存储的文件。文件系统被挂载后，对终端用户来说访问起来就像普通目录一样。&lt;/p>
@@ -1582,7 +2109,7 @@ $ cat /proc/self/mounts &lt;span class="p">|&lt;/span> grep host_dir
 &lt;li>&lt;a href="https://lists.linuxcontainers.org/pipermail/lxc-devel/2011-September/002065.html">DIfference between chroot &amp;amp; pivot_root&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://www.quora.com/What-is-the-purpose-of-pivot_root-system-call-in-Linux">What is the purpose of pivot_root system call in Linux?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://unix.stackexchange.com/questions/198590/what-is-a-bind-mount">What is a bind mount?&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/namespace/" term="Namespace" label="Namespace"/><category scheme="https://www.waynerv.com/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/" term="文件系统" label="文件系统"/></entry><entry><title type="text">容器技术原理(四)：使用 Capabilities 实现权限控制</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-permission-control-using-capabilities/"/><id>https://www.waynerv.com/posts/container-fundamentals-permission-control-using-capabilities/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-07-22T15:45:56+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">&lt;code>root&lt;/code> 用户拥有最高特权早就成了过去式，Linux 内核在 2.2 版本就引入了一种新的权限检查机制 - capabilities。</summary><content type="html">&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，会得到有趣的结果：&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/namespace/" term="Namespace" label="Namespace"/><category scheme="https://www.waynerv.com/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/" term="文件系统" label="文件系统"/></entry><entry><title type="text">容器技术原理(四)：使用 Capabilities 实现权限控制</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-permission-control-using-capabilities/"/><id>https://www.waynerv.com/posts/container-fundamentals-permission-control-using-capabilities/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-07-22T15:45:56+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">&lt;code>root&lt;/code> 用户拥有最高特权早就成了过去式，Linux 内核在 2.2 版本就引入了一种新的权限检查机制 - capabilities。</summary><content type="html">&lt;p>如果你使用 &lt;code>runc&lt;/code> 运行一个容器并执行以下操作，会得到有趣的结果：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -1860,7 +2387,7 @@ root &lt;span class="m">9776&lt;/span> &lt;span class="m">9765&lt;/span> &lt;spa
 &lt;li>&lt;a href="https://dockerlabs.collabnix.com/advanced/security/capabilities/">dockerlabs-Capabilities&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://fuckcloudnative.io/posts/linux-capabilities-why-they-exist-and-how-they-work/">Linux Capabilities 入门教程：概念篇&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://www.trendmicro.com/en_us/research/19/l/why-running-a-privileged-container-in-docker-is-a-bad-idea.html">Why A Privileged Container in Docker Is a Bad Idea&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/capabilities/" term="Capabilities" label="Capabilities"/></entry><entry><title type="text">容器技术原理(三)：使用 Cgroups 实现资源限制</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-resource-limitation-using-cgroups/"/><id>https://www.waynerv.com/posts/container-fundamentals-resource-limitation-using-cgroups/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-07-21T17:38:06+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">cgroups 是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。</summary><content type="html">&lt;p>cgroups（control groups）是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/capabilities/" term="Capabilities" label="Capabilities"/></entry><entry><title type="text">容器技术原理(三)：使用 Cgroups 实现资源限制</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-resource-limitation-using-cgroups/"/><id>https://www.waynerv.com/posts/container-fundamentals-resource-limitation-using-cgroups/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-07-21T17:38:06+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">cgroups 是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。</summary><content type="html">&lt;p>cgroups（control groups）是由 Linux 内核提供的一种特性，它能够限制、核算和隔离一组进程所使用的系统资源（如 CPU、内存、磁盘 I/O、网络等）。&lt;/p>
 &lt;p>在上一篇文章中我们已了解 Namespace 在容器技术中扮演的角色，如果说 Namespace 控制了容器中的进程能看到什么，那么 cgroups 则控制了容器中的进程能使用多少资源。Namespace 实现了进程的隔离，cgroups 则实现了资源的限制，后者同样是构建容器的基础。&lt;/p>
 &lt;p>本文将沿袭 Namespace 文章的行文思路，实际创建一个容器，观察宿主机中 cgroups 的变化，来实际展示 cgroups 如何工作，然后了解如何自行配置 cgroups。&lt;/p>
 &lt;h2 id="cgroup-在何时创建">cgroup 在何时创建&lt;/h2>
@@ -2110,7 +2637,7 @@ root &lt;span class="m">2576&lt;/span> &lt;span class="m">2250&lt;/span> &lt;spa
 &lt;li>&lt;a href="https://en.wikipedia.org/wiki/Cgroups">cgroups-wikipedia&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.docker.com/config/containers/resource_constraints/#limit-a-containers-access-to-memory">Limit a container’s access to memory&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://github.com/opencontainers/runtime-spec/blob/master/config-linux.md#memory">Control groups - Memory&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/cgroups/" term="Cgroups" label="Cgroups"/></entry><entry><title type="text">容器技术原理(二)：使用 Namespace 实现进程隔离</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-process-isolation-using-namespace/"/><id>https://www.waynerv.com/posts/container-fundamentals-process-isolation-using-namespace/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-07-21T12:45:11+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。Namespace 是构建容器技术的基石。</summary><content type="html">&lt;p>Namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。Namespace 是构建容器技术的基石，它使得容器内的进程只能看到容器内的进程和资源，实现与宿主系统以及其他容器的进程和资源隔离。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/cgroups/" term="Cgroups" label="Cgroups"/></entry><entry><title type="text">容器技术原理(二)：使用 Namespace 实现进程隔离</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-process-isolation-using-namespace/"/><id>https://www.waynerv.com/posts/container-fundamentals-process-isolation-using-namespace/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-07-21T12:45:11+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。Namespace 是构建容器技术的基石。</summary><content type="html">&lt;p>Namespace 是由 Linux 内核提供的一种特性，它能够将一些系统资源包装到一个抽象的空间中，并使得该空间中的进程以为这些资源是系统中仅有的资源。Namespace 是构建容器技术的基石，它使得容器内的进程只能看到容器内的进程和资源，实现与宿主系统以及其他容器的进程和资源隔离。&lt;/p>
 &lt;p>Namespace 按操作的系统资源不同有很多种类，比如 cgroup namespace，mount namespace 等等，接下来我们仅以 pid namespace 为例，以 &lt;code>runC&lt;/code> 作为容器运行时实现，来演示当我们执行对容器的操作时，namespace 是如何工作的。&lt;/p>
 &lt;p>在上一篇文章中我们已经介绍过，绝大部分容器系统都使用 &lt;code>runC&lt;/code> 作为底层的运行时实现，如果你是在 Linux 发行版系统中使用 &lt;code>docker&lt;/code> ，甚至不需要专门安装就能使用 &lt;code>runc&lt;/code> 命令。&lt;/p>
 &lt;h2 id="准备工作">准备工作&lt;/h2>
@@ -2524,7 +3051,7 @@ PID PPID NAME CMD NTHREADS CGROUPS STATE
 &lt;li>&lt;a href="https://github.com/opencontainers/runc/blob/master/README.md#creating-an-oci-bundle">Creating an OCI Bundle&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://jarekprzygodzki.dev/post/monitor-new-process-creation/">Monitoring new process creation&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://en.wikipedia.org/wiki/Linux_namespaces">Linux namespaces&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/namespace/" term="Namespace" label="Namespace"/></entry><entry><title type="text">容器技术原理(一)：从根本上认识容器镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/"/><id>https://www.waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-07-20T13:24:03+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">OCI 规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，它描述了容器如何被创建和运行，了解 OCI 规范有助于对容器技术建立更本质全面的认知。</summary><content type="html">&lt;h2 id="从-oci-规范说起">从 OCI 规范说起&lt;/h2>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/namespace/" term="Namespace" label="Namespace"/></entry><entry><title type="text">容器技术原理(一)：从根本上认识容器镜像</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/"/><id>https://www.waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-07-20T13:24:03+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">OCI 规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，它描述了容器如何被创建和运行，了解 OCI 规范有助于对容器技术建立更本质全面的认知。</summary><content type="html">&lt;h2 id="从-oci-规范说起">从 OCI 规范说起&lt;/h2>
 &lt;p>OCI（Open Container Initiative）规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，包括 Docker 和 Kubernetes。它的出现是一段关于开源商业化的有趣历史：它由 Dokcer 公司作为领头者在 2015 年推出，但如今 Docker 公司在容器行业中已经成了打工仔。&lt;/p>
 &lt;p>从 OCI 规范开始了解容器镜像，可以让我们对容器技术建立更全面清晰的认知，而不是囿于实现细节。OCI 规范分为 &lt;code>Image spec&lt;/code> 和 &lt;code>Runtime spec&lt;/code> 两部分，它们分别覆盖了容器生命周期的不同阶段：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-oci-spec.png" alt="">&lt;/p>
@@ -3120,7 +3647,7 @@ $ diff layers.a layers.b
 &lt;li>
 &lt;p>深入剖析Kubernetes - 张磊&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/kubernetes/" term="Kubernetes" label="Kubernetes"/><category scheme="https://www.waynerv.com/tags/docker/" term="Docker" label="Docker"/></entry><entry><title type="text">究极的 Python 开源项目模板</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/ultimate-python-open-source-project-template/"/><id>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-06-25T18:08:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个……</summary><content type="html">&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/linux/" term="Linux" label="Linux"/><category scheme="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/" term="容器" label="容器"/><category scheme="https://www.waynerv.com/tags/kubernetes/" term="Kubernetes" label="Kubernetes"/><category scheme="https://www.waynerv.com/tags/docker/" term="Docker" label="Docker"/></entry><entry><title type="text">究极的 Python 开源项目模板</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/ultimate-python-open-source-project-template/"/><id>https://www.waynerv.com/posts/ultimate-python-open-source-project-template/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-06-25T18:08:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个……</summary><content type="html">&lt;p>我的 Notion 里面躺着很多关于开源项目的 idea，有些 GitHub 仓库都建好了，但真正开始的寥寥无几。除了没有时间或者需要掌握新的技术栈，还有一个重大阻碍是我觉得开始一个新的项目非常繁琐，尤其对于 Python 项目来说。&lt;/p>
 &lt;p>制作一个项目启动模板，也是开始一个新开源项目的好 idea。两年前我曾经接触过 cookiecutter （一个项目生成工具）；在发布了几个项目后，对于 Python 打包发布到 PyPI 的流程也比较熟悉了；何况在 GitHub 上还看过许多类似的项目模板，可以 fork 后在其基础上进行自定义。一切都水到渠成，这应该不是个很难的事。&lt;/p>
 &lt;p>不过我还是经过一段时间的测试和反复打磨，才终于完成一份 Python 开源项目模板：&lt;a href="https://github.com/waynerv/cookiecutter-pypackage">Cookiecutter PyPackage&lt;/a>，标题中的「究极」有夸大之嫌，但内容的确是相当全面。模板的使用方法在项目文档中有详细介绍，这篇文章主要分享我在模板中所选择的工具以及选择它们的理由。&lt;/p>
 &lt;h2 id="包管理工具">包管理工具&lt;/h2>
@@ -3239,7 +3766,7 @@ additional_dependencies:
 &lt;li>通过 &lt;code>changelog-reader-action&lt;/code> 这一 action 从 &lt;code>CHANGELOG.md&lt;/code> 文件中按规则解析出最新版本的版本信息。&lt;/li>
 &lt;li>执行项目的构建得到最新版本的包。&lt;/li>
 &lt;li>通过 &lt;code>action-gh-release&lt;/code> 这一 action 根据上面解析得到的版本历史信息自动创建新的 Realease，并以构建好的包作为附件。&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/><category scheme="https://www.waynerv.com/tags/%E5%BC%80%E6%BA%90/" term="开源" label="开源"/></entry><entry><title type="text">使用 Sphinx 为项目自动生成 API 文档</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/"/><id>https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-06-07T21:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。 从流行的开源项目中，我们可以总结出一些……</summary><content type="html">&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/><category scheme="https://www.waynerv.com/tags/%E5%BC%80%E6%BA%90/" term="开源" label="开源"/></entry><entry><title type="text">使用 Sphinx 为项目自动生成 API 文档</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/"/><id>https://www.waynerv.com/posts/use-sphinx-auto-generate-api-reference/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-06-07T21:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。 从流行的开源项目中，我们可以总结出一些……</summary><content type="html">&lt;p>对于一个优秀的开源项目，高质量的文档与代码同样重要，糟糕的文档会将大部分潜在用户拒之门外。&lt;/p>
 &lt;p>从流行的开源项目中，我们可以总结出一些关于文档的最佳实践：&lt;/p>
 &lt;ul>
 &lt;li>文档和代码库在一个仓库中维护以做到同步更新（个别体量超大的项目例外）&lt;/li>
@@ -3679,7 +4206,7 @@ additional_dependencies:
 &lt;li>
 &lt;p>&lt;a href="https://myst-parser.readthedocs.io/en/latest/using/howto.html#use-sphinx-ext-autodoc-in-markdown-files">How-To Guides&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/sphinx/" term="Sphinx" label="Sphinx"/></entry><entry><title type="text">Python 时间处理标准库：time 与 datetime 模块</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/"/><id>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-04-29T17:07:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Python 中内置了许多和操作时间有关的 API，它们分布在 time，datetime 等标准库中，在使用时很容易混淆，本文将力求清晰地阐述它们的用法和区别。</summary><content type="html">&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/sphinx/" term="Sphinx" label="Sphinx"/></entry><entry><title type="text">Python 时间处理标准库：time 与 datetime 模块</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/"/><id>https://www.waynerv.com/posts/differences-bettween-time-and-datetime-in-python/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-04-29T17:07:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">Python 中内置了许多和操作时间有关的 API，它们分布在 time，datetime 等标准库中，在使用时很容易混淆，本文将力求清晰地阐述它们的用法和区别。</summary><content type="html">&lt;p>Python 中内置了许多和操作时间有关的 API，它们分布在 &lt;code>time&lt;/code> ， &lt;code>datetime&lt;/code> 等标准库中，用法繁多且容易混淆，本文将力求清晰地阐述这些 API 的关键部分和区别，帮助你了解并掌握其用法。&lt;/p>
 &lt;p>下文将分别介绍每个模块的主要目的、核心对象、常用方法以及用途，并在最后做分析对比，如果已经了解这些细节可以直接跳转到结尾的总结对比部分。&lt;/p>
 &lt;p>另外本文将避免涉及字符串格式化、时区、冬夏令时等更复杂深入的话题。&lt;/p>
 &lt;h2 id="time-模块">time 模块&lt;/h2>
@@ -4386,7 +4913,7 @@ additional_dependencies:
 &lt;li>其余名称的函数均为类方法&lt;/li>
 &lt;/ul>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">理解 Python 中的描述符</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/python-descriptor-in-detail/"/><id>https://www.waynerv.com/posts/python-descriptor-in-detail/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-04-15T21:32:47+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">描述符（descriptor）是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。</summary><content type="html">&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">理解 Python 中的描述符</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/python-descriptor-in-detail/"/><id>https://www.waynerv.com/posts/python-descriptor-in-detail/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-04-15T21:32:47+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">描述符（descriptor）是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。</summary><content type="html">&lt;p>描述符是 Python 中的一个进阶概念，也是许多 Python 内部机制的实现基础，本文将对其做适当深入的介绍。&lt;/p>
 &lt;h2 id="描述符的定义">描述符的定义&lt;/h2>
 &lt;p>描述符的定义很简单，实现了下列&lt;em>任意一个方法&lt;/em>的 Python 对象就是一个描述符（descriptor）：&lt;/p>
 &lt;ul>
@@ -5082,7 +5609,7 @@ additional_dependencies:
 &lt;li>&lt;a href="https://docs.python.org/3/reference/datamodel.html#implementing-descriptors">Python Refenrence - Data model - Implementing Descriptors&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://realpython.com/python-descriptors/">Python Descriptors: An Introduction&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://blog.peterlamut.com/2018/11/04/python-attribute-lookup-explained-in-detail/">Python attribute lookup explained in detail&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">自己编译一个最新版本的 Python3</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/compiling-a-latest-python/"/><id>https://www.waynerv.com/posts/compiling-a-latest-python/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-04-06T10:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。 工……</summary><content type="html">&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/></entry><entry><title type="text">自己编译一个最新版本的 Python3</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/compiling-a-latest-python/"/><id>https://www.waynerv.com/posts/compiling-a-latest-python/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-04-06T10:15:32+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。 工……</summary><content type="html">&lt;p>最近想看看 Python 3.10 的模式匹配新特性，刚好也了解了一些编译相关的基础知识，于是尝试下在平时使用的测试机上编译一份最新的 Python。&lt;/p>
 &lt;h2 id="工作环境">工作环境&lt;/h2>
 &lt;p>测试机的操作系统是 Ubuntu 20.10，已安装有 &lt;code>gcc&lt;/code> 、&lt;code>git&lt;/code> 等基础的开发工具。经验证以下步骤同样适用于 macOS 11。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -5279,7 +5806,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://devguide.python.org/setup/#getting-started">Python Developer’s Guide: Getting Started&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/" term="编译" label="编译"/></entry><entry><title type="text">[CSAPP] 计算机如何表示浮点数</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/csapp-ieee-floating-intro/"/><id>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-03-29T22:48:53+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">计算机无法精确地表示所有实数，本文作为《深入理解计算机系统》的学习笔记，将介绍计算机在底层如何使用 IEEE754 标准来表示浮点数。</summary><content type="html">&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/python/" term="Python" label="Python"/><category scheme="https://www.waynerv.com/tags/%E7%BC%96%E8%AF%91/" term="编译" label="编译"/></entry><entry><title type="text">[CSAPP] 计算机如何表示浮点数</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/csapp-ieee-floating-intro/"/><id>https://www.waynerv.com/posts/csapp-ieee-floating-intro/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-03-29T22:48:53+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">计算机无法精确地表示所有实数，本文作为《深入理解计算机系统》的学习笔记，将介绍计算机在底层如何使用 IEEE754 标准来表示浮点数。</summary><content type="html">&lt;p>如果你曾经使用过 Python 或者 JavaScript 进行浮点数计算，可能会遇到类似下面的情况：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -5345,7 +5872,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;ol>
 &lt;li>虽然使用了不同的计算方式，但非规范化值可以平滑地过渡到规范化值，如上最大的非规范化值为 $\frac{7}{512}$，而最小的规范化值为 $\frac{8}{512}$。&lt;/li>
 &lt;li>随着浮点数的递增，其比特位表示所解释地无符号整数也随之递增，因此我们可以用相对简单的无符号整数的排序规则来对浮点数进行排序，这并非巧合，而是有意设计的。&lt;/li>
-&lt;/ol></content><category scheme="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/" term="笔记总结" label="笔记总结"/><category scheme="https://www.waynerv.com/tags/csapp/" term="CSAPP" label="CSAPP"/></entry><entry><title type="text">深入理解 git cherry-pick 操作</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-cherry-pick-intro/"/><id>https://www.waynerv.com/posts/git-cherry-pick-intro/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-01-26T16:49:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 rebase，merge，checkout， reset 等多种操作的使用……</summary><content type="html">&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
+&lt;/ol></content><category scheme="https://www.waynerv.com/categories/%E7%AC%94%E8%AE%B0%E6%80%BB%E7%BB%93/" term="笔记总结" label="笔记总结"/><category scheme="https://www.waynerv.com/tags/csapp/" term="CSAPP" label="CSAPP"/></entry><entry><title type="text">深入理解 git cherry-pick 操作</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-cherry-pick-intro/"/><id>https://www.waynerv.com/posts/git-cherry-pick-intro/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-01-26T16:49:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 rebase，merge，checkout， reset 等多种操作的使用……</summary><content type="html">&lt;p>在前面几篇讲解 Git 进阶用法的文章中，我们已经了解了 Git 的工作原理，以及 &lt;code>rebase&lt;/code>，&lt;code>merge&lt;/code>，&lt;code>checkout&lt;/code>， &lt;code>reset&lt;/code> 等多种操作的使用场景和用法，基本上在使用 Git 时你已经可以无所畏惧了，你可以自如的修改提交历史，并保证不会丢失任何更改。今天我们来补上最后一环，了解使用场景不多但却能达到奇效的 &lt;code>cherry-pick&lt;/code> 命令。&lt;/p>
 &lt;h2 id="如何使用-git-cherry-pick">如何使用 git cherry-pick&lt;/h2>
 &lt;p>Git 命令文档的描述不一定直观易懂，但绝对准确，文档对 &lt;code>git cherry-pick&lt;/code> 描述是： &lt;code>Apply the changes introduced by some existing commits&lt;/code>，即应用某些已有提交所引入的更改。通常我们会说 &lt;code>cherry-pick&lt;/code> 是将某个（些）提交从一个分支移动到另一个分支，这种说法更加容易理解，但后面我们会解释为何文档的描述才是最准确的。&lt;/p>
 &lt;p>假设我们有如下提交：&lt;/p>
@@ -5539,7 +6066,7 @@ print&lt;span class="o">(&lt;/span>&lt;span class="s1">&amp;#39;But sometimes it
 &lt;li>&lt;a href="https://stackoverflow.com/a/52932137/10224392">what does git cherry-pick {commit-hash} do?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/a/10058070/10224392">In a Git cherry-pick or rebase merge conflict, how are BASE (aka “the ancestor”), LOCAL, and REMOTE determined?&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://stackoverflow.com/questions/27417656/should-diff3-be-default-conflictstyle-on-git">Should diff3 be default conflictstyle on git?&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">git 工作原理与撤销操作图解</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">绝大部分程序员一定搜索过「如何撤销 git 提交」，&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code> 或 &lt;code>git revert&lt;/code> 是暂时的答案，掌握一定的 git 工作原理才能一劳永逸地解决类似问题。</summary><content type="html">&lt;p>「如何撤销 git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什么这次搜到的命令不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">git 工作原理与撤销操作图解</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-undo-intro/"/><id>https://www.waynerv.com/posts/git-undo-intro/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-01-09T12:53:49+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">绝大部分程序员一定搜索过「如何撤销 git 提交」，&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code> 或 &lt;code>git revert&lt;/code> 是暂时的答案，掌握一定的 git 工作原理才能一劳永逸地解决类似问题。</summary><content type="html">&lt;p>「如何撤销 git 提交」是绝大部分程序员一定搜索过的问题，就算你可以用某个答案中的命令暂时过关，再次遇到类似问题时又可能一头雾水：为什么这次搜到的命令不一样？&lt;code>git checkout&lt;/code>、&lt;code>git reset&lt;/code>、&lt;code>git revert&lt;/code> 这些命令我到底该用哪个？&lt;/p>
 &lt;p>之所以这样，是因为你的需求并不能简单地描述为「撤销」某次提交，而可能是：&lt;/p>
 &lt;ul>
 &lt;li>我在本地修改了一些文件还未提交，但我想放弃某些文件的更改。&lt;/li>
@@ -6356,7 +6883,7 @@ $ git stash pop
 &lt;li>&lt;a href="https://shafiul.github.io//gitbook/7_the_git_index.html">The Git Index&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://mincong.io/2018/04/28/git-index/#:~:text=The%20index%20is%20a%20binary,Git%3A%20they%20are%20used%20interchangeably.">Git: Understanding the Index File&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tom.preston-werner.com/2009/05/19/the-git-parable.html">The Git Parable&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">代码质量是程序员的职业底线，维护底线不能全靠自觉，本文将介绍如何将 flake8、black、pre-commit 等工具集成到日常的工作流中，省心省力的持续保障代码质量。</summary><content type="html">&lt;p>在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">构建保障代码质量的自动化工作流</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/build-automatic-code-quality-workflow/"/><id>https://www.waynerv.com/posts/build-automatic-code-quality-workflow/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2021-01-04T11:28:01+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">代码质量是程序员的职业底线，维护底线不能全靠自觉，本文将介绍如何将 flake8、black、pre-commit 等工具集成到日常的工作流中，省心省力的持续保障代码质量。</summary><content type="html">&lt;p>在我看来，代码质量就是程序员的职业底线。维护底线不能全靠自觉，因此本文将介绍几种自动化的工具，并展示如何将它们集成到日常的工作流中，省心省力的持续保障代码质量。&lt;/p>
 &lt;h2 id="linter">Linter&lt;/h2>
 &lt;p>Linter 是一类用于标记程序错误、bug、风格错误和可疑结构的静态代码分析工具，比如 Python 中的 &lt;code>Pylint&lt;/code>、 &lt;code>flake8&lt;/code>，JavaScript 中的 &lt;code>EsLint&lt;/code>，这类工具会找到你代码中的错误，并给出如何修复的提示。&lt;/p>
 &lt;h3 id="为何要使用-linter">为何要使用 Linter&lt;/h3>
@@ -7100,7 +7627,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/quickstart">Quickstart for GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/introduction-to-github-actions">Introduction to GitHub Actions&lt;/a>&lt;/li>
 &lt;li>&lt;a href="http://www.ruanyifeng.com/blog/2019/09/getting-started-with-github-actions.html">GitHub Actions 入门教程&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 搭建静态博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">本文将介绍如何使用 Hugo 和 GitHub Pages 快速搭建个人使用的静态博客，并通过 GitHub actions 实现自动发布。</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/%E4%BB%A3%E7%A0%81%E8%B4%A8%E9%87%8F/" term="代码质量" label="代码质量"/><category scheme="https://www.waynerv.com/tags/ci/" term="CI" label="CI"/></entry><entry><title type="text">使用 Hugo 和 GitHub Pages 搭建静态博客</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/"/><id>https://www.waynerv.com/posts/setup-blog-with-hugo-and-github-pages/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2020-12-24T21:47:50+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">本文将介绍如何使用 Hugo 和 GitHub Pages 快速搭建个人使用的静态博客，并通过 GitHub actions 实现自动发布。</summary><content type="html">&lt;p>作为一个已经入行了一年多的（老）技术人，维护一个看得过去的个人博客是很有必要的。&lt;/p>
 &lt;p>刚学编程的时候，还开源过一个基于 Flask 和 MongoDB 的&lt;a href="https://github.com/waynerv/originblog">博客项目&lt;/a>，但后面就没怎么使用和维护了，除开主观上的懒，还因为：&lt;/p>
 &lt;ul>
 &lt;li>自建博客绕不开主机和域名，这是一笔持续的经济成本。国内的主机往往是第一年割肉第二年宰猪，国外的主机访问延迟很高。&lt;/li>
@@ -7314,7 +7841,7 @@ publish_dir: ./public
 &lt;p>在本地做一些更改，预览效果后提交并推送，然后在项目仓库的 GitHub Actions 页面检查相应的 &lt;code>workflow&lt;/code> 是否运行成功。不出意外的话，很快个人主页仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，访问个人博客页面也会发现页面已经更新。&lt;/p>
 &lt;h2 id="个人体验">个人体验&lt;/h2>
 &lt;p>由于先后选择的 3 个主题均遭遇了上述发布地址不能包含子路径的问题，我在基本按照官方文档操作的前提下，依然花了超过 10 个小时才把&lt;a href="https://waynerv.github.io/">博客&lt;/a>上线，浪费了很多时间在配置主题以及寻找问题的解决方案上。本以为选择了一个简单快捷的省心方案，结果还是免不了过程的一顿踩坑和折腾。&lt;/p>
-&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/><category scheme="https://www.waynerv.com/tags/hugo/" term="Hugo" label="Hugo"/><category scheme="https://www.waynerv.com/tags/github/" term="GitHub" label="GitHub"/></entry><entry><title type="text">深入理解 git 合并操作</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2020-11-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作，都需要进行合并。 但对新手来说， git merge 这一命令……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
+&lt;p>虽然搭建博客的流程不算省心，但我所遇到的这些问题也算是个例。一切准备就绪后，我们可以像写代码一样写博客，对文章修改提交即自动发布，也不需要考虑博客的样式、后台功能及主机维护等问题，对提升写作效率会有所帮助，可以省下来很多的时间和精力，综合来看体验还是不错的。&lt;/p></content><category scheme="https://www.waynerv.com/categories/%E4%B8%AA%E4%BA%BA/" term="个人" label="个人"/><category scheme="https://www.waynerv.com/tags/%E5%8D%9A%E5%AE%A2/" term="博客" label="博客"/><category scheme="https://www.waynerv.com/tags/hugo/" term="Hugo" label="Hugo"/><category scheme="https://www.waynerv.com/tags/github/" term="GitHub" label="GitHub"/></entry><entry><title type="text">深入理解 git 合并操作</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-merge-intro/"/><id>https://www.waynerv.com/posts/git-merge-intro/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2020-11-29T07:17:23+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 pull 及 push 操作，都需要进行合并。 但对新手来说， git merge 这一命令……</summary><content type="html">&lt;p>合并在 Git 中是一个十分常见的操作：整合不同分支之间的更改，或者对远程分支执行 &lt;code>pull&lt;/code> 及 &lt;code>push&lt;/code> 操作，都需要进行合并。&lt;/p>
 &lt;p>但对新手来说， &lt;code>git merge&lt;/code> 这一命令有些令人生畏，因为在不同情况下，执行 &lt;code>merge&lt;/code> 可能会得到不同的结果。这种对于结果的不确定性，使我很长一段时间都不敢主动去使用它，而是依赖 GitHub 的 &lt;code>Pull Request&lt;/code> 或者 GitLab 的 &lt;code>Merge Request&lt;/code> 等可视化界面手动合并。&lt;/p>
 &lt;p>为了今后可以放心大胆的 &lt;code>merge&lt;/code>，今天我们就来对 &lt;code>merge&lt;/code> 一探究竟。&lt;/p>
 &lt;h2 id="认识合并">认识合并&lt;/h2>
@@ -7418,7 +7945,7 @@ $ git merge feature
 &lt;li>
 &lt;p>&lt;a href="https://segmentfault.com/a/1190000021712743">git merge的原理（递归三路合并算法）&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">git rebase 用法详解与工作原理</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2020-10-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">rebase 命令是 git 高手的一大利器，使用 rebase 重写提交历史在日常开发中非常有用，这篇近六千字的长文将帮助你彻底掌握 git rebase 的用法和原理。</summary><content type="html">&lt;p>以前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">git rebase 用法详解与工作原理</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/git-rebase-intro/"/><id>https://www.waynerv.com/posts/git-rebase-intro/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2020-10-23T23:45:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">rebase 命令是 git 高手的一大利器，使用 rebase 重写提交历史在日常开发中非常有用，这篇近六千字的长文将帮助你彻底掌握 git rebase 的用法和原理。</summary><content type="html">&lt;p>以前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
 &lt;h2 id="理解-rebase-命令">理解 Rebase 命令&lt;/h2>
 &lt;p>&lt;code>git rebase&lt;/code> 命令的文档描述是 &lt;code>Reapply commits on top of another base tip&lt;/code>，从字面上理解是「在另一个基端之上重新应用提交」，这个定义听起来有点抽象，换个角度可以理解为「将分支的基础从一个提交改成另一个提交，使其看起来就像是从另一个提交中创建了分支一样」，如下图：&lt;/p>
 &lt;p>&lt;img src="https://www.waynerv.com/images/git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
@@ -7953,7 +8480,7 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>
 &lt;p>&lt;a href="https://medium.com/@fabisiakradoslaw/understand-how-does-git-rebase-work-and-compare-with-git-merge-and-git-interactive-rebase-cce2c9775e43">Understand how does git rebase work and compare with git merge and git interactive rebase&lt;/a>&lt;/p>
 &lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">写了一份 Web API 设计规范</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/my-web-api-spcification/"/><id>https://www.waynerv.com/posts/my-web-api-spcification/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2020-10-17T11:40:09+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">基于 GitHub REST API v3 和 RFC7807，并结合自己在工作中的一些实践，编写了这份 Web API 规范。</summary><content type="html">&lt;p>基于 &lt;a href="https://developer.github.com/v3">GitHub REST API v3&lt;/a> 和 &lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a> ，并结合自己在工作中的一些实践，编写了这份 Web API 规范。&lt;/p>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/" term="工具" label="工具"/><category scheme="https://www.waynerv.com/tags/git/" term="Git" label="Git"/></entry><entry><title type="text">写了一份 Web API 设计规范</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/my-web-api-spcification/"/><id>https://www.waynerv.com/posts/my-web-api-spcification/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2020-10-17T11:40:09+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">基于 GitHub REST API v3 和 RFC7807，并结合自己在工作中的一些实践，编写了这份 Web API 规范。</summary><content type="html">&lt;p>基于 &lt;a href="https://developer.github.com/v3">GitHub REST API v3&lt;/a> 和 &lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a> ，并结合自己在工作中的一些实践，编写了这份 Web API 规范。&lt;/p>
 &lt;p>本规范虽然整体上遵循 RESTful 风格，但并未强制要求使用超媒体表示，严格来说不符合 REST API 的要求，因此基于此规范构建的项目应该定义为 Web API。&lt;/p>
 &lt;h2 id="概览">概览&lt;/h2>
 &lt;p>所有 API 应该使用统一的根域名。&lt;/p>
@@ -8319,7 +8846,7 @@ ef1372522cdad136ce7e6dc3e02aab4d6ad73f79 commit A
 &lt;li>&lt;a href="https://github.com/microsoft/api-guidelines/blob/vNext/Guidelines.md">Microsoft api guidelines&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://www.vinaysahni.com/best-practices-for-a-pragmatic-restful-api">Best Practices for Designing a Pragmatic RESTful API&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://tools.ietf.org/html/rfc7807">RFC7807&lt;/a>&lt;/li>
-&lt;/ul></content><category scheme="https://www.waynerv.com/categories/web/" term="Web" label="Web"/><category scheme="https://www.waynerv.com/tags/restful/" term="RESTful" label="RESTful"/></entry><entry><title type="text">记录一次迁移MySQL数据文件到新硬盘的过程</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/"/><id>https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/</id><updated>2022-03-11T03:17:23+00:00</updated><published>2020-09-08T12:14:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">迁移前的环境 MySQL Server 程序编译安装于 qmysql 用户的 /home/qmysql/qmysql/packages 目录下，文件夹结构如下： 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 .……</summary><content type="html">&lt;h2 id="迁移前的环境">迁移前的环境&lt;/h2>
+&lt;/ul></content><category scheme="https://www.waynerv.com/categories/web/" term="Web" label="Web"/><category scheme="https://www.waynerv.com/tags/restful/" term="RESTful" label="RESTful"/></entry><entry><title type="text">记录一次迁移MySQL数据文件到新硬盘的过程</title><link rel="alternate" type="text/html" href="https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/"/><id>https://www.waynerv.com/posts/migrate-mysql-to-a-new-disk/</id><updated>2022-03-30T11:24:58+00:00</updated><published>2020-09-08T12:14:24+08:00</published><author><name>Waynerv</name><uri>https://www.waynerv.com</uri><email>ampedee@gmail.com</email></author><rights>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</rights><summary type="html">迁移前的环境 MySQL Server 程序编译安装于 qmysql 用户的 /home/qmysql/qmysql/packages 目录下，文件夹结构如下： 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 .……</summary><content type="html">&lt;h2 id="迁移前的环境">迁移前的环境&lt;/h2>
 &lt;p>MySQL Server 程序编译安装于 &lt;code>qmysql&lt;/code> 用户的 &lt;code>/home/qmysql/qmysql/packages&lt;/code> 目录下，文件夹结构如下：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
