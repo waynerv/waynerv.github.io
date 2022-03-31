@@ -1,16 +1,17 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 30 Mar 2022 11:25:05 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>为 Kubernetes 集群启用 Pod 安全策略</title><link>https://www.waynerv.com/posts/enable-pod-security-policy-for-cluster/</link><guid isPermaLink="true">https://www.waynerv.com/posts/enable-pod-security-policy-for-cluster/</guid><pubDate>Wed, 30 Mar 2022 18:13:13 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近有客户反馈在开启了安全策略的集群中部署产品失败，因此研究了一下 Kubernetes 提供的 pod 安全策略。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Thu, 31 Mar 2022 06:06:42 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>为 Kubernetes 集群启用 Pod 安全策略</title><link>https://www.waynerv.com/posts/enable-pod-security-policy-for-cluster/</link><guid isPermaLink="true">https://www.waynerv.com/posts/enable-pod-security-policy-for-cluster/</guid><pubDate>Wed, 30 Mar 2022 18:13:13 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近有客户反馈在开启了安全策略的集群中部署产品失败，因此研究了一下 Kubernetes 提供的 pod 安全策略。&lt;/p>
 &lt;p>文中的演示和示例均在 v1.18.17 集群中通过验证。&lt;/p>
 &lt;h2 id="pod-security-policies">Pod Security Policies&lt;/h2>
 &lt;p>&lt;strong>Pod Security Policies&lt;/strong> （下文简称 psp 或 pod 安全策略）是一种集群级别的全局资源，能够对 pod 的创建和更新进行细粒度的授权控制。具体来说，一个 psp 对象定义了一组安全性条件，一个 pod 的 spec 字段必须满足这些条件以及适用相关字段的默认值，其创建或更新请求才会被 apiserver 所接受。&lt;/p>
 &lt;p>具体的 pod 字段和安全条件可见文档 &lt;a href="https://kubernetes.io/docs/concepts/policy/pod-security-policy/#what-is-a-pod-security-policy">what-is-a-pod-security-policy&lt;/a> 。&lt;/p>
 &lt;h3 id="启用-pod-security-policies">启用 Pod Security Policies&lt;/h3>
-&lt;p>Kubernetes 默认不开启 pod 安全策略功能，在集群中启用安全策略的步骤大体上分为三步：&lt;/p>
+&lt;p>Kubernetes 默认不开启 pod 安全策略功能，在集群中启用 pod 安全策略的步骤大体上分为三步：&lt;/p>
 &lt;ol>
 &lt;li>授予用户访问安全策略资源的权限，通常会授权给整个命名空间的 service account。&lt;/li>
 &lt;li>在集群中创建指定的安全策略资源。&lt;/li>
 &lt;li>启用 apiserver 的 admission-controller 插件。&lt;/li>
 &lt;/ol>
-&lt;p>注意步骤 1、2 的顺序不重要，因为它们不会产生实际影响。但步骤 3 推荐最后一步执行，否则一旦启用 admission-controller，如果集群中没有可用的安全策略或者未对安全策略资源进行授权，所有 pod 的创建都会被拒绝，包括 kube-system 命名空间下的系统管理组件如 apiserver（但由于是受 kubelet 管理的静态 pod 实际上容器依然会运行）。&lt;/p>
+&lt;p>注意步骤 1、2 的顺序不重要，因为它们不会产生实际影响。&lt;/p>
+&lt;p>但步骤 3 推荐在最后一步执行，否则一旦启用 admission-controller 插件，如果集群中没有可用的 pod 安全策略或者未对安全策略资源预先授权，所有 pod 的创建都会被拒绝，包括 kube-system 命名空间下的系统管理组件如 apiserver（但由于是受 kubelet 管理的静态 pod 实际上容器依然会运行）。&lt;/p>
 &lt;h4 id="rbac-身份认证">RBAC 身份认证&lt;/h4>
 &lt;ol>
 &lt;li>
@@ -121,7 +122,7 @@
 &lt;h4 id="创建安全策略资源">创建安全策略资源&lt;/h4>
 &lt;ol>
 &lt;li>
-&lt;p>在集群中创建一个 PodSecurePolicy 资源。宽松权限版本：&lt;/p>
+&lt;p>在集群中创建一个 PodSecurityPolicy 资源。宽松权限版本：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -285,11 +286,11 @@
 &lt;/div>
 &lt;/div>&lt;/li>
 &lt;/ol>
-&lt;h4 id="启用-admission-controller">启用 admission controller&lt;/h4>
-&lt;p>启用 admission controller 有两种方式：&lt;/p>
+&lt;h4 id="启用-admission-controller-插件">启用 admission controller 插件&lt;/h4>
+&lt;p>启用 admission controller 的 psp 插件有两种方式：&lt;/p>
 &lt;ol>
 &lt;li>
-&lt;p>在已存在的集群中通过修改 apiserver 的静态 manifest 文件，为 apiserver 增加启动参数。kubelet 会自动检测到变更并重启 apiserver。&lt;/p>
+&lt;p>在已存在的集群中通过修改 apiserver 的静态 manifest 文件，为 apiserver 增加启动参数 &lt;code>enable-admission-plugins=PodSecurityPolicy&lt;/code>。kubelet 会自动检测到变更并重启 apiserver。下面的示例使用 sed 对原有参数进行了替换：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -300,7 +301,7 @@
 &lt;/div>
 &lt;/div>&lt;/li>
 &lt;li>
-&lt;p>在初始化集群时，在 kubeadm 配置文件中添加额外参数。&lt;/p>
+&lt;p>或者在初始化集群时，在 kubeadm 配置文件中添加额外参数。&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
@@ -314,13 +315,14 @@
 &lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">kind&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">ClusterConfiguration&lt;/span>&lt;span class="w">
 &lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">apiServer&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
 &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">extraArgs&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">enable-admission-plugins&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;NodeRestriction,PodSecurityPolicy&amp;#34;&lt;/span>&lt;span class="w">
+&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">enable-admission-plugins&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="s2">&amp;#34;PodSecurityPolicy&amp;#34;&lt;/span>&lt;span class="w">
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;/li>
 &lt;/ol>
 &lt;h3 id="验证-psp-的安全限制">验证 psp 的安全限制&lt;/h3>
-&lt;p>我们在上文授权过的 &lt;code>security-test&lt;/code> 命名空间进行测试，验证 psp 对 pod 的限制条件。我们尝试通过 deployment 创建一个需要使用 &lt;code>hostNetwork&lt;/code> 的 pod：&lt;/p>
+&lt;p>我们在上文授权过的 &lt;code>security-test&lt;/code> 命名空间进行测试，验证 psp 对 pod 的限制条件。&lt;/p>
+&lt;p>首先确保在集群中应用了严格版本的 psp 资源，然后尝试通过 deployment 创建一个需要使用 &lt;code>hostNetwork&lt;/code> 的 pod：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -385,8 +387,8 @@
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;h3 id="局限性">局限性&lt;/h3>
-&lt;p>如果有 pod 违反了安全策略，解决方案是要么调整 pod 的规格，要么修改安全资源。psp 资源是全局生效的，不能针对不同的命名空间设置不同的安全策略级别，这是一个很明显的局限性。&lt;/p>
-&lt;p>另外授权机制也相对比较复杂。如果没有授权或者未创建安全策略，结果是所有 pod 被拒绝，这也导致在集群中默认开启该功能的操作难度很大。&lt;/p>
+&lt;p>如果有 pod 违反了安全策略，解决方案是要么调整 pod 的规格，要么修改 pod 安全策略资源。psp 资源是全局生效的，不能针对不同的命名空间设置不同的安全策略级别，这是一个很明显的局限性。&lt;/p>
+&lt;p>另外对 psp 的授权机制也比较复杂。如果没有授权或者未创建安全策略，结果是所有 pod 被拒绝，这也导致在集群中默认开启该功能的操作难度很大。&lt;/p>
 &lt;p>从 Kubernetes v1.21开始，Pod Security Policy 将被弃用，并将在 v1.25 中删除。Kubernetes 引入了 Pod Security Admission 作为其替代者，我们将在下文中详细解析。&lt;/p>
 &lt;h2 id="pod-security-admission">Pod Security Admission&lt;/h2>
 &lt;h3 id="为什么要替换-psp">为什么要替换 psp&lt;/h3>
@@ -396,11 +398,12 @@
 &lt;li>功能无法流畅切换，在没有安全策略的情况下无法关闭。&lt;/li>
 &lt;li>API 不一致且缺乏灵活性。&lt;/li>
 &lt;/ol>
-&lt;p>新的 Pod Security Admission 机制在易用性和灵活性上都有了很大提升，从使用角度有以下三点显著不同：&lt;/p>
+&lt;p>新的 Pod Security Admission 机制在易用性和灵活性上都有了很大提升，从使用角度有以下四点显著不同：&lt;/p>
 &lt;ol>
 &lt;li>可以在集群中默认开启，只要不添加约束条件就不会触发对 pod 的校验。&lt;/li>
 &lt;li>只在命名空间级别生效，可以为不同命名空间通过添加标签的方式设置不同的安全限制。&lt;/li>
 &lt;li>可以为特定的用户、命名空间或者运行时设置豁免规则。&lt;/li>
+&lt;li>根据实践预设了三种安全等级，不需要由用户单独去设置每一个安全条件。&lt;/li>
 &lt;/ol>
 &lt;h3 id="工作方式">工作方式&lt;/h3>
 &lt;p>Pod Security Admission 将原来 Pod Security Policy 的安全条件划分成三种预设的安全等级：&lt;/p>
@@ -414,8 +417,9 @@
 &lt;ul>
 &lt;li>&lt;code>enforce&lt;/code>：只允许符合安全等级要求的 pod，拒绝与安全等级冲突的 pod。&lt;/li>
 &lt;li>&lt;code>audit&lt;/code>：只将安全等级冲突记录在集群 event 中，不会拒绝 pod。&lt;/li>
-&lt;li>&lt;code>warn&lt;/code>：与安全等级冲突时会向用户返回一个警告信息，但不会拒绝 pod。警告和审计模式是独立的，如果同时需要两者的功能必须分别设置两种模式。&lt;/li>
+&lt;li>&lt;code>warn&lt;/code>：与安全等级冲突时会向用户返回一个警告信息，但不会拒绝 pod。&lt;/li>
 &lt;/ul>
+&lt;p>audit 和 warn 模式是独立的，如果同时需要两者的功能必须分别设置两种模式。&lt;/p>
 &lt;p>应用安全策略不再需要创建单独的集群资源，只需要为命名空间设置控制标签：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -522,10 +526,10 @@ error: json: unknown field &amp;quot;replacements&amp;quot;
 &lt;/div>
 &lt;/div>&lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
-&lt;li>&lt;a href="https://github.com/kubernetes/enhancements/tree/master/keps/sig-auth/2579-psp-replacement">enhancements/keps/sig-auth/2579-psp-replacement at master · kubernetes/enhancements&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://github.com/kubernetes/enhancements/tree/master/keps/sig-auth/2579-psp-replacement">KEP-2579: Pod Security Admission Control&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://kubernetes.io/docs/concepts/security/pod-security-admission/">Pod Security Admission | Kubernetes&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/#profile-details">Pod Security Standards | Kubernetes&lt;/a>&lt;/li>
-&lt;/ul></description><category domain="https://www.waynerv.com/categories/kubernetes/">Kubernetes</category><category domain="https://www.waynerv.com/tags/%E5%AE%89%E5%85%A8/">安全</category></item><item><title>深入理解 netfilter 和 iptables</title><link>https://www.waynerv.com/posts/understanding-netfilter-and-iptables/</link><guid isPermaLink="true">https://www.waynerv.com/posts/understanding-netfilter-and-iptables/</guid><pubDate>Mon, 07 Mar 2022 23:27:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/kubernetes/">Kubernetes</category><category domain="https://www.waynerv.com/tags/%E5%AE%89%E5%85%A8/">安全</category><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category></item><item><title>深入理解 netfilter 和 iptables</title><link>https://www.waynerv.com/posts/understanding-netfilter-and-iptables/</link><guid isPermaLink="true">https://www.waynerv.com/posts/understanding-netfilter-and-iptables/</guid><pubDate>Mon, 07 Mar 2022 23:27:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
 &lt;p>关于 netfilter 的介绍文章大部分只描述了抽象的概念，实际上其内核代码的基本实现不算复杂，本文主要参考 Linux 内核 2.6 版本代码（早期版本较为简单），与最新的 5.x 版本在实现上可能有较大差异，但基本设计变化不大，不影响理解其原理。&lt;/p>
 &lt;p>本文假设读者已对 TCP/IP 协议有基本了解。&lt;/p>
 &lt;h2 id="netfilter-的设计与实现">Netfilter 的设计与实现&lt;/h2>
