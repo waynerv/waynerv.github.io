@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 11 Apr 2022 08:12:42 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>为 Kubernetes 集群启用 Pod 安全策略</title><link>https://www.waynerv.com/posts/enable-pod-security-policy-for-cluster/</link><guid isPermaLink="true">https://www.waynerv.com/posts/enable-pod-security-policy-for-cluster/</guid><pubDate>Wed, 30 Mar 2022 18:13:13 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近有客户反馈在开启了安全策略的集群中部署产品失败，因此研究了一下 Kubernetes 提供的 pod 安全策略。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Wed, 13 Apr 2022 03:09:34 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>为 Kubernetes 集群启用 Pod 安全策略</title><link>https://www.waynerv.com/posts/enable-pod-security-policy-for-cluster/</link><guid isPermaLink="true">https://www.waynerv.com/posts/enable-pod-security-policy-for-cluster/</guid><pubDate>Wed, 30 Mar 2022 18:13:13 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近有客户反馈在开启了安全策略的集群中部署产品失败，因此研究了一下 Kubernetes 提供的 pod 安全策略。&lt;/p>
 &lt;p>文中的演示和示例均在 v1.18.17 集群中通过验证。&lt;/p>
 &lt;h2 id="pod-security-policies">Pod Security Policies&lt;/h2>
 &lt;p>&lt;strong>Pod Security Policies&lt;/strong> （下文简称 psp 或 pod 安全策略）是一种集群级别的全局资源，能够对 pod 的创建和更新进行细粒度的授权控制。具体来说，一个 psp 对象定义了一组安全性条件，一个 pod 的 spec 字段必须满足这些条件以及适用相关字段的默认值，其创建或更新请求才会被 apiserver 所接受。&lt;/p>
@@ -402,18 +402,6 @@
 &lt;/span>&lt;span class="lnt">16
 &lt;/span>&lt;span class="lnt">17
 &lt;/span>&lt;span class="lnt">18
-&lt;/span>&lt;span class="lnt">19
-&lt;/span>&lt;span class="lnt">20
-&lt;/span>&lt;span class="lnt">21
-&lt;/span>&lt;span class="lnt">22
-&lt;/span>&lt;span class="lnt">23
-&lt;/span>&lt;span class="lnt">24
-&lt;/span>&lt;span class="lnt">25
-&lt;/span>&lt;span class="lnt">26
-&lt;/span>&lt;span class="lnt">27
-&lt;/span>&lt;span class="lnt">28
-&lt;/span>&lt;span class="lnt">29
-&lt;/span>&lt;span class="lnt">30
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>
 &lt;td class="lntd">
 &lt;pre class="chroma">&lt;code class="language-yaml" data-lang="yaml">&lt;span class="nt">apiVersion&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">apps/v1&lt;/span>&lt;span class="w">
@@ -434,21 +422,31 @@
 &lt;/span>&lt;span class="w"> &lt;/span>- &lt;span class="nt">image&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx&lt;/span>&lt;span class="w">
 &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">imagePullPolicy&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">Always&lt;/span>&lt;span class="w">
 &lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="nt">name&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">nginx-privileged&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">```&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">创建并查看结果：&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">```bash&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl create -f hostnetwork-pod.yaml -n restricted-ns&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">deployment.apps/nginx-hostnetwork created&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl get deploy -n restricted-ns nginx-hostnetwork&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">NAME READY UP-TO-DATE AVAILABLE AGE&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">nginx-hostnetwork 0/1 1 0 21s&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="l">$ kubectl -n restricted-ns get event | grep &amp;#34;pod security policy&amp;#34;&lt;/span>&lt;span class="w">
-&lt;/span>&lt;span class="w">&lt;/span>&lt;span class="nt">103s Warning FailedCreate deployment/nginx-hostnetwork Error creating&lt;/span>&lt;span class="p">:&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="l">pods &amp;#34;nginx-hostnetwork-&amp;#34; is forbidden: unable to validate against any pod security policy: [spec.securityContext.hostNetwork: Invalid value: true: Host network is not allowed to be used]&lt;/span>&lt;span class="w">
 &lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>接着在 &lt;code>privileged-ns&lt;/code> 命名空间执行相同的操作：&lt;/p>
+&lt;/div>&lt;p>创建并查看结果：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre class="chroma">&lt;code class="language-bash" data-lang="bash">$ kubectl create -f hostnetwork-pod.yaml -n restricted-ns
+deployment.apps/nginx-hostnetwork created
+$ kubectl get deploy -n restricted-ns nginx-hostnetwork
+NAME READY UP-TO-DATE AVAILABLE AGE
+nginx-hostnetwork 0/1 &lt;span class="m">1&lt;/span> &lt;span class="m">0&lt;/span> 21s
+$ kubectl -n restricted-ns get event &lt;span class="p">|&lt;/span> grep &lt;span class="s2">&amp;#34;pod security policy&amp;#34;&lt;/span>
+103s Warning FailedCreate deployment/nginx-hostnetwork Error creating: pods &lt;span class="s2">&amp;#34;nginx-hostnetwork-&amp;#34;&lt;/span> is forbidden: unable to validate against any pod security policy: &lt;span class="o">[&lt;/span>spec.securityContext.hostNetwork: Invalid value: true: Host network is not allowed to be used&lt;span class="o">]&lt;/span>
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>由于授权给该命名空间 service account 的安全策略资源禁止 pod 使用 hostNetwork，因此该 deployment 创建 pod 的请求被拒绝。&lt;/p>
+&lt;p>接着在 &lt;code>privileged-ns&lt;/code> 命名空间执行相同的操作：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre class="chroma">&lt;code>&lt;span class="lnt"> 1
@@ -475,7 +473,7 @@ $ kubectl get pod nginx-hostnetwork-644cdd6598-twds9 -o &lt;span class="nv">json
 map&lt;span class="o">[&lt;/span>kubernetes.io/psp:privileged&lt;span class="o">]&lt;/span>
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
-&lt;/div>&lt;p>可以看到 psp 按预期发挥了作用。&lt;/p>
+&lt;/div>&lt;p>授权给该命名空间 service account 的安全策略资源允许 pod 使用 hostNetwork，因此 pod 成功被创建。我们可以通过 pod 的 &lt;code>metadata.annotations&lt;/code> 字段检查其适用的安全策略资源。&lt;/p>
 &lt;h2 id="pod-security-admission">Pod Security Admission&lt;/h2>
 &lt;p>从 Kubernetes v1.21开始，Pod Security Policy 将被弃用，并将在 v1.25 中删除，Kubernetes 在 1.22 版本引入了 Pod Security Admission 作为其替代者。&lt;/p>
 &lt;h3 id="为什么要替换-psp">为什么要替换 psp&lt;/h3>
@@ -617,6 +615,7 @@ error: json: unknown field &amp;quot;replacements&amp;quot;
 &lt;li>&lt;a href="https://kubernetes.io/docs/concepts/security/pod-security-admission/">Pod Security Admission | Kubernetes&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/#profile-details">Pod Security Standards | Kubernetes&lt;/a>&lt;/li>
 &lt;li>&lt;a href="https://medium.com/coryodaniel/kubernetes-assigning-pod-security-policies-with-rbac-2ad2e847c754">Kubernetes: Assigning Pod Security Policies with RBAC&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://banzaicloud.com/blog/pod-security-policy/">An illustrated deepdive into Pod Security Policies · Banzai Cloud&lt;/a>&lt;/li>
 &lt;/ul></description><category domain="https://www.waynerv.com/categories/kubernetes/">Kubernetes</category><category domain="https://www.waynerv.com/tags/%E5%AE%89%E5%85%A8/">安全</category><category domain="https://www.waynerv.com/tags/%E4%BA%91%E5%8E%9F%E7%94%9F/">云原生</category></item><item><title>深入理解 netfilter 和 iptables</title><link>https://www.waynerv.com/posts/understanding-netfilter-and-iptables/</link><guid isPermaLink="true">https://www.waynerv.com/posts/understanding-netfilter-and-iptables/</guid><pubDate>Mon, 07 Mar 2022 23:27:11 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>Netfilter （配合 iptables）使得用户空间应用程序可以注册内核网络栈在处理数据包时应用的处理规则，实现高效的网络转发和过滤。很多常见的主机防火墙程序以及 Kubernetes 的 Service 转发都是通过 iptables 来实现的。&lt;/p>
 &lt;p>关于 netfilter 的介绍文章大部分只描述了抽象的概念，实际上其内核代码的基本实现不算复杂，本文主要参考 Linux 内核 2.6 版本代码（早期版本较为简单），与最新的 5.x 版本在实现上可能有较大差异，但基本设计变化不大，不影响理解其原理。&lt;/p>
 &lt;p>本文假设读者已对 TCP/IP 协议有基本了解。&lt;/p>
