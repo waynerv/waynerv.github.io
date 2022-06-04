@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sat, 04 Jun 2022 09:40:38 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>浅析 Linux 如何接收网络帧</title><link>https://www.waynerv.com/posts/how-linux-process-input-frames/</link><guid isPermaLink="true">https://www.waynerv.com/posts/how-linux-process-input-frames/</guid><pubDate>Mon, 25 Apr 2022 17:54:58 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;blockquote>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.79.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sat, 04 Jun 2022 15:44:27 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>浅析 Linux 如何接收网络帧</title><link>https://www.waynerv.com/posts/how-linux-process-input-frames/</link><guid isPermaLink="true">https://www.waynerv.com/posts/how-linux-process-input-frames/</guid><pubDate>Mon, 25 Apr 2022 17:54:58 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;blockquote>
 &lt;p>本文首发于微信订阅号「沃趣技术」，转载时请注明来源。&lt;/p>
 &lt;/blockquote>
 &lt;p>本文将从初学者角度，介绍 Linux 内核如何接收网络帧：从网卡设备完成数据帧的接收开始，到数据帧被传递到网络栈中的第三层结束。重点介绍内核的工作机制，不会深入过多代码层面的细节，示例代码来自 Linux 2.6。&lt;/p>
 &lt;h2 id="设备的通知手段">设备的通知手段&lt;/h2>
 &lt;p>从计算机硬件的角度，一个数据帧从进入网卡到最后被内核网络栈处理的整体示意图如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-04-21-soft-interrupt.png" alt="soft-interrupt">&lt;/p>
+&lt;p>&lt;img src="2022-04-21-soft-interrupt.png" alt="soft-interrupt">&lt;/p>
 &lt;p>当网卡设备完成一个数据帧的接收后，可能将数据帧暂存于设备内存，也可能通过 DMA(Direct memory access) 直接写入到主内存的接收环（rx ring），接下来必须通知操作系统内核对已接收的数据进行处理。&lt;/p>
 &lt;p>下面将讨论几种可能的通知手段。&lt;/p>
 &lt;h3 id="轮询">轮询&lt;/h3>
@@ -363,7 +363,7 @@ c. 在终止之前重新启用本地 CPU 的中断通知。&lt;/li>
 &lt;li>&lt;strong>NET_TX_SOFTIRQ&lt;/strong> 用于处理发送（出栈）网络数据&lt;/li>
 &lt;/ul>
 &lt;p>&lt;strong>NET_RX_SOFTIRQ&lt;/strong> 软中断处理程序接收网络帧的整体流程示意如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-04-21-netif-rx-action.png" alt="netif-rx-action">&lt;/p>
+&lt;p>&lt;img src="2022-04-21-netif-rx-action.png" alt="netif-rx-action">&lt;/p>
 &lt;p>在了解具体的软中断处理程序之前，我们还需要结合 Linux 的具体实现重新回顾上文介绍过的通知处理机制。&lt;/p>
 &lt;h3 id="linux-new-api-napi">Linux New API (NAPI)&lt;/h3>
 &lt;p>网卡设备每接收到一个二层的网络帧后，使用硬件中断来向 CPU 发出信号，通知其有新的帧需要处理。收到中断的CPU会执行 &lt;code>do_IRQ&lt;/code> 函数，调用与硬件中断号关联的处理程序。处理程序通常是由设备驱动程序在初始化时注册的一个函数，这个中断处理程序将在禁用中断模式下执行，使得 CPU 暂时停止接收中断信号。
@@ -600,7 +600,7 @@ c. 在终止之前重新启用本地 CPU 的中断通知。&lt;/li>
 &lt;p>注意步骤 1、2 可以单独执行，因为它们不会对集群产生实际影响，但需要确保步骤 3 在前两步之后执行。&lt;/p>
 &lt;p>因为一旦启用 admission-controller 插件，apiserver 会对所有的 pod 创建/更新请求强制执行安全策略检查，如果集群中没有可用的 pod 安全策略资源或者未对安全策略资源预先授权，所有的 pod 创建/更新请求都会被拒绝。包括 kube-system 命名空间下的系统管理组件如 apiserver 本身（由于 apiserver 是受 kubelet 管理的静态 pod，实际上容器依然会运行）。&lt;/p>
 &lt;p>启用的整体流程如下示意图：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-04-11-podsecuritypolicy-diagrams.png" alt="podsecuritypolicy">&lt;/p>
+&lt;p>&lt;img src="2022-04-11-podsecuritypolicy-diagrams.png" alt="podsecuritypolicy">&lt;/p>
 &lt;h4 id="创建安全策略资源">创建安全策略资源&lt;/h4>
 &lt;ol>
 &lt;li>
@@ -1213,7 +1213,7 @@ error: json: unknown field &amp;quot;replacements&amp;quot;
 &lt;ol>
 &lt;li>
 &lt;p>在物理-网络设备层，网卡通过 DMA 将接收到的数据包写入内存中的 &lt;code>ring buffer&lt;/code>，经过一系列中断和调度后，操作系统内核调用 &lt;code>__skb_dequeue&lt;/code> 将数据包加入对应设备的处理队列中，并转换成 &lt;code>sk_buffer&lt;/code> 类型（即 socket buffer - 将在整个内核调用栈中持续作为参数传递的基础数据结构，下文指称的数据包都可以认为是 &lt;code>sk_buffer&lt;/code>），最后调用 &lt;code>netif_receive_skb&lt;/code> 函数按协议类型对数据包进行分类，并跳转到对应的处理函数。如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-network-path.png" alt="network-path">&lt;/p>
+&lt;p>&lt;img src="2022-03-07-network-path.png" alt="network-path">&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>假设该数据包为 IP 协议包，对应的接收包处理函数 &lt;code>ip_rcv&lt;/code> 将被调用，数据包处理进入网络（IP）层。&lt;code>ip_rcv&lt;/code> 检查数据包的 IP 首部并丢弃出错的包，必要时还会聚合被分片的 IP 包。然后执行 &lt;code>ip_rcv_finish&lt;/code> 函数，对数据包进行路由查询并决定是将数据包交付本机还是转发其他主机。假设数据包的目的地址是本主机，接着执行的 &lt;code>dst_input&lt;/code> 函数将调用 &lt;code>ip_local_deliver&lt;/code> 函数。&lt;code>ip_local_deliver&lt;/code> 函数中将根据 IP 首部中的协议号判断载荷数据的协议类型，最后调用对应类型的包处理函数。本例中将调用 TCP 协议对应的 &lt;code>tcp_v4_rcv&lt;/code> 函数，之后数据包处理进入传输层。&lt;/p>
@@ -1226,7 +1226,7 @@ error: json: unknown field &amp;quot;replacements&amp;quot;
 &lt;p>接下来我们正式进入主题。netfilter 的首要组成部分是 netfilter hooks。&lt;/p>
 &lt;h4 id="hook-触发点">hook 触发点&lt;/h4>
 &lt;p>对于不同的协议（IPv4、IPv6 或 ARP 等），Linux 内核网络栈会在该协议栈数据包处理路径上的预设位置触发对应的 hook。在不同协议处理流程中的触发点位置以及对应的 hook 名称（蓝色矩形外部的黑体字）如下，本文仅重点关注 IPv4 协议：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-netfilter-flow.png" alt="netfilter-flow">&lt;/p>
+&lt;p>&lt;img src="2022-03-07-netfilter-flow.png" alt="netfilter-flow">&lt;/p>
 &lt;p>所谓的 hook 实质上是代码中的枚举对象（值为从0开始递增的整型）：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -1251,7 +1251,7 @@ error: json: unknown field &amp;quot;replacements&amp;quot;
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>每个 hook 在内核网络栈中对应特定的触发点位置，以 IPv4 协议栈为例，有以下 netfilter hooks 定义：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-netfilter-hooks-stack.png" alt="netfilter-hooks-stack">&lt;/p>
+&lt;p>&lt;img src="2022-03-07-netfilter-hooks-stack.png" alt="netfilter-hooks-stack">&lt;/p>
 &lt;ul>
 &lt;li>NF_INET_PRE_ROUTING: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_rcv&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ipv6_rcv&lt;/code> 函数中执行。所有接收数据包到达的第一个 hook 触发点（实际上新版本 Linux 增加了 INGRESS hook 作为最早触发点），在进行路由判断之前执行。&lt;/li>
 &lt;li>NF_INET_LOCAL_IN: 这个 hook 在 IPv4 协议栈的 &lt;code>ip_local_deliver()&lt;/code> 函数或 IPv6 协议栈的 &lt;code>ip6_input()&lt;/code> 函数中执行。经过路由判断后，所有目标地址是本机的接收数据包到达此 hook 触发点。&lt;/li>
@@ -1297,7 +1297,7 @@ error: json: unknown field &amp;quot;replacements&amp;quot;
 &lt;li>NF_REPEAT: 重新调用当前 hook。&lt;/li>
 &lt;/ol>
 &lt;p>回归到源码，IPv4 内核网络栈会在以下代码模块中调用 &lt;code>NF_HOOK()&lt;/code>：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-NF_HOOK.png" alt="NF_HOOK">&lt;/p>
+&lt;p>&lt;img src="2022-03-07-NF_HOOK.png" alt="NF_HOOK">&lt;/p>
 &lt;p>实际调用方式以 &lt;strong>&lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/source/net/ipv4/ip_forward.c#L115">&lt;code>net/ipv4/ip_forward.c&lt;/code>&lt;/a>&lt;/strong> 对数据包进行转发的源码为例，在 &lt;code>ip_forward&lt;/code> 函数结尾部分的第 115 行以 &lt;strong>NF_INET_FORWARD&lt;/strong> hook 作为入参调用了 &lt;strong>&lt;code>NF_HOOK&lt;/code>&lt;/strong> 宏，并将网络栈接下来的处理函数 &lt;code>ip_forward_finish&lt;/code> 作为 &lt;code>okfn&lt;/code> 参数传入**：**&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -1366,10 +1366,10 @@ error: json: unknown field &amp;quot;replacements&amp;quot;
 &lt;/ul>
 &lt;p>定义结构体后可通过 &lt;code>int nf_register_hook(struct nf_hook_ops *reg)&lt;/code> 或 &lt;code>int nf_register_hooks(struct nf_hook_ops *reg, unsigned int n);&lt;/code> 分别注册一个或多个回调函数。同一 netfilter hook 下所有的 &lt;code>nf_hook_ops&lt;/code> 注册后以 priority 为顺序组成一个链表结构，注册过程会根据 priority 从链表中找到合适的位置，然后执行链表插入操作。&lt;/p>
 &lt;p>在执行 &lt;code>NF-HOOK&lt;/code> 宏触发指定的 hook 时，将调用 &lt;code>nf_iterate&lt;/code> 函数迭代这个 hook 对应的 &lt;code>nf_hook_ops&lt;/code> 链表，并依次调用每一个 &lt;code>nf_hook_ops&lt;/code> 的注册函数成员 &lt;code>hookfn&lt;/code>。示意图如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-netfilter-hookfn1.png" alt="netfilter-hookfn1">&lt;/p>
+&lt;p>&lt;img src="2022-03-07-netfilter-hookfn1.png" alt="netfilter-hookfn1">&lt;/p>
 &lt;p>这种链式调用回调函数的工作方式，也让 netfilter hook 被称为 Chain，下文的 iptables 介绍中尤其体现了这一关联。&lt;/p>
 &lt;p>每个回调函数也必须返回一个 netfilter 向量；如果该向量为 &lt;strong>NF_ACCEPT，&lt;/strong>&lt;code>nf_iterate&lt;/code> 将会继续调用下一个 &lt;code>nf_hook_ops&lt;/code> 的回调函数，直到所有回调函数调用完毕后返回 &lt;strong>NF_ACCEPT&lt;/strong>；如果该向量为 &lt;strong>NF_DROP&lt;/strong>，将中断遍历并直接返回 &lt;strong>NF_DROP；&lt;strong>如果该向量为 &lt;strong>NF_REPEAT&lt;/strong>，将重新执行该回调函数&lt;/strong>。&lt;/strong> &lt;code>nf_iterate&lt;/code> 的返回值也将作为 &lt;code>NF-HOOK&lt;/code> 的返回值，网络栈将根据该向量值判断是否继续执行处理函数。示意图如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-netfilter-hookfn2.png" alt="netfilter-hookfn2">&lt;/p>
+&lt;p>&lt;img src="2022-03-07-netfilter-hookfn2.png" alt="netfilter-hookfn2">&lt;/p>
 &lt;p>netfilter hook 的回调函数机制具有以下特性：&lt;/p>
 &lt;ul>
 &lt;li>回调函数按优先级依次执行，只有上一回调函数返回 &lt;strong>NF_ACCEPT&lt;/strong> 才会继续执行下一回调函数。&lt;/li>
@@ -1450,7 +1450,7 @@ error: json: unknown field &amp;quot;replacements&amp;quot;
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>当数据包到达某一 hook 触发点时，会依次执行不同 table 在该 hook 上注册的所有回调函数，这些回调函数总是根据上文的 priority 值以固定的相对顺序执行：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-tables-priority.png" alt="tables-priority">&lt;/p>
+&lt;p>&lt;img src="2022-03-07-tables-priority.png" alt="tables-priority">&lt;/p>
 &lt;h4 id="ipt_do_table">ipt_do_table()&lt;/h4>
 &lt;p>filter 注册的 hook 回调函数 &lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/iptable_filter_hook">iptable_filter_hook&lt;/a> 将对 &lt;code>xt_table&lt;/code> 结构执行公共的规则检查函数 &lt;a href="https://elixir.bootlin.com/linux/v2.6.39.4/C/ident/ipt_do_table">ipt_do_table&lt;/a>。&lt;code>ipt_do_table&lt;/code> 接收 &lt;code>skb&lt;/code>、&lt;code>hook&lt;/code> 和 &lt;code>xt_table&lt;/code>作为参数，对 &lt;code>skb&lt;/code> 执行后两个参数所确定的规则集，返回 netfilter 向量作为回调函数的返回值。&lt;/p>
 &lt;p>在深入规则执行过程前，需要先了解规则集如何在内存中表示。每一条规则由 3 部分组成：&lt;/p>
@@ -1497,7 +1497,7 @@ error: json: unknown field &amp;quot;replacements&amp;quot;
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>&lt;code>ipt_do_table&lt;/code> 首先根据 hook 类型以及 &lt;code>xt_table.private.entries&lt;/code> 属性跳转到对应的规则集内存区域，执行如下过程：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-ipt_do_table.png" alt="ipt_do_table">&lt;/p>
+&lt;p>&lt;img src="2022-03-07-ipt_do_table.png" alt="ipt_do_table">&lt;/p>
 &lt;ol>
 &lt;li>首先检查数据包的 IP 首部与第一条规则 &lt;code>ipt_entry&lt;/code> 的 &lt;code>.ipt_ip&lt;/code> 属性是否一致，如不匹配根据 &lt;code>next_offset&lt;/code> 属性跳转到下一条规则。&lt;/li>
 &lt;li>若IP 首部匹配 ，则开始依次检查该规则所定义的所有 &lt;code>ipt_entry_match&lt;/code> 对象，与对象关联的匹配函数将被调用，根据调用返回值有返回到回调函数（以及是否丢弃数据包）、跳转到下一规则或继续检查等结果。&lt;/li>
@@ -1517,7 +1517,7 @@ error: json: unknown field &amp;quot;replacements&amp;quot;
 &lt;li>target：具有很强扩展性的自定义匹配后行为。&lt;/li>
 &lt;/ul>
 &lt;p>基于上文介绍的代码调用过程流程，chain 和 rule 按如下示意图执行：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2022-03-07-iptables-chains.png" alt="iptables-chains">&lt;/p>
+&lt;p>&lt;img src="2022-03-07-iptables-chains.png" alt="iptables-chains">&lt;/p>
 &lt;p>对于 iptables 具体的用法和指令本文不做详细介绍，可参考 &lt;a href="https://www.digitalocean.com/community/tutorials/iptables-essentials-common-firewall-rules-and-commands">Iptables Essentials: Common Firewall Rules and Commands | DigitalOcean&lt;/a>。&lt;/p>
 &lt;h2 id="conntrack">conntrack&lt;/h2>
 &lt;p>仅仅通过3、4层的首部信息对数据包进行过滤是不够的，有时候还需要进一步考虑连接的状态。netfilter 通过另一内置模块 &lt;code>conntrack&lt;/code> 进行连接跟踪（connection tracking），以提供根据连接过滤、地址转换（NAT）等更进阶的网络过滤功能。由于需要对连接状态进行判断，&lt;code>conntrack&lt;/code> 在整体机制相同的基础上，又针对协议特点有单独的实现。&lt;/p>
@@ -1815,7 +1815,7 @@ root@ubuntu-vm:~$
 &lt;p>一次构建多处部署的镜像分发大幅提高了应用的交付效率，对于需要跨平台部署应用的场景，利用 docker buildx 构建跨平台的镜像也是一种快捷高效的解决方案。&lt;/p>
 &lt;h2 id="前提">前提&lt;/h2>
 &lt;p>大部分镜像托管平台支持多平台镜像，这意味着镜像仓库中单个标签可以包含不同平台的多个镜像，以 &lt;code>docker hub&lt;/code> 的 &lt;code>python&lt;/code> 镜像仓库为例，&lt;code>3.9.6&lt;/code> 这个标签就包含了 10 个不同系统和架构的镜像（平台 = 系统 + 架构）：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2020-09-02-python-multi-arch-images.png" alt="Untitled">&lt;/p>
+&lt;p>&lt;img src="2020-09-02-python-multi-arch-images.png" alt="Untitled">&lt;/p>
 &lt;p>通过 &lt;code>docker pull&lt;/code> 或 &lt;code>docker run&lt;/code> 拉取一个支持跨平台的镜像时，&lt;code>docker&lt;/code> 会自动选择与当前运行平台相匹配的镜像。由于该特性的存在，在进行镜像的跨平台分发时，我们不需要对镜像的消费做任何处理，只需要关心镜像的生产，即如何构建跨平台的镜像。&lt;/p>
 &lt;h2 id="docker-buildx">docker buildx&lt;/h2>
 &lt;p>默认的 &lt;code>docker build&lt;/code> 命令无法完成跨平台构建任务，我们需要为 &lt;code>docker&lt;/code> 命令行安装 &lt;code>buildx&lt;/code> 插件扩展其功能。&lt;code>buildx&lt;/code> 能够使用由 &lt;a href="https://github.com/moby/buildkit">Moby BuildKit&lt;/a> 提供的构建镜像额外特性，它能够创建多个 builder 实例，在多个节点并行地执行构建任务，以及跨平台构建。&lt;/p>
@@ -3732,7 +3732,7 @@ PID PPID NAME CMD NTHREADS CGROUPS STATE
 &lt;/ul></description><category domain="https://www.waynerv.com/categories/linux/">Linux</category><category domain="https://www.waynerv.com/tags/%E5%AE%B9%E5%99%A8/">容器</category><category domain="https://www.waynerv.com/tags/namespace/">Namespace</category></item><item><title>容器技术原理(一)：从根本上认识容器镜像</title><link>https://www.waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/</link><guid isPermaLink="true">https://www.waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/</guid><pubDate>Tue, 20 Jul 2021 13:24:03 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="从-oci-规范说起">从 OCI 规范说起&lt;/h2>
 &lt;p>OCI（Open Container Initiative）规范是事实上的容器标准，已经被大部分容器实现以及容器编排系统所采用，包括 Docker 和 Kubernetes。它的出现是一段关于开源商业化的有趣历史：它由 Dokcer 公司作为领头者在 2015 年推出，但如今 Docker 公司在容器行业中已经成了打工仔。&lt;/p>
 &lt;p>从 OCI 规范开始了解容器镜像，可以让我们对容器技术建立更全面清晰的认知，而不是囿于实现细节。OCI 规范分为 &lt;code>Image spec&lt;/code> 和 &lt;code>Runtime spec&lt;/code> 两部分，它们分别覆盖了容器生命周期的不同阶段：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-oci-spec.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-07-20-oci-spec.png" alt="">&lt;/p>
 &lt;h2 id="镜像规范">镜像规范&lt;/h2>
 &lt;p>镜像规范定义了如何创建一个符合 OCI 规范的镜像，它规定了镜像的构建系统需要输出的内容和格式，输出的容器镜像可以被解包成一个 &lt;code>runtime bundle&lt;/code> ，&lt;code>runtime bundle&lt;/code> 是由特定文件和目录结构组成的一个文件夹，从中可以根据运行时标准运行容器。&lt;/p>
 &lt;h3 id="镜像里面都有什么">镜像里面都有什么&lt;/h3>
@@ -4233,7 +4233,7 @@ $ diff layers.a layers.b
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>&lt;code>LowerDir&lt;/code> 中记录了原有的镜像层文件系统，另外在最上层还新增了一个 &lt;code>init&lt;/code> 层，它们在容器运行阶段都是只读的；&lt;code>MergedDir&lt;/code> 中记录了将 &lt;code>LowerDir&lt;/code> 的所有目录进行联合挂载的挂载点；&lt;code>UpperDir&lt;/code> 也是新增的一个 &lt;code>layer&lt;/code> ，此时位于以上所有 &lt;code>layers&lt;/code> 的最上层，与其他镜像层相比它是可读写的。容器阶段的 &lt;code>layers&lt;/code> 示意图如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-image-layers.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-07-20-image-layers.png" alt="">&lt;/p>
 &lt;p>创建容器时所新增的可写 &lt;code>layer&lt;/code> 我们称为 &lt;code>container layer&lt;/code>，容器运行阶段对文件系统的变更都只会写入到该 &lt;code>layer&lt;/code> 中，包括对文件的新增、修改和删除，而不会改变更低层的原有镜像内容，这极大提升了镜像的分发效率。在镜像层和 &lt;code>container layer&lt;/code> 之间的 &lt;code>init&lt;/code> 层记录了容器在启动时写入的一些配置文件，这一过程发生在新增读写层之前，我们不希望把这些数据写入到原始镜像中。&lt;/p>
 &lt;p>这两个新增的层仅在容器运行阶段存在，容器删除后它们也会被删除。同一个镜像可以创建多个不同的容器，仅需要创建多个不同的可写层；运行时更改过的容器也可以重新打包为一个新的镜像，将可写层添加到新镜像的只读层中即可。&lt;/p>
 &lt;h4 id="为什么容器的读写效率不如原生文件系统">为什么容器的读写效率不如原生文件系统&lt;/h4>
@@ -4243,7 +4243,7 @@ $ diff layers.a layers.b
 &lt;p>运行时规范描述了容器的配置、执行环境和生命周期。它详细描述了不同容器运行时架构的配置文件 &lt;code>config.json&lt;/code> 的字段格式，如何在执行环境中应用、注入这些配置，以确保容器内运行的程序在不同运行时之间环境一致，并通过容器的生命周期定义了一套统一的操作行为。&lt;/p>
 &lt;h3 id="容器的生命周期">容器的生命周期&lt;/h3>
 &lt;p>规范所定义的&lt;a href="https://github.com/opencontainers/runtime-spec/blob/master/runtime.md#lifecycle">容器生命周期&lt;/a>，描述了容器从创建到退出所发生的事件构成的时间线，该时间线中定义了 13 个不同的事件，下图描述了时间线中容器状态的变化：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-runtime-lifecycle.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-07-20-runtime-lifecycle.png" alt="">&lt;/p>
 &lt;p>规范中只定义了4种&lt;a href="https://github.com/opencontainers/runtime-spec/blob/master/runtime.md#state">容器状态&lt;/a>，运行时实现可以在规范的基础上添加其他状态，同时标准还规定了运行时必须支持的&lt;a href="https://github.com/opencontainers/runtime-spec/blob/master/runtime.md#operations">操作&lt;/a>：&lt;/p>
 &lt;ul>
 &lt;li>Query State，查询容器的当前状态&lt;/li>
@@ -4299,9 +4299,9 @@ $ diff layers.a layers.b
 &lt;h2 id="实现和生态">实现和生态&lt;/h2>
 &lt;p>Docker 向 OCI 规范捐献了其容器运行时 &lt;code>runC&lt;/code> 项目，作为该规范的标准实现。目前已有的大部分容器项目都直接将 &lt;code>runC&lt;/code> 作为运行时实现。&lt;/p>
 &lt;p>下图可以概括容器生态内 Docker 相关的组织及项目之间的关系：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-runc.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-07-20-runc.png" alt="">&lt;/p>
 &lt;p>Kubernetes 定义了 CRI（Container Runtime Interface）以实现可替换的容器运行时，目前有 &lt;code>cri-containerd&lt;/code> 、&lt;code>cri-o&lt;/code> 和 &lt;code>docker&lt;/code> 等几种实现，但它们实际上也都基于 &lt;code>runC&lt;/code>：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-07-20-k8s-cri.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-07-20-k8s-cri.png" alt="">&lt;/p>
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>
@@ -4432,7 +4432,7 @@ additional_dependencies:
 &lt;p>我们将使用免费的 GitHub Actions 作为 CI，自动执行一系列的测试、构建和发布任务。&lt;/p>
 &lt;h3 id="自动运行测试">自动运行测试&lt;/h3>
 &lt;p>集成了 &lt;code>tox&lt;/code> 的另一大好处，是可以轻松地通过 &lt;code>tox-gh-actions&lt;/code> 与 Actions 集成，分别以不同的 Python 版本以及不同的架构平台创建多个运行机器，并行地执行测试任务。运行的效果如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-06-25-github-workflow.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-06-25-github-workflow.png" alt="">&lt;/p>
 &lt;p>每一次 &lt;code>push&lt;/code> 或者 &lt;code>pull_request&lt;/code> 都将以不同的平台和 Python 版本运行完整的测试流程。&lt;/p>
 &lt;h3 id="自动发布到-pypi">自动发布到 PyPI&lt;/h3>
 &lt;p>参考 PyPa 发布的 &lt;a href="https://packaging.python.org/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/">Publishing package distribution releases using GitHub Actions CI/CD workflows&lt;/a>，我们将项目配置为：当向远程仓库推送标签时，自动将项目打包后分别发布到 TestPyPI 和 PyPI。&lt;/p>
@@ -4517,7 +4517,7 @@ additional_dependencies:
 &lt;p>&lt;code>Makefile&lt;/code> 和 &lt;code>make.bat&lt;/code> 提供了一些快捷命令，在 &lt;code>docs&lt;/code> 目录执行 &lt;code>make html&lt;/code> 即可通过源文件生成静态网页。&lt;/p>
 &lt;p>&lt;code>index.rst&lt;/code> 是文档源文件的首页，文档里有一些默认的样板内容，通常我们将其作为访问其他页面的入口目录。&lt;/p>
 &lt;p>此时已经可以运行 &lt;code>make html&lt;/code> 生成静态网页用于预览，生成的 HTML 页面保存在 &lt;code>_build/html&lt;/code> 目录。使用浏览器打开后效果如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-06-07-sphinx-index.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-06-07-sphinx-index.png" alt="">&lt;/p>
 &lt;p>如果对默认的样式不满意，还可以在 &lt;a href="https://sphinx-themes.org/">Sphinx Themes Gallery&lt;/a> 找到大量可以轻松替换的文档主题。&lt;/p>
 &lt;h2 id="基本使用">基本使用&lt;/h2>
 &lt;h3 id="初识-restructuredtext">初识 reStructuredText&lt;/h3>
@@ -4691,7 +4691,7 @@ additional_dependencies:
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>生成 HTML 页面如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-06-07-sphinx-new-content.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-06-07-sphinx-new-content.png" alt="">&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>添加新的 &lt;code>.rst&lt;/code> 文件&lt;/p>
@@ -4737,7 +4737,7 @@ additional_dependencies:
 &lt;/li>
 &lt;/ol>
 &lt;p>最终通过 &lt;code>make html&lt;/code> 生成的 HTML 页面效果如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-06-07-sphinx-new-file.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-06-07-sphinx-new-file.png" alt="">&lt;/p>
 &lt;h2 id="生成-api-文档">生成 API 文档&lt;/h2>
 &lt;p>以上介绍的内容，已经足够为项目编写一般的文本内容文档，最后来看如何通过代码自动生成 API 文档。&lt;/p>
 &lt;p>以单文件模块作为示例，结果同样适用于多文件的包和模块，假设我们的代码位于根目录下的 &lt;code>main.py&lt;/code> 文件（即 &lt;code>main&lt;/code> 模块）中，内容如下：&lt;/p>
@@ -4854,9 +4854,9 @@ additional_dependencies:
 &lt;/code>&lt;/pre>&lt;/li>
 &lt;/ul>
 &lt;p>&lt;code>references/api_reference.md&lt;/code> 生成的页面效果如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-06-07-sphinx-autodoc.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-06-07-sphinx-autodoc.png" alt="">&lt;/p>
 &lt;p>通过页面右侧的 &lt;code>[source]&lt;/code> 链接还能够直接从文档页面跳转到相应的源代码：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-06-07-sphinx-viewcode.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-06-07-sphinx-viewcode.png" alt="">&lt;/p>
 &lt;h3 id="文档字符串风格">文档字符串风格&lt;/h3>
 &lt;p>上面的示例代码中，我们使用 reStructuredText 风格编写文档字符串，如果你更喜欢 &lt;a href="https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard">NumPy&lt;/a> 或 &lt;a href="https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings">Google &lt;/a>风格的文档字符串，可以启用 &lt;code>napoleon&lt;/code> 扩展与之兼容。&lt;code>napoleon&lt;/code> 是一个预处理器，在 &lt;code>autodoc&lt;/code> 处理文档字符串之前将其转换为正确的 reStructuredText 文本。&lt;/p>
 &lt;p>启用方法同样是修改 &lt;code>conf.py&lt;/code> 文件的 extensions 配置项：&lt;/p>
@@ -5581,7 +5581,7 @@ additional_dependencies:
 &lt;/ul>
 &lt;h3 id="图表">图表&lt;/h3>
 &lt;p>用一张&lt;a href="http://www.plantuml.com/plantuml/png/hLHDhzCm4BpxLrYFIoALSgzKzCI52pUELVNan4uRYEF8NYFuzzYhr67fAlZ0RJzcnfl9sgy1b8Te9t4VjP63Sz2vds99nR4V5pM3XD6QXBAB4AabNt8khTDnCY_o2NaCu6CFRpaMPjOoSLQYLc08-TsNyNQ7pzwOcUWyWCSSy1sKPpjhiCFJPWBrrsnVmO_pxJ7IfobIVW1FyZ6umNchu2rtYjJb_SVDhfCi9pQj4EVprfAzctyO3_9y5biHoTJ1LMDolPfGw0BXsbPnRfOI24OoWzhlI0ZG2d80jVP4q-FWdIte1aAxmyNfdakC1i4m0xlkst5Zj0SiHEYt6ZgUowQ7F-ocognzHHpYCfc66QQ6HcOgKbIhsg3UsMwSJPCB1pow5MIb_uyI1fmQVXn6pR_Wn0lsavdBU98XTk1L3rBD3kx68sZzVUAPm4oejFvGLBfVKl4IQr0_I25K3uC1Fn2HmWqDu2K-9Vb4BHVbWqbxojxOb9xAuWtexs3XSaYDA_ql1PwF8cYwE5Ku3FQn8gNihIYL1S4fIECcohL5IkNQ4W7au_Mcpp1duxCf6wLyIYarZ3crU0pgE8BqcLKk3-l6Ii1sXqTzmxHUW3UVux-QMKSx_GO0">时序图&lt;/a>总结上文内容：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/datetime-sequence.png" alt="datetime-sequence">&lt;/p>
+&lt;p>&lt;img src="datetime-sequence.png" alt="datetime-sequence">&lt;/p>
 &lt;ul>
 &lt;li>&lt;code>[ts]&lt;/code> 表示该参数具有默认值是可选的。&lt;/li>
 &lt;li>请注意区分图中的实例方法、类方法以及模块函数：
@@ -6516,7 +6516,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;li>有效数 $M$ 是一个二进制小数，它的取值范围为 1 和无限趋近于 2 之间，或者为 0 和无限趋近于 1 之间。具体处于哪个取值范围由指数部分的比特位是否全部为 0 来决定。&lt;/li>
 &lt;li>指数 $E$ 可能为正数也可能为负数，通过 2 的指数幂对最终表示的浮点数进行加权。&lt;/li>
 &lt;/ul>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-03-30-floating-fields.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-03-30-floating-fields.png" alt="">&lt;/p>
 &lt;p>下面我们来看看 IEEE 浮点数是如何在计算机中工作的。IEEE 浮点数在计算机中最常见的实际表示分别是 32 位（单精度）和 64 位（双精度），其包含的比特位可以划分为 3 部分（如上图）：&lt;/p>
 &lt;ul>
 &lt;li>最左边的单个比特位 s 代表符号位 $s$ 的值。&lt;/li>
@@ -6526,7 +6526,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;p>在单精度浮点数表示中，s 为 1 位，指数部分为 8 位（k=8），小数部分为 23 位（n=23），总共 32 位。&lt;/p>
 &lt;p>在双精度浮点数表示中，s 为 1 位，指数部分为 11 位（k=11），小数部分为 52 位（n=52），总共 64 位。&lt;/p>
 &lt;p>取决于指数部分的比特位的值，通过以上表示编码得到的值可分为下面 3 种情况。&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-03-30-floating-3-cases.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-03-30-floating-3-cases.png" alt="">&lt;/p>
 &lt;h3 id="规范化的值normalized">规范化的值（Normalized）&lt;/h3>
 &lt;p>规范化的值是最常见的情况，发生在当指数（exp）部分的比特位既非全部都是 0，也非全部都是 1 时，即其整数表示 $0 &amp;lt; exp &amp;lt; 255$ 时。&lt;/p>
 &lt;p>这时指数部分会被解释为一个偏置形式的有符号整数 $E$，计算方式为 $E = e - Bias$，其中 $e$ 是由指数部分所有比特位 $e_{k-1}...e_1e_0$ 表示的有符号整数，而 $Bias$ 是一个取决于指数部分比特位长度 k 的常数 $2^{k-1}-1$（单精度浮点数为 127， 双精度浮点数为 1023），因此指数 $E$ 的取值范围为 -126 到 127（单精度浮点数）或者 -1022 到 1023（双精度浮点数）。&lt;/p>
@@ -6545,7 +6545,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;p>若小数部分的比特位不全为 0，其表示的值 $V$ 代表 &lt;code>NaN&lt;/code>（&lt;strong>N&lt;/strong>ot &lt;strong>a&lt;/strong> &lt;strong>N&lt;/strong>umber）。这种值通常用来作为某些计算结果不是真实数字或者无限大的操作的返回值，如 $\sqrt{-1}$ 或者 $∞ - ∞$。在某些应用中还会用来表示尚未初始化的数据。&lt;/p>
 &lt;h3 id="示例">示例&lt;/h3>
 &lt;p>我们假定一个 8 位的浮点数表示作为示例，其指数部分长度为 4，小数部分长度为 3，偏置值为 7，即 $k=4$，$n=3$，$Bias=7$。其指数（Exponent）以及小数（Fraction）等各个部分的值以及所表示的十进制值如下图：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2021-03-30-floating-examples.png" alt="">&lt;/p>
+&lt;p>&lt;img src="2021-03-30-floating-examples.png" alt="">&lt;/p>
 &lt;p>从中我们可以发现 IEEE 浮点数的一些规律：&lt;/p>
 &lt;ol>
 &lt;li>虽然使用了不同的计算方式，但非规范化值可以平滑地过渡到规范化值，如上最大的非规范化值为 $\frac{7}{512}$，而最小的规范化值为 $\frac{8}{512}$。&lt;/li>
@@ -6603,7 +6603,7 @@ Type &lt;span class="s2">&amp;#34;help&amp;#34;&lt;/span>, &lt;span class="s2">&
 &lt;h3 id="紧急-bug-修复">紧急 bug 修复&lt;/h3>
 &lt;p>通常在一个产品的 Git 工作流中，会有至少一个发布分支和开发主分支。当发现一个 bug 时，我们需要尽快向已发布的产品提供修复补丁，同时也要将补丁整合到开发主分支中。&lt;/p>
 &lt;p>举个例子，比如我们发布了一个版本并已经开始开发一些新的功能，在新功能开发过程中，又发现了一个已经存在的 bug。我们创建了一个紧急修复提交对这个错误进行修复，并在开发主分支进行集成测试。这个新的补丁提交在合入开发主分支后可以直接 &lt;code>cherry-pick&lt;/code> 到发布分支，在影响更多用户之前修复这个 bug。过程示意如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-26-2021-git-cherry-pick.gif" alt="Jan-26-2021-git-cherry-pick">&lt;/p>
+&lt;p>&lt;img src="Jan-26-2021-git-cherry-pick.gif" alt="Jan-26-2021-git-cherry-pick">&lt;/p>
 &lt;p>在上面的动图中，我们在开发主分支 &lt;code>master&lt;/code> 添加了一些新的功能提交，修复了一些 bug 并合入了两个 &lt;code>bugfix&lt;/code> 分支，然后又将 &lt;code>bugfix&lt;/code> 分支中的所有提交 &lt;code>cherry-pick&lt;/code> 到了 &lt;code>release&lt;/code> 分支。在有些 Git 工作流中情况会有所不同，可能会基于 &lt;code>release&lt;/code> 分支创建 &lt;code>bugfix&lt;/code> 分支，并在合入 &lt;code>release&lt;/code> 后 &lt;code>cherry-pick&lt;/code> 这些提交到 &lt;code>master&lt;/code>。&lt;/p>
 &lt;h3 id="从放弃的分支中挑出个别提交">从放弃的分支中挑出个别提交&lt;/h3>
 &lt;p>有时因为需求的变化一个功能分支可能会过时，而不会被合并到主分支中。有时，一个 &lt;code>Pull Request&lt;/code> 可能会在没有合并的情况下被关闭。我们可以通过 &lt;code>git log&lt;/code> 和 &lt;code>git reflog&lt;/code> 等命令，从中找出一些有用的提交，并把它们 &lt;code>cherry-pick&lt;/code> 到主分支。&lt;/p>
@@ -6671,7 +6671,7 @@ $ git cherry-pick new-feature
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>执行过程很简单，如下示意：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-26-2021-git-cherry-pick2.gif" alt="Jan-26-2021-git-cherry-pick2">&lt;/p>
+&lt;p>&lt;img src="Jan-26-2021-git-cherry-pick2.gif" alt="Jan-26-2021-git-cherry-pick2">&lt;/p>
 &lt;p>但现在我们来猜一猜，现在的 &lt;code>master&lt;/code> 有几个文件？ &lt;code>main.py&lt;/code> 会有几行 &lt;code>print&lt;/code> 语句？&lt;/p>
 &lt;p>正确的答案是：我们会遭遇合并冲突 😝。在解决冲突后，我们会拥有一个修改过的 &lt;code>main.py&lt;/code> 文件，以及在提交 C 中新添加的 &lt;code>README.md&lt;/code> 文件。&lt;/p>
 &lt;p>为什么结果会是这样？借此示例，我们来深入探究一番 &lt;code>cherry-pick&lt;/code> 实际的执行过程。&lt;/p>
@@ -6961,7 +6961,7 @@ ea4c48a0984880bda4031f0713229229c12793e4
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>最后，让我们来看一下上文介绍的三棵树之间的工作流程：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/git-three-trees.png" alt="Untitled">&lt;/p>
+&lt;p>&lt;img src="git-three-trees.png" alt="Untitled">&lt;/p>
 &lt;ol>
 &lt;li>假设我们进入到一个新目录，其中有一个 &lt;code>README&lt;/code> 文件。此时暂存区为空，提交历史为空，HEAD 引用指向未创建的 &lt;code>master&lt;/code> 分支。&lt;/li>
 &lt;li>现在我们想提交该文件，首先需要通过 &lt;code>git add&lt;/code> 将其添加到暂存区。此时 Git 将在 &lt;code>.git/objects&lt;/code> 目录中以该文件的内容生成一个 &lt;code>blob&lt;/code> 对象，并将 &lt;code>blob&lt;/code> 对象的信息添加到 &lt;code>.git/index&lt;/code> 文件中。&lt;/li>
@@ -7010,7 +7010,7 @@ $ git checkout b15cc74
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>&lt;code>checkout&lt;/code> 命令的执行过程如以下动图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-checkout.gif" alt="Jan-11-2021-git-checkout">&lt;/p>
+&lt;p>&lt;img src="Jan-11-2021-git-checkout.gif" alt="Jan-11-2021-git-checkout">&lt;/p>
 &lt;ol>
 &lt;li>
 &lt;p>首先 HEAD 会直接指向 &lt;code>b15cc74&lt;/code> 提交，进入分离 HEAD 状态，即不再指向分支引用：&lt;/p>
@@ -7044,7 +7044,7 @@ b15cc74
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>执行过程如如以下动图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-checkout-file.gif" alt="Jan-11-2021-git-checkout-file">&lt;/p>
+&lt;p>&lt;img src="Jan-11-2021-git-checkout-file.gif" alt="Jan-11-2021-git-checkout-file">&lt;/p>
 &lt;ol>
 &lt;li>
 &lt;p>它会找到该提交，并在该提交的文件快照中匹配文件路径对应的文件，但并&lt;strong>不会移动&lt;/strong> HEAD：&lt;/p>
@@ -7069,7 +7069,7 @@ ref: refs/heads/master
 &lt;h3 id="git-reset">git reset&lt;/h3>
 &lt;p>&lt;code>git reset&lt;/code> 的主要作用是将 HEAD 重置为指定的提交。与 &lt;code>checkout&lt;/code> 的区别在于，它对提交历史的更改并不仅仅只是更新 HEAD 本身，如果 HEAD 原来指向某个分支引用，则会将分支引用也更新为指向新的提交。&lt;/p>
 &lt;p>它的工作方式更多了，有 &lt;code>—soft&lt;/code>、 &lt;code>--mixed&lt;/code>、&lt;code>--hard&lt;/code> 三种主要的命令选项，分别对应更新不同数量的树：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/iShot2021-01-07-git-reset.png" alt="iShot2021-01-07 22.21.30">&lt;/p>
+&lt;p>&lt;img src="iShot2021-01-07-git-reset.png" alt="iShot2021-01-07 22.21.30">&lt;/p>
 &lt;h4 id="--soft">&lt;code>--soft&lt;/code>&lt;/h4>
 &lt;p>当命令行选项为 &lt;code>--soft&lt;/code> 时，&lt;code>git reset&lt;/code> 只会对提交历史进行重置：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -7097,7 +7097,7 @@ $ git status
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>执行过程如以下动图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-reset-soft.gif" alt="Jan-11-2021-git-reset-soft">&lt;/p>
+&lt;p>&lt;img src="Jan-11-2021-git-reset-soft.gif" alt="Jan-11-2021-git-reset-soft">&lt;/p>
 &lt;ol>
 &lt;li>
 &lt;p>首先将 HEAD 及其指向的分支引用指向 &lt;code>b15cc74&lt;/code> 提交，本示例中 HEAD 原本指向 &lt;code>master&lt;/code> ，执行操作之后依然指向 &lt;code>master&lt;/code>：&lt;/p>
@@ -7158,7 +7158,7 @@ main.py
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>执行过程如以下动图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-reset-mixed.gif" alt="Jan-11-2021-git-reset-mixed">&lt;/p>
+&lt;p>&lt;img src="Jan-11-2021-git-reset-mixed.gif" alt="Jan-11-2021-git-reset-mixed">&lt;/p>
 &lt;ol>
 &lt;li>更新 HEAD 指向 &lt;code>b15cc74&lt;/code> 提交，重置提交历史的过程与 &lt;code>--soft&lt;/code> 完全相同。&lt;/li>
 &lt;li>之后还会更新暂存区，将其填充为 &lt;code>b15cc74&lt;/code> 提交的文件快照，暂存区中的原有内容将会丢失。&lt;/li>
@@ -7190,7 +7190,7 @@ $ git status
 &lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
 &lt;/div>
 &lt;/div>&lt;p>执行过程如以下动图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-reset-hard.gif" alt="Jan-11-2021-git-reset-hard">&lt;/p>
+&lt;p>&lt;img src="Jan-11-2021-git-reset-hard.gif" alt="Jan-11-2021-git-reset-hard">&lt;/p>
 &lt;ol>
 &lt;li>更新 HEAD 指向 &lt;code>b15cc74&lt;/code> 提交，重置提交历史的过程与 &lt;code>--soft&lt;/code> 及 &lt;code>--mixed&lt;/code> 选项相同。&lt;/li>
 &lt;li>更新暂存区，将其填充为 &lt;code>b15cc74&lt;/code> 提交的文件快照，暂存区中的原有内容将会丢失。&lt;/li>
@@ -7291,7 +7291,7 @@ $ git commit -m &lt;span class="s2">&amp;#34;add world.py&amp;#34;&lt;/span>
 &lt;h3 id="git-revert">git revert&lt;/h3>
 &lt;p>&lt;code>git revert&lt;/code> 命令用于回滚某一个（或多个）提交引入的更改。&lt;/p>
 &lt;p>其他的「撤销」命令如 &lt;code>git checkout&lt;/code> 和 &lt;code>git reset&lt;/code>，会将 HEAD 或分支引用重新指向到指定的提交，&lt;code>git revert&lt;/code> 命令也可以接受一个指定的提交，但并不会将任何引用移动到这个提交上。&lt;code>revert&lt;/code> 操作会接收指定的提交，反转该提交引入的更改，并创建一个新的「回滚提交」记录反转更改，然后更新分支引用，使其指向该提交。如以下动图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Jan-11-2021-git-revert.gif" alt="Jan-11-2021-git-revert">&lt;/p>
+&lt;p>&lt;img src="Jan-11-2021-git-revert.gif" alt="Jan-11-2021-git-revert">&lt;/p>
 &lt;p>相比 &lt;code>reset&lt;/code> ，&lt;code>revert&lt;/code> 会在提交历史中增加一个新的提交，而不会对之前的提交进行任何更改。 默认情况下 &lt;code>revert&lt;/code> 会自动执行如下步骤：&lt;/p>
 &lt;ul>
 &lt;li>将反转指定提交的更改合并到工作区&lt;/li>
@@ -7836,7 +7836,7 @@ All &lt;span class="k">done&lt;/span>! ✨ 🍰 ✨
 &lt;p>Git 可以在仓库中发生特定事件时自动运行自定义的脚本，这些自定义脚本即称为 &lt;code>hooks&lt;/code>。 它们让你可以在开发周期的关键点触发可定制的动作，比如每次执行提交前都执行一次 &lt;code>flake8&lt;/code> 命令。大部分其他的版本控制系统也会提供类似的功能。&lt;/p>
 &lt;p>&lt;code>hooks&lt;/code> 保存在 Git 仓库的 &lt;code>.git/hooks&lt;/code> 目录中，它可以是普通的 shell 脚本，也可以是 Python、Ruby 等语言的可执行脚本，因此我们可以很方便地将常用工具集成到 &lt;code>hooks&lt;/code> 中。 &lt;code>hooks&lt;/code> 通常按客户端和服务端分为两大类，常用的客户端类有 &lt;code>pre-commit&lt;/code> 、 &lt;code>prepare-commit-msg&lt;/code>、 &lt;code>commit-msg&lt;/code>、 &lt;code>post-commit&lt;/code>、 &lt;code>pre-rebase&lt;/code> 等 &lt;code>hooks&lt;/code>，它们分别在名称所代表的事件触发时运行。&lt;/p>
 &lt;p>以 &lt;code>pre-commit&lt;/code> 为例，该 &lt;code>hooks&lt;/code> 在输入提交信息前运行。 它可以检查即将提交的快照，如果该 &lt;code>hooks&lt;/code> 以非零值退出，Git 将放弃此次提交，我们可以利用它来检查提交的代码风格是否正确（运行例如 &lt;code>flake8&lt;/code>、 &lt;code>black&lt;/code> 等程序）、是否引入安全风险等等。整个流程示意如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-pre-commit-workflow.png" alt="2020-01-04-pre-commit-workflow">&lt;/p>
+&lt;p>&lt;img src="2020-01-04-pre-commit-workflow.png" alt="2020-01-04-pre-commit-workflow">&lt;/p>
 &lt;p>接下来我们将展示，如何将上文介绍的众多工具快速地集成到 &lt;code>pre-commit hooks&lt;/code> 中。&lt;/p>
 &lt;h3 id="pre-commit">pre-commit&lt;/h3>
 &lt;p>&lt;code>pre-commit&lt;/code> 是一个用于管理和维护多种语言 &lt;code>pre-commit hooks&lt;/code> 的框架，就像 Python 的包管理器 &lt;code>pip&lt;/code> 一样，我们可以通过 &lt;code>pre-commit&lt;/code> 将他人创建并分享的 &lt;code>pre-commit hooks&lt;/code> 安装到自己的项目仓库中。 &lt;code>pre-commit&lt;/code> 大大减少了我们使用 &lt;code>git hooks&lt;/code> 的难度，你只需要在配置文件中指定想要的 &lt;code>hooks&lt;/code>，它会替你安装任意语言编写的 &lt;code>hooks&lt;/code> 并解决环境依赖问题，然后在每次提交前执行。&lt;/p>
@@ -7992,7 +7992,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;p>CD（Continuous Deployment，持续部署）是 CI 的下一步。我们不仅在每次推送代码到共享代码库时进行构建和测试，还会在不需要任何人工干预的情况下，自动部署代码到生产环境。此外还有Continuous Delivery （持续交付），它和持续部署的区别在于需要人工干预才会执行部署。&lt;/p>
 &lt;h3 id="pipeline">Pipeline&lt;/h3>
 &lt;p>Pipeline 是持续集成、交付和部署的顶层具象化组件，它由顺序执行的阶段（stage）以及每个阶段中并行的任务（job）组成。一个简单的 pipeline 如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-pipelines.png" alt="2020-01-04-pipelines">&lt;/p>
+&lt;p>&lt;img src="2020-01-04-pipelines.png" alt="2020-01-04-pipelines">&lt;/p>
 &lt;p>首先并行地执行 &lt;code>build&lt;/code> 阶段的所有任务（&lt;code>build_a&lt;/code> 和 &lt;code>build_b&lt;/code>），所有任务成功后继续执行下一阶段的任务，以此类推。pipeline 还能定义成按更复杂的逻辑规则运行。&lt;/p>
 &lt;p>下面我们以 GitLab CI 为例，展示如何配置一个 pipeline，并在测试阶段执行上文介绍的检查工具，解决不能对团队成员提交代码进行强制约束的问题。&lt;/p>
 &lt;h3 id="gitlab-ci-示例">GitLab CI 示例&lt;/h3>
@@ -8003,7 +8003,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>为项目（或项目组）&lt;a href="https://docs.gitlab.com/runner/register/">注册 Runner&lt;/a>。这一步首先需要从 GitLab 项目主页的 &lt;strong>Settings &amp;gt; CI/CD&lt;/strong> &lt;strong>&amp;gt; Runners settings&lt;/strong> 获取项目的 URL 和注册令牌，然后在 Runner 所在的机器运行 &lt;code>register&lt;/code> 命令使用 URL 和令牌完成注册，并选择合适的 Runner 类型，详细步骤参见文档。&lt;/li>
 &lt;/ul>
 &lt;p>配置完成后，我们将可以在 &lt;strong>Runners settings&lt;/strong> 页面查看可用的 Runner 和状态：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-runner-status.png" alt="2020-01-04-runner-status">&lt;/p>
+&lt;p>&lt;img src="2020-01-04-runner-status.png" alt="2020-01-04-runner-status">&lt;/p>
 &lt;h4 id="创建-gitlabyml">创建 &lt;code>.gitlab.yml&lt;/code>&lt;/h4>
 &lt;p>我们将在项目根目录创建一个配置 pipeline 的 &lt;code>.gitlab.yml&lt;/code> 文件，GitLab 将在每一次我们推送代码到共享仓库时，读取该文件中的定义和指令，创建一条不同阶段及任务组成的 pipeline，并将阶段中的任务派发给可用的 Runner 执行。我们以如下 &lt;code>.gitlab.yml&lt;/code> 文件为例：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
@@ -8098,7 +8098,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;li>遇到特定条件时，Runner 应做出的决定。&lt;/li>
 &lt;/ul>
 &lt;p>上面的示例定义了如下 pipeline：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-pipeline-graph.png" alt="2020-01-04-pipeline-graph">&lt;/p>
+&lt;p>&lt;img src="2020-01-04-pipeline-graph.png" alt="2020-01-04-pipeline-graph">&lt;/p>
 &lt;ul>
 &lt;li>&lt;code>before_script&lt;/code>关键字定义了在每个任务前执行的一组命令，我们通过这里设置的命令安装运行 pipeline 所需的依赖。&lt;/li>
 &lt;li>&lt;code>stage&lt;/code> 关键字定义了 &lt;code>Pre-commit Hooks&lt;/code> 和 &lt;code>Static Analysis&lt;/code> 两个阶段。&lt;/li>
@@ -8113,15 +8113,15 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;ul>
 &lt;li>
 &lt;p>进入 &lt;strong>CI/CD &amp;gt; Pipelines&lt;/strong>。将展示一个包含两个阶段的 pipeline（当前状态为已通过）。&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-pipeline-entry.png" alt="2020-01-04-pipeline-entry">&lt;/p>
+&lt;p>&lt;img src="2020-01-04-pipeline-entry.png" alt="2020-01-04-pipeline-entry">&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>点击 pipeline 的 ID 即可查看该 pipeline 的运行示意图：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-pipeline-graph.png" alt="2020-01-04-pipeline-graph">&lt;/p>
+&lt;p>&lt;img src="2020-01-04-pipeline-graph.png" alt="2020-01-04-pipeline-graph">&lt;/p>
 &lt;/li>
 &lt;li>
 &lt;p>点击一个任务名称，可查看该任务的详细运行信息：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-job-detail.png" alt="2020-01-04-job-detail">&lt;/p>
+&lt;p>&lt;img src="2020-01-04-job-detail.png" alt="2020-01-04-job-detail">&lt;/p>
 &lt;/li>
 &lt;/ul>
 &lt;p>以上即为一个完整的 GitLab CI pipeline 示例。在该 pipeline 中，我们会在每一次提交代码后：&lt;/p>
@@ -8275,7 +8275,7 @@ Check &lt;span class="k">for&lt;/span> added large files........................
 &lt;/ol>
 &lt;p>接下来我们测试一下效果。&lt;/p>
 &lt;p>在本地内容仓库做一些更改，预览效果后提交并推送，然后在共享仓库的 &lt;strong>GitHub Actions&lt;/strong> 页面检查相应 &lt;code>workflow&lt;/code> 的运行状态与详细结果：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/2020-01-04-actions-page.png" alt="2020-01-04-actions-page">&lt;/p>
+&lt;p>&lt;img src="2020-01-04-actions-page.png" alt="2020-01-04-actions-page">&lt;/p>
 &lt;p>运行成功后，很快发布仓库将新增一个由该 &lt;code>workflow&lt;/code> 创建的提交，相应的 GitHub Pages 也会更新相应的内容。&lt;/p>
 &lt;h2 id="总结">总结&lt;/h2>
 &lt;p>本文中，我们围绕保障代码质量这一目的：&lt;/p>
@@ -8528,13 +8528,13 @@ publish_dir: ./public
 &lt;h3 id="递归三路合并算法">递归三路合并算法&lt;/h3>
 &lt;p>Git 在自动合并时会使用「&lt;a href="https://en.wikipedia.org/wiki/Merge_(version_control)#Recursive_three-way_merge">递归三路合并&lt;/a>」算法对不同文件进行差异分析，接下来我们简单了解一下该算法。&lt;/p>
 &lt;p>首先从「三路合并」算法开始，假设我们有以下提交历史：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
+&lt;p>&lt;img src="Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
 &lt;p>上图中我们在 &lt;code>master&lt;/code> 合并了 &lt;code>feature&lt;/code> 分支，现在我们回溯一下合并的过程：&lt;/p>
 &lt;p>此时 &lt;code>master&lt;/code> 正指向提交 C，Git 首先找到两个分支最近的唯一共同祖先提交 A，然后分别对 A、C、F 提交的文件快照进行对比，我们下文称呼它们为 A、C、F 文件。接下来 Git 将逐「行」对三个文件的内容进行比较，如果三个文件中有两个文件该行的内容一致，则丢弃 A 文件中该行的内容，保留与 A 文件中不同的内容放到结果文件中。&lt;/p>
 &lt;p>具体来说，假如 A、C 内容一致，说明这是在 F 中更改的内容，需要保留该更改；A、F 内容一致同理；假如 C、F 内容一致，说明 C 和 F 都相对于 A 做了同样的更改，同样需要保留。除此之外的内容差异仅剩两种情况：如果 A、C、F 的内容都一致，说明什么都没有发生；如果该行在 A、C、F 的内容都不一致，说明发生了冲突，需要我们手动合并选择需要保留的内容。&lt;/p>
 &lt;p>结束对比后 Git 会以最终的结果文件快照创建一个新的 Merge 提交并指向它。&lt;/p>
 &lt;p>三路合并算法的基础是找到被合并文件的共同祖先，在一些简单的场景中这还能行的通，但在遇到&lt;a href="https://zh.wikipedia.org/wiki/%E5%90%88%E5%B9%B6_(%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6)#cite_note-2">十字交叉合并（criss-cross merge）&lt;/a>时，不存在唯一的最近共同祖先，如下图：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/20201229152228-criss-cross-merge.png" alt="20201229152228-criss-cross-merge">&lt;/p>
+&lt;p>&lt;img src="20201229152228-criss-cross-merge.png" alt="20201229152228-criss-cross-merge">&lt;/p>
 &lt;p>现在我们需要从 &lt;code>main&lt;/code> 分支合并 &lt;code>feature&lt;/code> 分支，即把 C7 合并到 C8，会发现 C8 和 C7 有两个共同祖先，这下怎么办呢？Git 采取的是递归三路合并（Recursive three-way merge），会先合并 C3 和 C5 这两个共同祖先创建一个虚拟的唯一最近祖先（假设为 C9），接着在 C9、C7、C8 之间执行三路合并，如果在合并 C3 和 C5 的过程中又发生没有唯一共同祖先的情况，则递归执行上述过程。&lt;/p>
 &lt;p>关于递归三路合并算法我们就了解到这里。&lt;/p>
 &lt;h3 id="合并冲突">合并冲突&lt;/h3>
@@ -8570,7 +8570,7 @@ task.py | 3 ++
 worker.py | 1 ++
 3 file changed, 6 insertions(+)
 &lt;/code>&lt;/pre>&lt;p>过程示意如下：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-fast-forward.gif" alt="Dec-29-2020 22-50-28">&lt;/p>
+&lt;p>&lt;img src="Dec-29-2020-fast-forward.gif" alt="Dec-29-2020 22-50-28">&lt;/p>
 &lt;p>由于我们想要合并的分支 &lt;code>feature&lt;/code> 所指向的提交 D 是 &lt;code>master&lt;/code> 的直接后继， 因此 Git 会直接将 &lt;code>HEAD&lt;/code> 指针向前移动。换句话说，如果顺着一个分支走下去一定能够到达另一个分支，那么 Git 在合并两者时只会简单的将指针向前推进（右移），因为这种情况下的合并操作没有需要解决的分歧——这就叫做快进（fast-forward）。&lt;/p>
 &lt;h2 id="git-的不同合并策略">Git 的不同合并策略&lt;/h2>
 &lt;p>我们在使用 Git 时，通常会基于主分支拉出若干条功能分支进行开发，开发完毕后再将功能分支合入主分支。有以下不同的分支合并策略：&lt;/p>
@@ -8581,7 +8581,7 @@ worker.py | 1 ++
 &lt;/ul>
 &lt;h3 id="通过-merge-显式合并">通过 &lt;code>merge&lt;/code> 显式合并&lt;/h3>
 &lt;p>这是最常见和最直接的合并方式，也是 GitHub 和 GitLab 等代码托管平台的默认实现方式。&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
+&lt;p>&lt;img src="Dec-29-2020-merge.gif" alt="Dec-29-2020 22-40-46">&lt;/p>
 &lt;p>当我们将功能分支合入主分支时，Git 会对两个分支进行递归三路合并，并以合并结果创建一个新的 Merge 提交。这个 Merge 提交和普通的提交本质上是一样的，但是它有两个父提交：&lt;/p>
 &lt;pre>&lt;code>$ git cat-file -p 44ba027
 tree 5a1692ba62ef346b59e65e4aa441c731bebc51ff
@@ -8599,7 +8599,7 @@ $ git rebase master
 $ git checkout master
 $ git merge feature
 &lt;/code>&lt;/pre>&lt;p>过程如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-31-2020-rebase&amp;amp;fast-forfward.gif" alt="Dec-31-2020-rebase&amp;fast-forfward">&lt;/p>
+&lt;p>&lt;img src="Dec-31-2020-rebase&amp;amp;fast-forfward.gif" alt="Dec-31-2020-rebase&amp;fast-forfward">&lt;/p>
 &lt;p>我们首先用 &lt;code>rebase&lt;/code> 将 &lt;code>master&lt;/code> 合并到了 &lt;code>feature&lt;/code>，即使两个分支都有不同的提交，也得到了一条完全线性的 &lt;code>feature&lt;/code> 分支，而且没有额外的 Merge 提交。&lt;/p>
 &lt;p>接着又切换到 &lt;code>master&lt;/code> 分支合并了 &lt;code>feature&lt;/code>。&lt;code>rebase&lt;/code> 之后的 &lt;code>feature&lt;/code> 分支上，所有提交都是 &lt;code>master&lt;/code> 的后继提交，因此我们将直接执行快进合并。快进合并只有在 &lt;code>master&lt;/code> 分支中没有比 &lt;code>feature&lt;/code> 更新的提交时才会发生（使用 &lt;code>rebase&lt;/code> 能够确保该结果），在这种情况下，&lt;code>master&lt;/code> 的 &lt;code>HEAD&lt;/code> 可以直接右移到 &lt;code>feature&lt;/code> 分支的最新提交。这样合并也不会生成单独的 Merge 提交，它只是将分支标签快速指向了新的提交。&lt;/p>
 &lt;p>通过 &lt;code>rebase&lt;/code> 或 &lt;code>fast-forward&lt;/code> 隐式的合并，我们能够得到一条整洁线性的提交历史，但同时也会丢失这些提交曾经的上下文信息。&lt;/p>
@@ -8626,7 +8626,7 @@ $ git merge feature
 &lt;/ul></description><category domain="https://www.waynerv.com/categories/%E5%B7%A5%E5%85%B7/">工具</category><category domain="https://www.waynerv.com/tags/git/">Git</category></item><item><title>git rebase 用法详解与工作原理</title><link>https://www.waynerv.com/posts/git-rebase-intro/</link><guid isPermaLink="true">https://www.waynerv.com/posts/git-rebase-intro/</guid><pubDate>Fri, 23 Oct 2020 23:45:24 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>以前对 &lt;code>git rebase -i&lt;/code> 的用法一直是一知半解，一次在需要合并多个提交时刚好用到，一顿操作差点把提交都搞丢了，幸好后面顺利找回，因此记录一下学习 &lt;code>rebase&lt;/code> 命令的过程。&lt;/p>
 &lt;h2 id="理解-rebase-命令">理解 Rebase 命令&lt;/h2>
 &lt;p>&lt;code>git rebase&lt;/code> 命令的文档描述是 &lt;code>Reapply commits on top of another base tip&lt;/code>，从字面上理解是「在另一个基端之上重新应用提交」，这个定义听起来有点抽象，换个角度可以理解为「将分支的基础从一个提交改成另一个提交，使其看起来就像是从另一个提交中创建了分支一样」，如下图：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
+&lt;p>&lt;img src="git-rebase-visual.png" alt="git-rebase.png">&lt;/p>
 &lt;p>假设我们从 &lt;code>Master&lt;/code> 的提交 A 创建了 &lt;code>Feature&lt;/code> 分支进行新的功能开发，这时 A 就是 &lt;code>Feature&lt;/code> 的基端。接着 &lt;code>Matser&lt;/code> 新增了两个提交 B 和 C， &lt;code>Feature&lt;/code> 新增了两个提交 D 和 E。现在我们出于某种原因，比如新功能的开发依赖 B、C 提交，需要将 &lt;code>Master&lt;/code> 的两个新提交整合到 &lt;code>Feature&lt;/code> 分支，为了保持提交历史的整洁，我们可以切换到 &lt;code>Feature&lt;/code> 分支执行 &lt;code>rebase&lt;/code> 操作：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -8671,7 +8671,7 @@ A---B---C master
 &lt;li>切回 &lt;code>master&lt;/code> 分支并执行快进合并： &lt;code>git chekcout master &amp;amp;&amp;amp; git merge feature&lt;/code>。&lt;/li>
 &lt;/ol>
 &lt;p>执行过程如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-30-2020-merge-example.gif" alt="Dec-30-2020-merge-example">&lt;/p>
+&lt;p>&lt;img src="Dec-30-2020-merge-example.gif" alt="Dec-30-2020-merge-example">&lt;/p>
 &lt;p>我们将得到如下提交历史：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
@@ -8702,7 +8702,7 @@ A---B---C master
 &lt;p>使用 &lt;code>rebase&lt;/code>&lt;/p>
 &lt;p>步骤与使用 &lt;code>merge&lt;/code> 基本相同，唯一的区别是第 2 步的命令替换成： &lt;code>git rebase master&lt;/code>。&lt;/p>
 &lt;p>执行过程如下图所示：&lt;/p>
-&lt;p>&lt;img src="https://www.waynerv.com/images/Dec-30-2020-rebase-example.gif" alt="Dec-30-2020-rebase-example">&lt;/p>
+&lt;p>&lt;img src="Dec-30-2020-rebase-example.gif" alt="Dec-30-2020-rebase-example">&lt;/p>
 &lt;p>我们将得到如下提交历史：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
