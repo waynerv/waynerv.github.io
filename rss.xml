@@ -1,4 +1,417 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.100.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sun, 05 Jun 2022 01:18:24 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>浅析 Linux 如何接收网络帧</title><link>https://www.waynerv.com/posts/how-linux-process-input-frames/</link><guid isPermaLink="true">https://www.waynerv.com/posts/how-linux-process-input-frames/</guid><pubDate>Mon, 25 Apr 2022 17:54:58 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;blockquote>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.100.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sun, 10 Jul 2022 11:51:13 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>PostgreSQL 14 的持续归档备份</title><link>https://www.waynerv.com/posts/postgresql-14-continuous-archiving-and-pitr/</link><guid isPermaLink="true">https://www.waynerv.com/posts/postgresql-14-continuous-archiving-and-pitr/</guid><pubDate>Sun, 10 Jul 2022 19:41:15 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="持续归档备份">持续归档备份&lt;/h2>
+&lt;p>pg 有三种基本的备份方式：&lt;/p>
+&lt;ul>
+&lt;li>利用 &lt;code>pg_dump&lt;/code> 进行 sql dump，属于逻辑备份无法恢复到指定状态。&lt;/li>
+&lt;li>基于文件系统备份，需要文件系统提供快照功能保证一致性，否则&lt;strong>必须&lt;/strong>停机备份。&lt;/li>
+&lt;li>持续归档，首选的高可靠性备份技术。&lt;/li>
+&lt;/ul>
+&lt;p>WAL 日志持续归档是实现归档备份的关键，把一个文件系统级别的备份和归档的 WAL 文件结合起来，当需要恢复时，先恢复文件系统备份，然后重放归档的 WAL 文件把系统恢复到当前（或指定的时间点）状态。&lt;/p>
+&lt;p>持续归档的优点：&lt;/p>
+&lt;ul>
+&lt;li>不需要完全一致的文件系统备份，通过从重做点重放 WAL 到达一致状态，因此可使用简单工具在不停机状态下制作基础备份。&lt;/li>
+&lt;li>简单地持续归档 WAL 文件即可在无法频繁完全备份的情况下实现连续备份。&lt;/li>
+&lt;li>利用基础备份和 WAL 存档重放到指定时间点可以将数据库恢复到基础备份之后的任意时间点。&lt;/li>
+&lt;li>连续地传输 WAL 归档文件到另一台已应用相同基础备份的机器，即可实现主备复制系统。&lt;/li>
+&lt;/ul>
+&lt;p>缺点：&lt;/p>
+&lt;ul>
+&lt;li>只能备份恢复整个数据库集簇，不支持更细粒度。&lt;/li>
+&lt;li>基础备份和持续归档文件会占用大量空间。&lt;/li>
+&lt;/ul>
+&lt;h3 id="开启-wal-归档">开启 WAL 归档&lt;/h3>
+&lt;p>pg 默认在 &lt;code>pg_wal&lt;/code> 目录持续生成 16M 大小的 WAL 段文件，没有开启归档模式时 pg 会对 WAL 段文件进行清理和回收。&lt;/p>
+&lt;p>归档过程是将检查点之前的 WAL 段文件从 &lt;code>pg_wal&lt;/code> 目录传输到指定位置（如复制到用户自定义的目录），传输成功后原有的 WAL 段文件将被清除或回收，未成功将保留文件并不断重试归档命令。&lt;/p>
+&lt;p>pg 归档过程具有极高可扩展性，传输过程即执行用户提供的一条 shell 命令，传输的具体方式和目标位置完全由用户自定义，仅根据命令返回码判断归档是否成功。&lt;/p>
+&lt;p>开启 WAL 归档的配置示例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">wal_level&lt;/span> &lt;span class="o">=&lt;/span> replica &lt;span class="c1"># 或更高级别&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">archive_mode&lt;/span> &lt;span class="o">=&lt;/span> on
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">archive_command&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s1">&amp;#39;test ! -f /mnt/server/archivedir/%f &amp;amp;&amp;amp; cp %p /mnt/server/archivedir/%f&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>关于归档命令有以下注意点：&lt;/p>
+&lt;ul>
+&lt;li>归档命令千万不要直接覆盖相同名称的归档文件，因为不同集簇可能产生相同名称的 WAL 段文件，归档命令应该在归档位置已存在归档文件时以非零状态码返回。&lt;/li>
+&lt;li>归档命令应当保留 WAL 段文件的原始文件名。&lt;/li>
+&lt;li>设计归档命令时应考虑如何解决或处理潜在的异常情况，否则会导致 &lt;code>pg_wal&lt;/code> 目录不断增长从而导致 pg 因空间不足关闭。&lt;/li>
+&lt;li>有必要开启 &lt;code>logging_collector&lt;/code> 参数，之后归档命令的标准错误输出会被收集到数据库日志中，方便对归档过程调试监控。&lt;/li>
+&lt;li>归档命令只会调用于已写完毕的 WAL 段文件，对于工作负载很小的数据库一个 WAL 段文件可能很长时间都不会切换，设置较小的 &lt;code>archive_timeout&lt;/code> 可以缩短事务执行完毕到被可靠地归档之间的时间间隔，也可通过执行 &lt;code>SELECT pg_switch_wal();&lt;/code> 手动切换 WAL 段文件，这也会触发对切换前使用的 WAL 段文件进行归档，该命令只能在主库执行。&lt;/li>
+&lt;li>如果命令被 SIGTERM 以外的信号或者 shell 的错误（如未找到命令）终止，归档将被中止且服务器将会关闭。&lt;/li>
+&lt;/ul>
+&lt;h3 id="基础备份">基础备份&lt;/h3>
+&lt;p>基础备份是由多个顺序命令组成的阶段性操作：&lt;/p>
+&lt;ol>
+&lt;li>执行 &lt;code>pg_start_backup&lt;/code> 开始备份，数据库会执行一次检查点，在备份开始时刻显式创建一个重做点，尽量将此时间点之前的事务写入磁盘，同时记录下该检查点的 LSN 位置。
+为了不影响在线运行，该命令默认通过分散 IO 的方式执行检查点，因此可能持续较长时间才返回。
+&lt;code>pg_start_backup&lt;/code> 还会强制开启整页写入模式，保证在基础备份期间对数据库的写入可以完全回放。&lt;/li>
+&lt;li>&lt;code>pg_start_backup&lt;/code> 执行成功后，用户需要自行使用文件系统工具对数据目录进行归档，获得一份文件系统备份，注意不同文件可能在不同的时间点被复制，因此文件系统备份中数据库的状态可能不一致。pg 预期这种情况的发生，并通过重放在整个基础备份期间写入的 WAL 段文件使其到达一致状态。&lt;/li>
+&lt;li>执行 &lt;code>pg_stop_backup&lt;/code>，数据库会强制切换正在使用的 WAL 段文件，并记录切换前的最后一条 LSN，结束 LSN 即为本次基础备份实际所备份的一致状态。基础备份期间写入的 WAL 段文件将被归档，结束操作还会发送一份记录了这些 WAL 段文件名称的&lt;strong>备份历史文件&lt;/strong>到归档位置，该文件的文件名记录了使用该基础备份恢复时所需要的第一个 WAL 段文件，文件内容记录了本次备份的起止时间戳和所需要的起止 WAL 段文件。在文件系统备份的基础上应用这些已归档的 WAL 段文件，即可恢复到结束 LSN 所代表的一致状态。&lt;/li>
+&lt;li>结束备份后需要在文件系统备份的根目录中&lt;strong>手动创建&lt;/strong> &lt;code>backup_label&lt;/code> 文件，内容为 &lt;code>pg_stop_backup&lt;/code> 操作所返回的输出，同时最好单独保存备份历史文件中所记录的 WAL 段文件，文件系统备份加上备份期间写入的 WAL 段文件才是一份有效的基础备份，能够成功恢复到数据库在结束备份时所处的一致状态。&lt;/li>
+&lt;/ol>
+&lt;p>&lt;code>pg_start_backup&lt;/code> 和 &lt;code>pg_stop_backup&lt;/code> 命令的具体细节可参考：&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://www.2ndquadrant.com/en/blog/what-does-pg_start_backup-do/">what-does-pg_start_backup-do/&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.postgresql.org/docs/current/functions-admin.html#FUNCTIONS-ADMIN-BACKUP">FUNCTIONS-ADMIN-BACKUP&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;p>在安全地归档文件系统备份和备份期间使用的 WAL 段文件后（在备份历史文件中指定），文件名称中数字序列小于备份历史文件名称的 WAL 段文件可以被删除。&lt;/p>
+&lt;p>恢复需要一个基础备份加上该基础备份之后产生的持续 WAL 归档文件，而重放大量 WAL 归档文件较为耗时，推荐的做法是定期做一次基础备份，同时清理基础备份之前的较早的 WAL 归档文件（清理后无法再恢复到该时间点）。&lt;/p>
+&lt;h4 id="使用底层-api-制作基础备份">使用底层 API 制作基础备份&lt;/h4>
+&lt;ol>
+&lt;li>
+&lt;p>确保归档功能已开启并工作正常。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>使用超级用户连接到数据库并执行以下命令（备份期间需要保持该连接）：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">pg_start_backup&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s1">&amp;#39;label&amp;#39;&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">false&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">false&lt;/span>&lt;span class="p">);&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ul>
+&lt;li>第一个参数是一个自定义的描述性的标签。&lt;/li>
+&lt;li>第二个参数代表是否开启快速检查点，开启后会执行快速检查点立刻发起大量 IO，可能会影响备份期间的数据库性能。关闭后会分散 IO 降低对数据库影响，但需要执行较长时间。&lt;/li>
+&lt;li>第三个参数代表是否开启独占备份，新版本已不建议开启。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;li>
+&lt;p>使用任意的文件系统备份工具将数据目录进行归档。
+如果备份工具因为复制期间文件被更改而以非零状态码返回，该错误可以被忽略。
+数据目录下的部分临时子目录、文件或子目录中的文件（如 &lt;code>pg_wal&lt;/code>）可以在归档时忽略。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>在同一连接中继续执行如下命令：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sql" data-lang="sql">&lt;span class="line">&lt;span class="cl">&lt;span class="k">SELECT&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="o">*&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="n">pg_stop_backup&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="k">false&lt;/span>&lt;span class="p">,&lt;/span>&lt;span class="w"> &lt;/span>&lt;span class="k">true&lt;/span>&lt;span class="p">);&lt;/span>&lt;span class="w">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>该命令将终止备份模式，并自动切换 WAL 段文件使得备份期间写入的 WAL 段文件能够被归档，默认情况下这些 WAL 端文件归档成功后该命令才会返回，返回的第二个字段输出需要写入到文件系统备份根目录下的 &lt;code>backup_label&lt;/code> 文件中，该文件在非独占备份模式需要手动创建。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>结束命令成功返回后，说明备份期间写入的 WAL 段文件已经被归档，此时备份结束。可以将文件系统备份和这些 WAL 段文件保存在一起，它们组成了一份完整的基础备份。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h4 id="使用-pg_basebackup-制作基础备份">使用 pg_basebackup 制作基础备份&lt;/h4>
+&lt;p>&lt;code>pg_basebackup&lt;/code> 封装了底层的 &lt;code>pg_start_backup&lt;/code> 和 &lt;code>pg_stop_backup&lt;/code> 等命令，并提供了一些非常方便的特性：&lt;/p>
+&lt;ul>
+&lt;li>支持对数据目录的文件系统备份进行存档压缩，自动忽略不需要的文件，自动写入 &lt;code>backup_label&lt;/code> 文件。&lt;/li>
+&lt;li>自动记录备份文件的校验和，防止备份被更改。&lt;/li>
+&lt;li>支持自动获取备份期间生成的所有 WAL 段归档文件，并存放到 &lt;code>pg_wal&lt;/code> 或其他目录中。&lt;/li>
+&lt;/ul>
+&lt;p>使用示例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ pg_basebackup -D /backup/demo -Ft -z -Xs -c fast -P -v
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pg_basebackup: initiating base backup, waiting &lt;span class="k">for&lt;/span> checkpoint to &lt;span class="nb">complete&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pg_basebackup: checkpoint completed
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pg_basebackup: write-ahead log start point: 0/75ED8820 on timeline &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pg_basebackup: starting background WAL receiver
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pg_basebackup: created temporary replication slot &lt;span class="s2">&amp;#34;pg_basebackup_15233&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">244438/244438 kB &lt;span class="o">(&lt;/span>100%&lt;span class="o">)&lt;/span>, 1/1 tablespace
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pg_basebackup: write-ahead log end point: 0/859200C8
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pg_basebackup: waiting &lt;span class="k">for&lt;/span> background process to finish streaming ...
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pg_basebackup: syncing data to disk ...
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">pg_basebackup: base backup completed
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ ls /backup/demo
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">backup_manifest base.tar.gz pg_wal.tar.gz
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>分别将 &lt;code>base.tar.gz&lt;/code> 和 &lt;code>pg_wal.tar.gz&lt;/code> 解压，得到文件系统备份和备份期间写入的 WAL 段归档：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;span class="lnt">24
+&lt;/span>&lt;span class="lnt">25
+&lt;/span>&lt;span class="lnt">26
+&lt;/span>&lt;span class="lnt">27
+&lt;/span>&lt;span class="lnt">28
+&lt;/span>&lt;span class="lnt">29
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ cat /backup/demo/backup_label
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">START WAL LOCATION: 0/75ED8820 &lt;span class="o">(&lt;/span>file 000000010000000000000075&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CHECKPOINT LOCATION: 0/763C57B0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">BACKUP METHOD: streamed
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">BACKUP FROM: primary
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">START TIME: 2022-07-09 15:13:35 UTC
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">LABEL: pg_basebackup base backup
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">START TIMELINE: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ ls -l /backup/demo/pg_wal
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">total &lt;span class="m">278532&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000075&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000076&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000077&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000078&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000079&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 00000001000000000000007A
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 00000001000000000000007B
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 00000001000000000000007C
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 00000001000000000000007D
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 00000001000000000000007E
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 00000001000000000000007F
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000080&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000081&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000082&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000083&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000084&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-rw------- &lt;span class="m">1&lt;/span> postgres postgres &lt;span class="m">16777216&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:13 &lt;span class="m">000000010000000000000085&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">drwx------ &lt;span class="m">2&lt;/span> postgres postgres &lt;span class="m">4096&lt;/span> Jul &lt;span class="m">9&lt;/span> 15:20 archive_status
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>数据目录中的 &lt;code>backup_label&lt;/code> 文件并没有记录基础备份结束的 LSN 位置，但可以在 WAL 归档目录下对应的备份历史文件中查看：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ cat 000000010000000000000075.00ED8820.backup
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">START WAL LOCATION: 0/75ED8820 &lt;span class="o">(&lt;/span>file 000000010000000000000075&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">STOP WAL LOCATION: 0/859200C8 &lt;span class="o">(&lt;/span>file 000000010000000000000085&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CHECKPOINT LOCATION: 0/763C57B0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">BACKUP METHOD: streamed
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">BACKUP FROM: primary
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">START TIME: 2022-07-09 15:13:35 UTC
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">LABEL: pg_basebackup base backup
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">START TIMELINE: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">STOP TIME: 2022-07-09 15:13:42 UTC
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">STOP TIMELINE: &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在使用该基础备份恢复时，恢复进程在重放了 &lt;code>000000010000000000000085&lt;/code> WAL 段文件后，数据库才会进入一致状态，之后数据库才能够接受连接执行查询操作，如下方的恢复日志所示：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:28.780 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: restored log file &lt;span class="s2">&amp;#34;000000010000000000000084&amp;#34;&lt;/span> from archive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:29.024 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: restored log file &lt;span class="s2">&amp;#34;000000010000000000000085&amp;#34;&lt;/span> from archive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:29.147 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: consistent recovery state reached at 0/859200C8
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:29.148 UTC &lt;span class="o">[&lt;/span>21179&lt;span class="o">]&lt;/span> LOG: database system is ready to accept read-only connections
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:29.232 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: restored log file &lt;span class="s2">&amp;#34;000000040000000000000086&amp;#34;&lt;/span> from archive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:29.480 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: restored log file &lt;span class="s2">&amp;#34;000000040000000000000087&amp;#34;&lt;/span> from archive
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="从归档备份中恢复">从归档备份中恢复&lt;/h2>
+&lt;p>恢复的操作步骤如下：&lt;/p>
+&lt;ol>
+&lt;li>停止 pg 服务器进程。&lt;/li>
+&lt;li>备份当前数据目录，如果空间不够，至少要备份 &lt;code>pg_wal&lt;/code> 目录下还未归档的 WAL 段文件。&lt;/li>
+&lt;li>移除数据目录下的所有文件和子目录。&lt;/li>
+&lt;li>将&lt;strong>文件系统备份&lt;/strong>恢复到数据目录，确保恢复后的文件和目录有正确的权限。&lt;/li>
+&lt;li>如果做文件系统备份时没有忽略 &lt;code>pg_wal&lt;/code> 目录，现在需要清空恢复后的 &lt;code>pg_wal&lt;/code> 目录，将未归档的 WAL 段文件复制到该目录。&lt;/li>
+&lt;li>在数据目录下创建一个 &lt;code>recovery.signal&lt;/code> 文件，该文件指示 pg 在启动时进入恢复模式，并将在恢复成功后自动删除。&lt;/li>
+&lt;li>在配置文件 &lt;code>postgresql.conf&lt;/code> 中设置和恢复相关的参数，如 &lt;code>restore_command&lt;/code>，下文会进行详细介绍。&lt;/li>
+&lt;li>启动 pg 服务器。服务器将进入恢复模式，并开始获取和处理恢复所需的 WAL 段文件。如果恢复过程因外部错误（如主机断电）被终止，可以简单地重启服务器让它继续恢复。恢复完成后，服务器将删除 &lt;code>recovery.signal&lt;/code> 文件以防止重新进入恢复模式，然后开始正常运行。&lt;/li>
+&lt;/ol>
+&lt;p>恢复的操作流程并不复杂，其关键点在于通过配置文件设置：&lt;/p>
+&lt;ul>
+&lt;li>恢复时获取已归档 WAL 段文件的方式。&lt;/li>
+&lt;li>恢复需要到达的目标状态。&lt;/li>
+&lt;/ul>
+&lt;h3 id="恢复命令">恢复命令&lt;/h3>
+&lt;p>恢复时必须设置 &lt;code>restore_command&lt;/code> (下文称之为恢复命令)来告诉 pg 如何获取已归档的 WAL 段文件，与存档命令类似，该命令定义如何将 pg 需要的特定 WAL 段文件（也包含其他类型文件）通过用户自定义的方式从归档位置传输到数据目录下的临时位置，然后 pg 会读取该临时文件执行重做。在该命令中可以通过执行脚本的方式，自定义更加复杂的行为。&lt;/p>
+&lt;p>如果已归档的 WAL 段文件存放于 &lt;code>/backup/demo/pg_wal&lt;/code> 目录，则示例的恢复命令为：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">restore_command&lt;/span> &lt;span class="o">=&lt;/span> &lt;span class="s1">&amp;#39;cp /backup/demo/pg_wal/%f %p&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>设计恢复命令时有以下注意点：&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>恢复命令一定要在传输失败或传输文件不存在时以非零状态码返回。pg 会尝试通过恢复命令获取一些并不在归档位置中的文件，因此恢复不会因为恢复命令失败而直接中止：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:24.762 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: restored log file &lt;span class="s2">&amp;#34;00000003.history&amp;#34;&lt;/span> from archive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:24.766 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: restored log file &lt;span class="s2">&amp;#34;00000004.history&amp;#34;&lt;/span> from archive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">cp: cannot stat &lt;span class="s1">&amp;#39;/var/lib/postgresql/archive/14/demo/00000005.history&amp;#39;&lt;/span>: No such file or directory
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:24.771 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: starting point-in-time recovery to 2022-07-10 08:03:23.157122+00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:24.776 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: restored log file &lt;span class="s2">&amp;#34;00000004.history&amp;#34;&lt;/span> from archive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:24.862 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: restored log file &lt;span class="s2">&amp;#34;000000010000000000000076&amp;#34;&lt;/span> from archive
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;/li>
+&lt;li>
+&lt;p>如果 pg 无法通过恢复命令获取某个文件，之后会尝试从数据目录下的 &lt;code>pg_wal&lt;/code> 目录中寻找。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>如果命令被 SIGTERM 以外的信号或者 shell 的错误（如未找到命令）终止，恢复将被中止且服务器将会关闭。&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="恢复模式">恢复模式&lt;/h3>
+&lt;p>恢复实际上有两种工作模式：&lt;/p>
+&lt;ul>
+&lt;li>在数据目录下创建一个名为 &lt;code>standby.signal&lt;/code> 的文件，服务器启动后将进入 standby 模式。服务器进入恢复状态，并且在达到归档的 WAL 的末端时不会停止恢复，而是通过连接到由&lt;code>primary_conninfo&lt;/code> 设置指定的主服务器或通过使用 &lt;code>restore_command&lt;/code> 获取新的 WAL 段，继续尝试恢复。&lt;/li>
+&lt;li>在数据目录中创建一个叫做 &lt;code>recovery.signal&lt;/code> 的文件，服务器启动后将进入目标恢复模式。目标恢复模式在归档的 WAL 段文件被完全重放或达到 &lt;code>recovery_target&lt;/code> 时结束。&lt;/li>
+&lt;/ul>
+&lt;p>通常情况下，standby 模式被用来提供高可用和扩展只读库，而目标恢复则被用来恢复丢失的数据或克隆新的服务器。如果同时创建了&lt;code>standby.signal&lt;/code> 和 &lt;code>recovery.signal&lt;/code> 文件，则以 standby 模式为优先。&lt;/p>
+&lt;h3 id="恢复目标">恢复目标&lt;/h3>
+&lt;p>默认情况下，恢复模式会处理完所有可用的 WAL 段文件，即通过递增 WAL 段命名中的序列号不断获取下一个 WAL 段文件，直到获取失败为止，最后会将数据库恢复到「相对最新」的状态。因此在恢复过程中出现的类似「文件未找到」的错误通常是正常的，尤其是在恢复结束时。&lt;/p>
+&lt;p>如果你只需要恢复到基础备份结束到当前时刻之间的某一个时间点，则需要指定&lt;strong>停止点&lt;/strong>，即恢复目标。恢复目标可以是时间戳、命名的恢复点和事务 ID，在实践中使用基于时间点恢复居多。&lt;/p>
+&lt;p>我们可以且仅可从以下参数中选择一个来指定恢复目标：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>recovery_target&lt;/code>：唯一可用的值是 &lt;code>immediate&lt;/code>，到达基础备份结束时的一致状态即停止恢复。&lt;/li>
+&lt;li>&lt;code>recovery_target_lsn&lt;/code>：设置恢复目标为指定的 LSN。&lt;/li>
+&lt;li>&lt;code>recovery_target_name&lt;/code>：设置恢复目标为指定的命名恢复点（通过&lt;code>pg_create_restore_point()&lt;/code> 创建命名恢复点）。&lt;/li>
+&lt;li>&lt;code>recovery_target_time&lt;/code>：设置恢复目标为指定的时间戳。&lt;/li>
+&lt;li>&lt;code>recovery_target_xid&lt;/code>：设置恢复目标为指定的事务 ID。&lt;/li>
+&lt;/ul>
+&lt;p>通过以下选项进一步设定是否包括恢复目标以及到达后的行为：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>recovery_target_inclusive&lt;/code>：指定恢复时是否包含恢复目标，即是否重放包含了目标时间戳、LSN 或事务 ID 的 WAL 日志条目，否则将在该恢复目标前停止。默认值为 &lt;code>true&lt;/code>。&lt;/li>
+&lt;li>&lt;code>recovery_target_timeline&lt;/code>：指定恢复时所到达的时间线，通常使用默认值 &lt;code>latest&lt;/code>，即归档日志中最后生成的时间线。&lt;/li>
+&lt;li>&lt;code>recovery_target_action&lt;/code>：指定到达恢复目标后服务器将执行的动作，仅在设定了恢复目标时生效。可执行以下三种动作：
+&lt;ul>
+&lt;li>&lt;code>pause&lt;/code>：暂停恢复进程。暂停时用户可根据从数据库查询到的当前状态执行下一步操作。可以选择 resume 被暂停的恢复进程，这会导致恢复模式结束；也可以选择更改恢复目标配置后重启数据库服务器，重新恢复到另一目标。如果服务器因 &lt;code>hot_standby=off&lt;/code> 配置而无法接受查询，该选项等同于 &lt;code>shutdown&lt;/code>。&lt;/li>
+&lt;li>&lt;code>promot&lt;/code>：结束恢复进程并创建一条新的时间线，开始接受数据库连接。&lt;/li>
+&lt;li>&lt;code>shutdown&lt;/code>：直接关闭服务器。此时不会删除 &lt;code>recovery.signal&lt;/code> 文件，如果服务器重新启动将立刻再次关闭；如果更改恢复目标配置后重启，将进入恢复模式从上一个恢复目标开始继续重放到新的恢复目标。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;h3 id="恢复终止">恢复终止&lt;/h3>
+&lt;p>在任何情况下，如果恢复进程在到达已配置的恢复目标之前，因处理完了可用的 WAL 段文件而结束，恢复进程将以 FATAL 错误退出导致服务器关闭：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:50.673 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: restored log file &lt;span class="s2">&amp;#34;0000000400000000000000D1&amp;#34;&lt;/span> from archive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:50.865 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: restored log file &lt;span class="s2">&amp;#34;0000000400000000000000D2&amp;#34;&lt;/span> from archive
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">cp: cannot stat &lt;span class="s1">&amp;#39;/var/lib/postgresql/archive/14/demo/0000000400000000000000D3&amp;#39;&lt;/span>: No such file or directory
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:51.003 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: redo &lt;span class="k">done&lt;/span> at 0/D2CA8530 system usage: CPU: user: 5.91 s, system: 9.59 s, elapsed: 25.94 s
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:51.003 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> LOG: last completed transaction was at log &lt;span class="nb">time&lt;/span> 2022-07-10 08:02:30.614229+00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:51.003 UTC &lt;span class="o">[&lt;/span>21181&lt;span class="o">]&lt;/span> FATAL: recovery ended before configured recovery target was reached
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:51.015 UTC &lt;span class="o">[&lt;/span>21179&lt;span class="o">]&lt;/span> LOG: startup process &lt;span class="o">(&lt;/span>PID 21181&lt;span class="o">)&lt;/span> exited with &lt;span class="nb">exit&lt;/span> code &lt;span class="m">1&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:51.015 UTC &lt;span class="o">[&lt;/span>21179&lt;span class="o">]&lt;/span> LOG: terminating any other active server processes
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:51.026 UTC &lt;span class="o">[&lt;/span>21179&lt;span class="o">]&lt;/span> LOG: shutting down due to startup process failure
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2022-07-10 08:05:51.047 UTC &lt;span class="o">[&lt;/span>21179&lt;span class="o">]&lt;/span> LOG: database system is shut down
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>如果恢复进程发现了损坏的 WAL 数据，恢复将立刻停止且服务器无法正常启动。这种情况下可以在损坏点之前指定一个新的恢复目标，然后重新运行恢复过程。&lt;/p>
+&lt;p>如果恢复由于外部原因而失败，比如系统崩溃或 WAL 归档无法访问，可以简单地重新启动服务器继续恢复，恢复进程会从失败的地方重新开始。恢复重启的工作方式很像普通的检查点：服务器定期将其所有状态刷新到磁盘，然后更新 &lt;code>pg_control&lt;/code> 文件记录处已理完成的 WAL 数据，在重启时不再需要重新处理这些数据。&lt;/p>
+&lt;h2 id="时间线">时间线&lt;/h2>
+&lt;p>pg 中引入了时间线的概念，每一次恢复成功后都会基于恢复的时间线创建一条新的时间线，时间线主要体现在 WAL 段文件的命名中：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">postgres&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT timeline_id FROM pg_control_checkpoint();&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> timeline_id
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">-------------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> row&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">postgres&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="c1"># SELECT pg_walfile_name(pg_current_wal_lsn());&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> pg_walfile_name
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">--------------------------
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="m">000000020000000000000086&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">(&lt;/span>&lt;span class="m">1&lt;/span> row&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>每次创建一个新的时间线 pg 还会创建一个时间线历史文件 &lt;code>&amp;lt;timeline-ID&amp;gt;.history&lt;/code>，记录了该时间线的父时间线。当从包含多个时间线的存档中恢复时，pg 需要时间线历史文件来不断往前回溯，选择正确的 WAL 段文件序列。因此时间线历史文件也会归档到 WAL 归档位置。&lt;/p>
+&lt;p>引入时间线的好处是，用户可以基于同一备份恢复之后再备份，通过时间线模拟出一条树状的备份历史，然后方便地在不同分叉之间定位和切换，不需要担心它们之间因命名冲突等原因造成混乱。在某些场景下时间线非常有用，通常我们会直接使用 WAL 归档中最近的时间线。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://www.postgresql.org/docs/14/continuous-archiving.html#BACKUP-PITR-RECOVERY">PostgreSQL: Documentation: 14: 26.3. Continuous Archiving and Point-in-Time Recovery (PITR)&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://www.waynerv.com/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</category><category domain="https://www.waynerv.com/tags/postgresql/">Postgresql</category><category domain="https://www.waynerv.com/tags/%E5%A4%87%E4%BB%BD%E6%81%A2%E5%A4%8D/">备份恢复</category></item><item><title>浅析 Linux 如何接收网络帧</title><link>https://www.waynerv.com/posts/how-linux-process-input-frames/</link><guid isPermaLink="true">https://www.waynerv.com/posts/how-linux-process-input-frames/</guid><pubDate>Mon, 25 Apr 2022 17:54:58 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;blockquote>
 &lt;p>本文首发于微信订阅号「沃趣技术」，转载时请注明来源。&lt;/p>
 &lt;/blockquote>
 &lt;p>本文将从初学者角度，介绍 Linux 内核如何接收网络帧：从网卡设备完成数据帧的接收开始，到数据帧被传递到网络栈中的第三层结束。重点介绍内核的工作机制，不会深入过多代码层面的细节，示例代码来自 Linux 2.6。&lt;/p>
