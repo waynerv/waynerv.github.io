@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.100.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sun, 10 Jul 2022 11:51:13 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>PostgreSQL 14 的持续归档备份</title><link>https://www.waynerv.com/posts/postgresql-14-continuous-archiving-and-pitr/</link><guid isPermaLink="true">https://www.waynerv.com/posts/postgresql-14-continuous-archiving-and-pitr/</guid><pubDate>Sun, 10 Jul 2022 19:41:15 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="持续归档备份">持续归档备份&lt;/h2>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://www.waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.100.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Mon, 11 Jul 2022 03:09:48 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://www.waynerv.com/rss.xml"/><item><title>PostgreSQL 14 的持续归档备份</title><link>https://www.waynerv.com/posts/postgresql-14-continuous-archiving-and-pitr/</link><guid isPermaLink="true">https://www.waynerv.com/posts/postgresql-14-continuous-archiving-and-pitr/</guid><pubDate>Sun, 10 Jul 2022 19:41:15 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="持续归档备份">持续归档备份&lt;/h2>
 &lt;p>pg 有三种基本的备份方式：&lt;/p>
 &lt;ul>
 &lt;li>利用 &lt;code>pg_dump&lt;/code> 进行 sql dump，属于逻辑备份无法恢复到指定状态。&lt;/li>
@@ -408,6 +408,14 @@
 &lt;/div>
 &lt;/div>&lt;p>每次创建一个新的时间线 pg 还会创建一个时间线历史文件 &lt;code>&amp;lt;timeline-ID&amp;gt;.history&lt;/code>，记录了该时间线的父时间线。当从包含多个时间线的存档中恢复时，pg 需要时间线历史文件来不断往前回溯，选择正确的 WAL 段文件序列。因此时间线历史文件也会归档到 WAL 归档位置。&lt;/p>
 &lt;p>引入时间线的好处是，用户可以基于同一备份恢复之后再备份，通过时间线模拟出一条树状的备份历史，然后方便地在不同分叉之间定位和切换，不需要担心它们之间因命名冲突等原因造成混乱。在某些场景下时间线非常有用，通常我们会直接使用 WAL 归档中最近的时间线。&lt;/p>
+&lt;h2 id="总结">总结&lt;/h2>
+&lt;p>持续归档的基础备份是一个有开始和结束动作的阶段性操作：&lt;/p>
+&lt;ul>
+&lt;li>开始时 pg 会执行检查点并强制开启 &lt;code>full_page_writes&lt;/code>，在开始到结束期间任何时间点的文件系统备份都可以回退到开始时间点进行重放。&lt;/li>
+&lt;li>结束命令 pg 会强制切换一次 WAL 段日志，文件系统备份重放到结束时被归档的最后一条 WAL 段日志就会使数据库到达一致状态。&lt;/li>
+&lt;/ul>
+&lt;p>因此一份完整有效的备份，必须包含&lt;strong>文件系统备份&lt;/strong>和&lt;strong>特定的 WAL 段日志&lt;/strong>。&lt;/p>
+&lt;p>作为久负盛名的开源数据库，pg 的持续归档可以评价为「大道至简」：整个过程由简单、基础的数据库指令和 OS 工具协作完成，完美契合 &lt;a href="https://en.wikipedia.org/wiki/Unix_philosophy">Unix 哲学&lt;/a>；归档和恢复的关键过程（&lt;code>archive_command&lt;/code> 和 &lt;code>restore_command&lt;/code>）完全交给用户，具备了极高的可扩展性，但也对管理员的技术水平有一定的要求。&lt;/p>
 &lt;h2 id="参考链接">参考链接&lt;/h2>
 &lt;ul>
 &lt;li>&lt;a href="https://www.postgresql.org/docs/14/continuous-archiving.html#BACKUP-PITR-RECOVERY">PostgreSQL: Documentation: 14: 26.3. Continuous Archiving and Point-in-Time Recovery (PITR)&lt;/a>&lt;/li>
