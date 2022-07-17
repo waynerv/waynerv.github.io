@@ -1,4 +1,234 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.100.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sat, 16 Jul 2022 05:25:06 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.com/rss.xml"/><item><title>如何使用 PostgreSQL 14 的持续归档备份和基于时间点恢复</title><link>https://waynerv.com/posts/postgresql-14-continuous-archiving-and-pitr/</link><guid isPermaLink="true">https://waynerv.com/posts/postgresql-14-continuous-archiving-and-pitr/</guid><pubDate>Sun, 10 Jul 2022 19:41:15 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="持续归档备份">持续归档备份&lt;/h2>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.100.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sun, 17 Jul 2022 01:50:09 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.com/rss.xml"/><item><title>如何优化 docker 镜像体积</title><link>https://waynerv.com/posts/how-to-reduce-docker-image-size/</link><guid isPermaLink="true">https://waynerv.com/posts/how-to-reduce-docker-image-size/</guid><pubDate>Sun, 17 Jul 2022 09:29:18 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近在接手一个新项目后，将原本 1.6GB 的镜像精简到了 600 多MB，直接进入了贤者时间，特地记录下优化过程中总结的一些经验。&lt;/p>
+&lt;h2 id="理论依据">理论依据&lt;/h2>
+&lt;p>镜像的本质是镜像层和运行配置文件组成的压缩包，构建镜像是通过运行 Dockerfile 中的 &lt;code>RUN&lt;/code> 、&lt;code>COPY&lt;/code> 和 &lt;code>ADD&lt;/code> 等指令生成镜像层和配置文件的过程。&lt;/p>
+&lt;p>在我去年写的博客 &lt;a href="https://waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/#%E9%95%9C%E5%83%8F%E8%A7%84%E8%8C%83">容器技术原理(一)：从根本上认识容器镜像 | Shall We Code?&lt;/a> 中，详细解释了镜像组成、联合文件系统及其工作方式等理论，本文不再赘述，只从中提取和镜像体积有关的关键点：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>RUN&lt;/code>、&lt;code>COPY&lt;/code> 和 &lt;code>ADD&lt;/code> 指令会在已有镜像层的基础上创建一个新的镜像层，执行指令产生的所有文件系统变更会在指令结束后作为一个镜像层整体提交。&lt;/li>
+&lt;li>镜像层具有 &lt;code>copy-on-write&lt;/code> 的特性，如果去更新其他镜像层中已存在的文件，会先将其复制到新的镜像层中再修改，造成双倍的文件空间占用。&lt;/li>
+&lt;li>如果去删除其他镜像层的一个文件，只会在当前镜像层生成一个该文件的删除标记，并不会减少整个镜像的实际体积。&lt;/li>
+&lt;/ul>
+&lt;p>上述理论可以通过如下 Dockerfile 来验证：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-docker" data-lang="docker">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> alpine:latest&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> resource.tar /&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">RUN&lt;/span> touch /resource.tar&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">RUN&lt;/span> rm -f /resource.tar&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENTRYPOINT&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;/bin/ash&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>我们在 Dockerfile 中简单地添加、修改和删除某个资源文件，然后构建镜像查看其镜像层信息：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;span class="lnt">9
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">$ docker build -t test-image -f Dockerfile .
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ docker &lt;span class="nb">history&lt;/span> test-image:latest
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">IMAGE CREATED CREATED BY SIZE COMMENT
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">95f1695b2904 About a minute ago /bin/sh -c &lt;span class="c1">#(nop) ENTRYPOINT [&amp;#34;/bin/ash&amp;#34;] 0B&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">1780448c656f About a minute ago /bin/sh -c rm -f /resource.tar 0B
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">a85d29bf7738 About a minute ago /bin/sh -c touch /resource.tar 135MB
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">6dac335fa653 &lt;span class="m">4&lt;/span> minutes ago /bin/sh -c &lt;span class="c1">#(nop) COPY file:66065d6e23e0bc52… 135MB&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">e66264b98777 &lt;span class="m">7&lt;/span> weeks ago /bin/sh -c &lt;span class="c1">#(nop) CMD [&amp;#34;/bin/sh&amp;#34;] 0B&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&amp;lt;missing&amp;gt; &lt;span class="m">7&lt;/span> weeks ago /bin/sh -c &lt;span class="c1">#(nop) ADD file:8e81116368669ed3d… 5.53MB&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>在 &lt;code>docker history&lt;/code> 的输出结果中可以看到：&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>RUN touch /resource.tar&lt;/code> 指令只是修改了文件的元信息，但依然将整个文件拷贝到了新的镜像层中。&lt;/li>
+&lt;li>&lt;code>RUN rm -f /resource.tar&lt;/code> 指令虽然删除了文件，并且该文件在运行容器时不可见，但依然在前两个镜像层中以及最终的镜像中存在。&lt;/li>
+&lt;/ul>
+&lt;h2 id="分析工具">分析工具&lt;/h2>
+&lt;p>给代码做性能调优时，首先要借助 Profiling 工具找到代码的性能瓶颈，对于优化镜像体积也是如此。下面介绍两个可以分析镜像体积的工具：&lt;/p>
+&lt;h3 id="docker-history">docker history&lt;/h3>
+&lt;p>docker 自带的 &lt;code>docker history&lt;/code> 命令，该命令可以展示所有镜像层的创建时间、指令以及体积等较为基础的信息，但对于复杂的镜像则有些乏力。使用方式见上方的示例。&lt;/p>
+&lt;h3 id="dive">dive&lt;/h3>
+&lt;p>第三方的 &lt;code>dive&lt;/code> 工具，该工具可以分析镜像层组成，并列出每个镜像层所包含的文件列表，可以很方便地定位到影响镜像体积的构建指令以及具体文件。&lt;/p>
+&lt;p>以 &lt;code>golang:1.16&lt;/code> 镜像为例，首先&lt;a href="https://github.com/wagoodman/dive#installation">安装 dive&lt;/a>，然后执行 &lt;code>dive golang:1.16&lt;/code>，输出如下：&lt;/p>
+&lt;p>&lt;img src="docker-image-dive.png" alt="dive image">&lt;/p>
+&lt;p>如上图所示，在左侧选中镜像层后，在右侧的文件树视图中可以清晰地看到该层的具体文件，并能够筛选相比上一层新增、更新或删除的文件。在选中的镜像层中，由于执行了 &lt;code>apt-get&lt;/code> 安装编译依赖，因此在 &lt;code>/usr/lib&lt;/code> 目录下新增了 150MB 依赖库文件。&lt;/p>
+&lt;h2 id="优化技巧">优化技巧&lt;/h2>
+&lt;p>下面介绍一些优化效果比较显著的优化技巧。&lt;/p>
+&lt;h3 id="分阶段构建与从零构建">分阶段构建与从零构建&lt;/h3>
+&lt;p>&lt;strong>分阶段构建&lt;/strong>（multi-stage builds）和&lt;strong>从零构建&lt;/strong>（build from scratch）是优化镜像体积的基本手段和必备技巧。&lt;/p>
+&lt;p>该方法将镜像构建过程区分为构建和运行环境，在构建环境安装编译器等依赖并编译所需的二进制包，然后将其复制到仅包含必要运行依赖的运行环境中。
+该技巧对 golang 这种能够编译静态二进制文件的语言效果尤为明显，我们可以将编译产生的二进制文件放到 &lt;code>scratch&lt;/code> 镜像中运行（&lt;code>scratch&lt;/code> 是一个特殊的空镜像）：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-docker" data-lang="docker">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> golang&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> hell0.go .&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENV&lt;/span> &lt;span class="nv">CGO_ENABLED&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">0&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">RUN&lt;/span> go build hello.go&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="s"> scratch&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> --from&lt;span class="o">=&lt;/span>&lt;span class="m">0&lt;/span> /go/hello .&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">CMD&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;./hello&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>如果直接使用 golang 镜像作为运行环境，其镜像体积通常接近 1 个 G，其中大部分文件都不是在运行容器时所必要的。
+将编译结果拷贝到运行环境后，体积只有几十 kb~mb 不等，如果需要在运行容器中保留基本的系统工具，可以考虑使用 alpine 镜像作为运行环境。&lt;/p>
+&lt;h3 id="避免产生无用的文档或缓存">避免产生无用的文档或缓存&lt;/h3>
+&lt;p>docker 镜像不应该包含文档、缓存等对运行容器没有作用的内容。&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>避免在本地保留安装缓存。&lt;/p>
+&lt;p>大部分包管理器会在安装时缓存下载的资源以备之后使用，以 pip 为例，会将下载的响应和构建的中间文件保存在 &lt;code>~/.cache/pip&lt;/code> 目录，应使用 &lt;code>--no-cache-dir&lt;/code> 选项禁用默认的缓存行为。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>避免安装文档。&lt;/p>
+&lt;p>部分包管理器提供了选项可以不安装附带的文档，如 dnf 可使用 &lt;code>--nodocs&lt;/code> 选项。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>避免缓存包索引。&lt;/p>
+&lt;p>部分包管理器在执行安装之前，会尝试查询所有已启用仓库的包列表、版本等元信息缓存在本地作为索引。个别仓库的索引缓存可达到 150 M 以上。
+我们应该仅在安装包时查询索引，并在安装完成后清理，不应该在单独的指令中执行 &lt;code>yum makecache&lt;/code> 这类缓存索引的命令。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h3 id="及时清理不需要的文件">及时清理不需要的文件&lt;/h3>
+&lt;p>运行容器时不需要的文件，一定要在创建的同一层清理，否则依然会保留在最终的镜像中。&lt;/p>
+&lt;p>通过包管理安装包，通常会产生大量的缓存文件，一定要在同一 &lt;code>RUN&lt;/code> 指令的结尾处立刻清理。在安装依赖数量较多时，可以节省大量的缓存空间。&lt;/p>
+&lt;p>以 &lt;code>dnf&lt;/code> 为例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-docker" data-lang="docker">&lt;span class="line">&lt;span class="cl">&lt;span class="k">RUN&lt;/span> dnf install -y --nodocs &amp;lt;PACKAGES&amp;gt; &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> dnf clean all &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> rm -rf /var/cache/dnf&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>以 &lt;code>apt&lt;/code> 为例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-docker" data-lang="docker">&lt;span class="line">&lt;span class="cl">&lt;span class="k">RUN&lt;/span> apt-get update &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> apt-get install -y &amp;lt;PACKAGES&amp;gt; &lt;span class="se">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="se">&lt;/span> &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> rm -rf /var/lib/apt/lists/*&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># 官方的 ubuntu/debian 镜像 apt-get 会在安装后自动执行 clean 命令&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="合并多个镜像层">合并多个镜像层&lt;/h3>
+&lt;p>上文解释过，应该避免在不同镜像层中更新文件而造成额外的体积占用。当构建的层数很多且执行指令较复杂时，很难避免在不同的镜像层中更新文件，可通过以下手段精简这部分额外体积：&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>在最终生成镜像时将所有镜像层合并成一层，在 &lt;code>docker build&lt;/code> 命令中使用 &lt;code>—squash&lt;/code> 即可实现（需要&lt;a href="https://docs.docker.com/engine/reference/commandline/dockerd/#description">开启 docker daemon 的实验性功能&lt;/a>）。以本文开头的 Dockerfile 为例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-docker" data-lang="docker">&lt;span class="line">&lt;span class="cl">$ docker build -t squash-image --squash -f Dockerfile . &lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>$ docker &lt;span class="nb">history&lt;/span> squash-image&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>IMAGE CREATED CREATED BY SIZE COMMENT&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>55ded8881d63 &lt;span class="m">9&lt;/span> hours ago 0B merge sha256:95f1695b29044522250de1b0c1904aaf8670b991ec1064d086c0c15865051d5d to sha256:e66264b98777e12192600bf9b4d663655c98a090072e1bab49e233d7531d1294&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&amp;lt;missing&amp;gt; &lt;span class="m">11&lt;/span> hours ago /bin/sh -c &lt;span class="c1">#(nop) ENTRYPOINT [&amp;#34;/bin/ash&amp;#34;] 0B&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&amp;lt;missing&amp;gt; &lt;span class="m">11&lt;/span> hours ago /bin/sh -c rm -f /resource.tar 0B&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&amp;lt;missing&amp;gt; &lt;span class="m">11&lt;/span> hours ago /bin/sh -c touch /resource.tar 0B&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&amp;lt;missing&amp;gt; &lt;span class="m">11&lt;/span> hours ago /bin/sh -c &lt;span class="c1">#(nop) COPY file:66065d6e23e0bc52… 0B&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&amp;lt;missing&amp;gt; &lt;span class="m">7&lt;/span> weeks ago /bin/sh -c &lt;span class="c1">#(nop) CMD [&amp;#34;/bin/sh&amp;#34;] 0B&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&amp;lt;missing&amp;gt; &lt;span class="m">7&lt;/span> weeks ago /bin/sh -c &lt;span class="c1">#(nop) ADD file:8e81116368669ed3d… 5.53MB&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>最终生成的镜像只有一个镜像层，包含最后实际存在的文件系统，在合并所有镜像层的过程中，相当于禁用了 &lt;code>copy-on-write&lt;/code> 特性。&lt;/p>
+&lt;p>这种做法的坏处在于，镜像在保存和分发时是可以复用镜像层的，推送镜像时会跳过镜像仓库已存在的镜像层，拉取镜像时会跳过本地已拉取过的镜像层，而合并成一层后则失去了这种优势。&lt;/p>
+&lt;p>对于可能和其他共用镜像层的场景，可以采取下面一种方式。&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>分阶段构建，将部分中间镜像层压缩成一层作为基础镜像。
+在开发团队内部，我们往往会在官方镜像的基础上添加或更新部分依赖，然后作为团队内部统一使用的基础镜像，这种复用方式可以大大减少实际占用的镜像体积。
+更进一步，我们可以将这类基础镜像压缩成一层。下面以 golang 官方镜像为例：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-docker" data-lang="docker">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> golang:1.16 as base&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="s"> scratch&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> --from&lt;span class="o">=&lt;/span>base / /&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENTRYPOINT&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;/bin/bash&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>压缩成一层后，&lt;code>golang:1.16&lt;/code> 的镜像体积从 919MB 变成 913MB，官方镜像已经做了很多优化所以节省空间十分有限，但对于开发团队内部制作的基础镜像，这种优化往往会带来意外惊喜。&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h3 id="复制文件的同时修改元信息">复制文件的同时修改元信息&lt;/h3>
+&lt;p>首先将可执行文件添加到镜像内，然后再修改文件的执行权限和所属用户，这类 COPY-RUN 指令在 Dockerfile 中十分常见：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-docker" data-lang="docker">&lt;span class="line">&lt;span class="cl">&lt;span class="k">COPY&lt;/span> output/hello /usr/bin/hello&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">RUN&lt;/span> chmod +x /usr/bin/hello &lt;span class="o">&amp;amp;&amp;amp;&lt;/span> chown normal:normal /usr/bin/hello&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>但由于修改文件元信息也会将文件复制到新的镜像层，以上指令会产生两份相同的文件。在文件体积较大时，会显著增加整个镜像的体积。
+事实上，我们可以在复制文件的同时完成对文件元信息的修改，&lt;code>COPY&lt;/code> 和 &lt;code>ADD&lt;/code> 指令都提供了修改元信息的 &lt;code>--chmod&lt;/code> 和 &lt;code>--chown&lt;/code> 选项：&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-docker" data-lang="docker">&lt;span class="line">&lt;span class="cl">&lt;span class="k">COPY&lt;/span> --chmod&lt;span class="o">=&lt;/span>&lt;span class="m">755&lt;/span> --chown&lt;span class="o">=&lt;/span>normal:normal output/hello /usr/bin/hello&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>&lt;code>--chmod&lt;/code> 特性目前还未添加到官方文档，使用前需要&lt;a href="https://docs.docker.com/develop/develop-images/build_enhancements/">开启 docker 的 buildkit 特性&lt;/a>（在 &lt;code>docker build&lt;/code> 命令前添加 &lt;code>DOCKER_BUILDKIT=1&lt;/code> 即可），目前只支持 &lt;code>--chmod=755&lt;/code> 和 &lt;code>--chmod=0755&lt;/code> 这种设置方法，不支持 &lt;code>--chmod=+x&lt;/code>。&lt;/p>
+&lt;h2 id="参考链接">参考链接&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://docs.docker.com/develop/develop-images/dockerfile_best-practices/">Best practices for writing Dockerfiles | Docker Documentation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.redhat.com/sysadmin/tiny-containers">How to build tiny container images | Enable Sysadmin&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://blog.vamc19.dev/posts/dockerfile-copy-chmod/">COPY --chmod reduced the size of my container image by 35%&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://www.ardanlabs.com/blog/2020/02/docker-images-part1-reducing-image-size.html">Docker Images : Part I - Reducing Image Size&lt;/a>&lt;/li>
+&lt;/ul></description><category domain="https://waynerv.com/categories/linux/">Linux</category><category domain="https://waynerv.com/tags/docker/">Docker</category></item><item><title>如何使用 PostgreSQL 14 的持续归档备份和基于时间点恢复</title><link>https://waynerv.com/posts/postgresql-14-continuous-archiving-and-pitr/</link><guid isPermaLink="true">https://waynerv.com/posts/postgresql-14-continuous-archiving-and-pitr/</guid><pubDate>Sun, 10 Jul 2022 19:41:15 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;h2 id="持续归档备份">持续归档备份&lt;/h2>
 &lt;p>pg 有三种基本的备份方式：&lt;/p>
 &lt;ul>
 &lt;li>利用 &lt;code>pg_dump&lt;/code> 进行 sql dump，属于逻辑备份无法恢复到指定状态。&lt;/li>
