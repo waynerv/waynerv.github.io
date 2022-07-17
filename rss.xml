@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.100.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sun, 17 Jul 2022 01:50:09 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.com/rss.xml"/><item><title>如何优化 docker 镜像体积</title><link>https://waynerv.com/posts/how-to-reduce-docker-image-size/</link><guid isPermaLink="true">https://waynerv.com/posts/how-to-reduce-docker-image-size/</guid><pubDate>Sun, 17 Jul 2022 09:29:18 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近在接手一个新项目后，将原本 1.6GB 的镜像精简到了 600 多MB，直接进入了贤者时间，特地记录下优化过程中总结的一些经验。&lt;/p>
+<?xml version="1.0" encoding="utf-8"?><rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Shall We Code?</title><link>https://waynerv.com/</link><description>分享后端工作中的所思所得，涉及的领域包括但不限于：Python, Go, Linux, Kubernetes, Container, Git, Github 等</description><generator>Hugo 0.100.1 https://gohugo.io/</generator><language>zh-CN</language><managingEditor>ampedee@gmail.com (Waynerv)</managingEditor><webMaster>ampedee@gmail.com (Waynerv)</webMaster><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><lastBuildDate>Sun, 17 Jul 2022 07:12:25 +0000</lastBuildDate><atom:link rel="self" type="application/rss+xml" href="https://waynerv.com/rss.xml"/><item><title>如何优化 docker 镜像体积</title><link>https://waynerv.com/posts/how-to-reduce-docker-image-size/</link><guid isPermaLink="true">https://waynerv.com/posts/how-to-reduce-docker-image-size/</guid><pubDate>Sun, 17 Jul 2022 09:29:18 +0800</pubDate><author>ampedee@gmail.com (Waynerv)</author><copyright>[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh)</copyright><description>&lt;p>最近在接手一个新项目后，将原本 1.6GB 的镜像精简到了 600 多MB，直接进入了贤者时间，特地记录下优化过程中总结的一些经验。&lt;/p>
 &lt;h2 id="理论依据">理论依据&lt;/h2>
 &lt;p>镜像的本质是镜像层和运行配置文件组成的压缩包，构建镜像是通过运行 Dockerfile 中的 &lt;code>RUN&lt;/code> 、&lt;code>COPY&lt;/code> 和 &lt;code>ADD&lt;/code> 等指令生成镜像层和配置文件的过程。&lt;/p>
 &lt;p>在我去年写的博客 &lt;a href="https://waynerv.com/posts/container-fundamentals-learn-container-with-oci-spec/#%E9%95%9C%E5%83%8F%E8%A7%84%E8%8C%83">容器技术原理(一)：从根本上认识容器镜像 | Shall We Code?&lt;/a> 中，详细解释了镜像组成、联合文件系统及其工作方式等理论，本文不再赘述，只从中提取和镜像体积有关的关键点：&lt;/p>
@@ -66,9 +66,8 @@
 &lt;h2 id="优化技巧">优化技巧&lt;/h2>
 &lt;p>下面介绍一些优化效果比较显著的优化技巧。&lt;/p>
 &lt;h3 id="分阶段构建与从零构建">分阶段构建与从零构建&lt;/h3>
-&lt;p>&lt;strong>分阶段构建&lt;/strong>（multi-stage builds）和&lt;strong>从零构建&lt;/strong>（build from scratch）是优化镜像体积的基本手段和必备技巧。&lt;/p>
-&lt;p>该方法将镜像构建过程区分为构建和运行环境，在构建环境安装编译器等依赖并编译所需的二进制包，然后将其复制到仅包含必要运行依赖的运行环境中。
-该技巧对 golang 这种能够编译静态二进制文件的语言效果尤为明显，我们可以将编译产生的二进制文件放到 &lt;code>scratch&lt;/code> 镜像中运行（&lt;code>scratch&lt;/code> 是一个特殊的空镜像）：&lt;/p>
+&lt;p>&lt;strong>分阶段构建&lt;/strong>（multi-stage builds）和&lt;strong>从零构建&lt;/strong>（build from scratch）是优化镜像体积的基本手段和必备技巧。该技巧将镜像构建过程区分为构建和运行环境，在构建环境安装编译器等依赖并编译所需的二进制包，然后将其复制到仅包含必要运行依赖的运行环境中。&lt;/p>
+&lt;p>对 golang 这类能够编译静态二进制文件的语言来说分阶段构建的效果尤为明显，我们可以将编译产生的二进制文件放到 &lt;code>scratch&lt;/code> 镜像中运行（&lt;code>scratch&lt;/code> 是一个特殊的空镜像）：&lt;/p>
 &lt;div class="highlight">&lt;div class="chroma">
 &lt;table class="lntable">&lt;tr>&lt;td class="lntd">
 &lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
@@ -93,6 +92,7 @@
 &lt;/div>
 &lt;/div>&lt;p>如果直接使用 golang 镜像作为运行环境，其镜像体积通常接近 1 个 G，其中大部分文件都不是在运行容器时所必要的。
 将编译结果拷贝到运行环境后，体积只有几十 kb~mb 不等，如果需要在运行容器中保留基本的系统工具，可以考虑使用 alpine 镜像作为运行环境。&lt;/p>
+&lt;p>关于分阶段构建和从零构建的更多细节可参考 Docker 官方文档中的 &lt;a href="https://docs.docker.com/develop/develop-images/multistage-build/">Use multi-stage builds&lt;/a> 和 &lt;a href="https://docs.docker.com/develop/develop-images/baseimages/#create-a-simple-parent-image-using-scratch">Create a simple parent image using scratch&lt;/a>。&lt;/p>
 &lt;h3 id="避免产生无用的文档或缓存">避免产生无用的文档或缓存&lt;/h3>
 &lt;p>docker 镜像不应该包含文档、缓存等对运行容器没有作用的内容。&lt;/p>
 &lt;ol>
